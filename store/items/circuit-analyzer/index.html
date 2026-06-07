@@ -1,0 +1,824 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Circuit Diagram Analyzer | FreeChipStore</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    background: #0f0a0a;
+    color: #e0d4d4;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+  }
+  header {
+    background: linear-gradient(135deg, #1a0f0f 0%, #3b1515 100%);
+    border-bottom: 1px solid #ef444433;
+    padding: 16px 24px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  header .logo {
+    width: 36px; height: 36px;
+    background: #ef4444;
+    border-radius: 8px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 16px; font-weight: 700; color: #fff;
+  }
+  header h1 { font-size: 18px; font-weight: 600; color: #fca5a5; }
+  header .subtitle { font-size: 12px; color: #8a5a5a; margin-left: auto; }
+  .toolbar {
+    background: #1a0f0f;
+    border-bottom: 1px solid #ffffff0d;
+    padding: 10px 24px;
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+    align-items: center;
+  }
+  .tool-btn {
+    background: #251515;
+    border: 1px solid #3a2525;
+    color: #e0b4b4;
+    padding: 7px 14px;
+    border-radius: 8px;
+    font-size: 12px;
+    cursor: pointer;
+    transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .tool-btn:hover { background: #351c1c; border-color: #ef4444; }
+  .tool-btn.active { background: #ef4444; color: #fff; border-color: #ef4444; }
+  .tool-btn .icon { font-size: 14px; }
+  .sep { width: 1px; height: 28px; background: #3a2525; margin: 0 4px; }
+  .btn {
+    background: #ef4444;
+    color: #fff;
+    border: none;
+    padding: 8px 16px;
+    border-radius: 8px;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.2s;
+  }
+  .btn:hover { background: #dc2626; }
+  .btn.secondary {
+    background: #251515;
+    border: 1px solid #3a2525;
+    color: #fca5a5;
+  }
+  .btn.secondary:hover { background: #351c1c; }
+  .container {
+    flex: 1;
+    display: flex;
+    gap: 20px;
+    padding: 20px 24px;
+    max-width: 1400px;
+    width: 100%;
+    margin: 0 auto;
+    min-height: 0;
+  }
+  .canvas-panel {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+  }
+  .canvas-wrap {
+    flex: 1;
+    background: #1a0f0f;
+    border: 1px solid #3a2525;
+    border-radius: 12px;
+    overflow: hidden;
+    position: relative;
+    cursor: crosshair;
+  }
+  .canvas-wrap canvas {
+    display: block;
+    width: 100%;
+    height: 100%;
+  }
+  .canvas-info {
+    position: absolute;
+    bottom: 8px;
+    left: 12px;
+    background: #0008;
+    color: #fca5a5;
+    font-size: 11px;
+    padding: 3px 10px;
+    border-radius: 6px;
+  }
+  .side-panel {
+    width: 300px;
+    flex-shrink: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    overflow-y: auto;
+    max-height: calc(100vh - 140px);
+  }
+  .card {
+    background: #1a0f0f;
+    border: 1px solid #3a2525;
+    border-radius: 12px;
+    padding: 16px;
+  }
+  .card h3 {
+    font-size: 13px;
+    font-weight: 600;
+    color: #fca5a5;
+    margin-bottom: 12px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+  .stat-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+  }
+  .stat-box {
+    background: #251515;
+    border-radius: 8px;
+    padding: 10px;
+    text-align: center;
+  }
+  .stat-box .num {
+    font-size: 24px;
+    font-weight: 700;
+    color: #ef4444;
+  }
+  .stat-box .label {
+    font-size: 11px;
+    color: #8a5a5a;
+    margin-top: 2px;
+  }
+  .netlist {
+    background: #0f0808;
+    border: 1px solid #3a2525;
+    border-radius: 8px;
+    padding: 12px;
+    font-family: 'SF Mono', Menlo, monospace;
+    font-size: 12px;
+    color: #e0b4b4;
+    max-height: 200px;
+    overflow-y: auto;
+    white-space: pre;
+    line-height: 1.6;
+  }
+  .component-list {
+    max-height: 180px;
+    overflow-y: auto;
+  }
+  .comp-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 6px 8px;
+    border-bottom: 1px solid #ffffff08;
+    font-size: 12px;
+  }
+  .comp-item:last-child { border-bottom: none; }
+  .comp-item .type-badge {
+    padding: 2px 8px;
+    border-radius: 10px;
+    font-size: 10px;
+    font-weight: 600;
+  }
+  .badge-wire { background: #ef444433; color: #fca5a5; }
+  .badge-resistor { background: #f59e0b33; color: #fbbf24; }
+  .badge-capacitor { background: #3b82f633; color: #93c5fd; }
+  .badge-gnd { background: #10b98133; color: #6ee7b7; }
+  .badge-source { background: #8b5cf633; color: #c4b5fd; }
+  .badge-opamp { background: #ec489933; color: #f9a8d4; }
+  .badge-junction { background: #06b6d433; color: #67e8f9; }
+  .badge-label { background: #6b728033; color: #d1d5db; }
+  .example-btn {
+    display: block;
+    width: 100%;
+    text-align: left;
+    background: #251515;
+    border: 1px solid #3a2525;
+    color: #e0b4b4;
+    padding: 10px 14px;
+    border-radius: 8px;
+    font-size: 13px;
+    cursor: pointer;
+    margin-bottom: 8px;
+    transition: all 0.2s;
+  }
+  .example-btn:hover { background: #351c1c; border-color: #ef4444; }
+  .example-btn small { display: block; color: #8a5a5a; font-size: 11px; margin-top: 2px; }
+  .color-preview {
+    display: inline-block;
+    width: 14px; height: 14px;
+    border-radius: 3px;
+    vertical-align: middle;
+    margin-right: 4px;
+    border: 1px solid #3a2525;
+  }
+  select {
+    background: #251515;
+    border: 1px solid #3a2525;
+    color: #e0b4b4;
+    padding: 6px 10px;
+    border-radius: 6px;
+    font-size: 12px;
+    cursor: pointer;
+  }
+  @media (max-width: 900px) {
+    .container { flex-direction: column; }
+    .side-panel { width: 100%; max-height: none; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">C</div>
+  <h1>Circuit Diagram Analyzer</h1>
+  <span class="subtitle">FreeChipStore</span>
+</header>
+
+<div class="toolbar">
+  <button class="tool-btn active" data-tool="wire" onclick="selectTool('wire')"><span class="icon">/</span> Wire</button>
+  <button class="tool-btn" data-tool="resistor" onclick="selectTool('resistor')"><span class="icon">~</span> Resistor</button>
+  <button class="tool-btn" data-tool="capacitor" onclick="selectTool('capacitor')"><span class="icon">||</span> Capacitor</button>
+  <button class="tool-btn" data-tool="ground" onclick="selectTool('ground')"><span class="icon">&perp;</span> Ground</button>
+  <button class="tool-btn" data-tool="source" onclick="selectTool('source')"><span class="icon">V</span> Source</button>
+  <button class="tool-btn" data-tool="opamp" onclick="selectTool('opamp')"><span class="icon">&gt;</span> Op-Amp</button>
+  <button class="tool-btn" data-tool="junction" onclick="selectTool('junction')"><span class="icon">&bull;</span> Junction</button>
+  <button class="tool-btn" data-tool="label" onclick="selectTool('label')"><span class="icon">A</span> Label</button>
+  <div class="sep"></div>
+  <button class="btn" onclick="analyze()">Analyze</button>
+  <button class="btn secondary" onclick="clearCanvas()">Clear</button>
+  <button class="btn secondary" onclick="undoLast()">Undo</button>
+</div>
+
+<div class="container">
+  <div class="canvas-panel">
+    <div class="canvas-wrap" id="canvasWrap">
+      <canvas id="mainCanvas"></canvas>
+      <div class="canvas-info" id="canvasInfo">Click and drag to draw</div>
+    </div>
+  </div>
+
+  <div class="side-panel">
+    <div class="card">
+      <h3>Examples</h3>
+      <button class="example-btn" onclick="loadExample('divider')">
+        Voltage Divider
+        <small>2 resistors, 1 source, basic node analysis</small>
+      </button>
+      <button class="example-btn" onclick="loadExample('rcfilter')">
+        RC Low-Pass Filter
+        <small>Resistor + capacitor, frequency response</small>
+      </button>
+      <button class="example-btn" onclick="loadExample('inverter')">
+        Inverting Op-Amp
+        <small>Op-amp with feedback resistors</small>
+      </button>
+    </div>
+
+    <div class="card">
+      <h3>Analysis</h3>
+      <div class="stat-grid" id="statsGrid">
+        <div class="stat-box"><div class="num" id="wireCount">0</div><div class="label">Wires</div></div>
+        <div class="stat-box"><div class="num" id="compCount">0</div><div class="label">Components</div></div>
+        <div class="stat-box"><div class="num" id="nodeCount">0</div><div class="label">Nodes</div></div>
+        <div class="stat-box"><div class="num" id="juncCount">0</div><div class="label">Junctions</div></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h3>Components</h3>
+      <div class="component-list" id="compList">
+        <div class="comp-item" style="color:#8a5a5a">Draw or load an example</div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h3>Netlist</h3>
+      <div class="netlist" id="netlist">* No circuit to analyze</div>
+    </div>
+  </div>
+</div>
+
+<script>
+const canvas = document.getElementById('mainCanvas');
+const ctx = canvas.getContext('2d');
+const wrap = document.getElementById('canvasWrap');
+
+let currentTool = 'wire';
+let elements = [];
+let drawing = false;
+let startX = 0, startY = 0;
+let nextId = 1;
+let analyzed = false;
+
+const GRID = 20;
+const COLORS = {
+  wire: '#fca5a5',
+  resistor: '#fbbf24',
+  capacitor: '#93c5fd',
+  ground: '#6ee7b7',
+  source: '#c4b5fd',
+  opamp: '#f9a8d4',
+  junction: '#67e8f9',
+  label: '#d1d5db',
+  node: '#ef4444',
+  highlight: '#ef444466'
+};
+
+function resizeCanvas() {
+  const rect = wrap.getBoundingClientRect();
+  canvas.width = rect.width;
+  canvas.height = rect.height;
+  redraw();
+}
+window.addEventListener('resize', resizeCanvas);
+setTimeout(resizeCanvas, 50);
+
+function snap(v) { return Math.round(v / GRID) * GRID; }
+
+function getPos(e) {
+  const rect = canvas.getBoundingClientRect();
+  const scaleX = canvas.width / rect.width;
+  const scaleY = canvas.height / rect.height;
+  return {
+    x: snap((e.clientX - rect.left) * scaleX),
+    y: snap((e.clientY - rect.top) * scaleY)
+  };
+}
+
+function selectTool(tool) {
+  currentTool = tool;
+  document.querySelectorAll('.tool-btn[data-tool]').forEach(b => {
+    b.classList.toggle('active', b.dataset.tool === tool);
+  });
+}
+
+canvas.addEventListener('mousedown', e => {
+  const pos = getPos(e);
+  startX = pos.x;
+  startY = pos.y;
+
+  if (currentTool === 'junction') {
+    elements.push({ id: nextId++, type: 'junction', x: pos.x, y: pos.y });
+    analyzed = false;
+    redraw();
+    return;
+  }
+  if (currentTool === 'label') {
+    const text = prompt('Enter label:');
+    if (text) {
+      elements.push({ id: nextId++, type: 'label', x: pos.x, y: pos.y, text });
+      analyzed = false;
+      redraw();
+    }
+    return;
+  }
+  drawing = true;
+});
+
+canvas.addEventListener('mousemove', e => {
+  const pos = getPos(e);
+  document.getElementById('canvasInfo').textContent = `(${pos.x}, ${pos.y}) | Tool: ${currentTool}`;
+  if (!drawing) return;
+  redraw();
+  ctx.strokeStyle = COLORS[currentTool] + '88';
+  ctx.lineWidth = 2;
+  ctx.setLineDash([5, 5]);
+  ctx.beginPath();
+  ctx.moveTo(startX, startY);
+  ctx.lineTo(pos.x, pos.y);
+  ctx.stroke();
+  ctx.setLineDash([]);
+});
+
+canvas.addEventListener('mouseup', e => {
+  if (!drawing) return;
+  drawing = false;
+  const pos = getPos(e);
+  if (Math.abs(pos.x - startX) < 5 && Math.abs(pos.y - startY) < 5) return;
+
+  elements.push({
+    id: nextId++,
+    type: currentTool,
+    x1: startX, y1: startY,
+    x2: pos.x, y2: pos.y
+  });
+  analyzed = false;
+  redraw();
+  updateCounts();
+});
+
+function drawGrid() {
+  ctx.strokeStyle = '#1a1010';
+  ctx.lineWidth = 0.5;
+  for (let x = 0; x <= canvas.width; x += GRID) {
+    ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, canvas.height); ctx.stroke();
+  }
+  for (let y = 0; y <= canvas.height; y += GRID) {
+    ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(canvas.width, y); ctx.stroke();
+  }
+}
+
+function drawElement(el, highlight) {
+  ctx.lineWidth = highlight ? 3 : 2;
+
+  if (el.type === 'junction') {
+    ctx.fillStyle = highlight ? COLORS.node : COLORS.junction;
+    ctx.beginPath();
+    ctx.arc(el.x, el.y, highlight ? 6 : 5, 0, Math.PI * 2);
+    ctx.fill();
+    return;
+  }
+
+  if (el.type === 'label') {
+    ctx.fillStyle = COLORS.label;
+    ctx.font = '14px -apple-system, sans-serif';
+    ctx.fillText(el.text, el.x, el.y);
+    return;
+  }
+
+  const { x1, y1, x2, y2 } = el;
+  const dx = x2 - x1, dy = y2 - y1;
+  const len = Math.sqrt(dx * dx + dy * dy);
+  const ux = dx / len, uy = dy / len;
+  const px = -uy, py = ux;
+
+  ctx.strokeStyle = highlight ? COLORS.node : COLORS[el.type];
+
+  if (el.type === 'wire') {
+    ctx.beginPath();
+    ctx.moveTo(x1, y1);
+    ctx.lineTo(x2, y2);
+    ctx.stroke();
+    ctx.fillStyle = COLORS.wire;
+    ctx.beginPath(); ctx.arc(x1, y1, 3, 0, Math.PI * 2); ctx.fill();
+    ctx.beginPath(); ctx.arc(x2, y2, 3, 0, Math.PI * 2); ctx.fill();
+  }
+  else if (el.type === 'resistor') {
+    const seg = len / 8;
+    ctx.beginPath();
+    ctx.moveTo(x1, y1);
+    ctx.lineTo(x1 + ux * seg * 2, y1 + uy * seg * 2);
+    for (let i = 0; i < 4; i++) {
+      const t = (2.5 + i) * seg;
+      const side = (i % 2 === 0 ? 1 : -1) * 8;
+      ctx.lineTo(x1 + ux * t + px * side, y1 + uy * t + py * side);
+    }
+    ctx.lineTo(x1 + ux * seg * 6, y1 + uy * seg * 6);
+    ctx.lineTo(x2, y2);
+    ctx.stroke();
+    ctx.fillStyle = COLORS.resistor;
+    ctx.font = '11px monospace';
+    ctx.fillText('R' + el.id, (x1 + x2) / 2 + px * 16, (y1 + y2) / 2 + py * 16);
+  }
+  else if (el.type === 'capacitor') {
+    const mx = (x1 + x2) / 2, my = (y1 + y2) / 2;
+    const gap = 6;
+    ctx.beginPath();
+    ctx.moveTo(x1, y1);
+    ctx.lineTo(mx - ux * gap, my - uy * gap);
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.moveTo(mx + ux * gap, my + uy * gap);
+    ctx.lineTo(x2, y2);
+    ctx.stroke();
+    ctx.lineWidth = 3;
+    ctx.beginPath();
+    ctx.moveTo(mx - ux * gap + px * 12, my - uy * gap + py * 12);
+    ctx.lineTo(mx - ux * gap - px * 12, my - uy * gap - py * 12);
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.moveTo(mx + ux * gap + px * 12, my + uy * gap + py * 12);
+    ctx.lineTo(mx + ux * gap - px * 12, my + uy * gap - py * 12);
+    ctx.stroke();
+    ctx.lineWidth = 2;
+    ctx.fillStyle = COLORS.capacitor;
+    ctx.font = '11px monospace';
+    ctx.fillText('C' + el.id, mx + px * 18, my + py * 18);
+  }
+  else if (el.type === 'ground') {
+    ctx.beginPath();
+    ctx.moveTo(x1, y1);
+    ctx.lineTo(x2, y2);
+    ctx.stroke();
+    const gx = x2, gy = y2;
+    for (let i = 0; i < 3; i++) {
+      const w = 14 - i * 4;
+      const offset = i * 5;
+      ctx.beginPath();
+      ctx.moveTo(gx + px * w - ux * offset, gy + py * w - uy * offset);
+      ctx.lineTo(gx - px * w - ux * offset, gy - py * w - uy * offset);
+      ctx.stroke();
+    }
+  }
+  else if (el.type === 'source') {
+    const mx = (x1 + x2) / 2, my = (y1 + y2) / 2;
+    const r = Math.min(len * 0.3, 20);
+    ctx.beginPath();
+    ctx.moveTo(x1, y1);
+    ctx.lineTo(mx - ux * r, my - uy * r);
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.moveTo(mx + ux * r, my + uy * r);
+    ctx.lineTo(x2, y2);
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.arc(mx, my, r, 0, Math.PI * 2);
+    ctx.stroke();
+    ctx.fillStyle = COLORS.source;
+    ctx.font = 'bold 12px monospace';
+    ctx.fillText('+', mx - ux * r * 0.5 - 4, my - uy * r * 0.5 + 4);
+    ctx.fillText('-', mx + ux * r * 0.5 - 3, my + uy * r * 0.5 + 4);
+    ctx.font = '11px monospace';
+    ctx.fillText('V' + el.id, mx + px * (r + 10), my + py * (r + 10));
+  }
+  else if (el.type === 'opamp') {
+    const mx = (x1 + x2) / 2, my = (y1 + y2) / 2;
+    const sz = Math.min(len * 0.4, 30);
+    ctx.beginPath();
+    ctx.moveTo(mx - ux * sz + px * sz, my - uy * sz + py * sz);
+    ctx.lineTo(mx + ux * sz, my + uy * sz);
+    ctx.lineTo(mx - ux * sz - px * sz, my - uy * sz - py * sz);
+    ctx.closePath();
+    ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(x1, y1); ctx.lineTo(mx - ux * sz, my - uy * sz); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(mx + ux * sz, my + uy * sz); ctx.lineTo(x2, y2); ctx.stroke();
+    ctx.fillStyle = COLORS.opamp;
+    ctx.font = '11px monospace';
+    ctx.fillText('U' + el.id, mx + px * 18, my + py * 18);
+  }
+}
+
+function redraw() {
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  drawGrid();
+  for (const el of elements) {
+    drawElement(el, false);
+  }
+}
+
+function clearCanvas() {
+  elements = [];
+  nextId = 1;
+  analyzed = false;
+  redraw();
+  updateCounts();
+  document.getElementById('compList').innerHTML = '<div class="comp-item" style="color:#8a5a5a">Draw or load an example</div>';
+  document.getElementById('netlist').textContent = '* No circuit to analyze';
+}
+
+function undoLast() {
+  if (elements.length === 0) return;
+  elements.pop();
+  analyzed = false;
+  redraw();
+  updateCounts();
+}
+
+function updateCounts() {
+  const wires = elements.filter(e => e.type === 'wire').length;
+  const comps = elements.filter(e => ['resistor', 'capacitor', 'source', 'opamp'].includes(e.type)).length;
+  const juncs = elements.filter(e => e.type === 'junction').length;
+  const gnds = elements.filter(e => e.type === 'ground').length;
+
+  document.getElementById('wireCount').textContent = wires;
+  document.getElementById('compCount').textContent = comps;
+  document.getElementById('juncCount').textContent = juncs;
+  document.getElementById('nodeCount').textContent = gnds;
+}
+
+function analyze() {
+  if (elements.length === 0) return;
+
+  // Find nodes: endpoints that are close together form a net
+  const endpoints = [];
+  for (const el of elements) {
+    if (el.type === 'junction') {
+      endpoints.push({ x: el.x, y: el.y, el, end: 'center' });
+    } else if (el.type === 'label') {
+      continue;
+    } else if (el.x1 != null) {
+      endpoints.push({ x: el.x1, y: el.y1, el, end: 'start' });
+      endpoints.push({ x: el.x2, y: el.y2, el, end: 'end' });
+    }
+  }
+
+  // Cluster endpoints into nodes (within GRID distance)
+  const THRESH = GRID * 1.5;
+  const nodeAssign = new Array(endpoints.length).fill(-1);
+  let nodeId = 0;
+
+  for (let i = 0; i < endpoints.length; i++) {
+    if (nodeAssign[i] >= 0) continue;
+    nodeAssign[i] = nodeId;
+    for (let j = i + 1; j < endpoints.length; j++) {
+      if (nodeAssign[j] >= 0) continue;
+      const dx = endpoints[i].x - endpoints[j].x;
+      const dy = endpoints[i].y - endpoints[j].y;
+      if (Math.sqrt(dx * dx + dy * dy) <= THRESH) {
+        nodeAssign[j] = nodeId;
+      }
+    }
+    nodeId++;
+  }
+
+  // Propagate: merge nodes connected by wires or junctions
+  let changed = true;
+  while (changed) {
+    changed = false;
+    for (let i = 0; i < endpoints.length; i++) {
+      for (let j = i + 1; j < endpoints.length; j++) {
+        if (nodeAssign[i] === nodeAssign[j]) continue;
+        const dx = endpoints[i].x - endpoints[j].x;
+        const dy = endpoints[i].y - endpoints[j].y;
+        if (Math.sqrt(dx * dx + dy * dy) <= THRESH) {
+          const oldNode = nodeAssign[j];
+          const newNode = nodeAssign[i];
+          for (let k = 0; k < nodeAssign.length; k++) {
+            if (nodeAssign[k] === oldNode) nodeAssign[k] = newNode;
+          }
+          changed = true;
+        }
+      }
+    }
+  }
+
+  // Compact node IDs
+  const nodeMap = {};
+  let compactId = 0;
+  for (let i = 0; i < nodeAssign.length; i++) {
+    if (!(nodeAssign[i] in nodeMap)) nodeMap[nodeAssign[i]] = compactId++;
+    nodeAssign[i] = nodeMap[nodeAssign[i]];
+  }
+
+  // Build element-to-node mapping
+  const elNodes = new Map();
+  for (let i = 0; i < endpoints.length; i++) {
+    const el = endpoints[i].el;
+    const end = endpoints[i].end;
+    if (!elNodes.has(el.id)) elNodes.set(el.id, {});
+    elNodes.get(el.id)[end] = nodeAssign[i];
+  }
+
+  // Highlight nodes
+  redraw();
+  const nodePositions = {};
+  for (let i = 0; i < endpoints.length; i++) {
+    const n = nodeAssign[i];
+    if (!nodePositions[n]) nodePositions[n] = [];
+    nodePositions[n].push(endpoints[i]);
+  }
+
+  const nodeColors = ['#ef4444', '#f59e0b', '#3b82f6', '#10b981', '#8b5cf6', '#ec4899', '#06b6d4', '#84cc16'];
+  for (const [nid, pts] of Object.entries(nodePositions)) {
+    const col = nodeColors[nid % nodeColors.length];
+    for (const p of pts) {
+      ctx.fillStyle = col + '88';
+      ctx.beginPath();
+      ctx.arc(p.x, p.y, 8, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = '#fff';
+      ctx.font = 'bold 10px monospace';
+      ctx.fillText('N' + nid, p.x + 10, p.y - 6);
+    }
+  }
+
+  // Update stats
+  const uniqueNodes = new Set(nodeAssign).size;
+  document.getElementById('nodeCount').textContent = uniqueNodes;
+  updateCounts();
+
+  // Component list
+  const compItems = elements.filter(e => e.type !== 'label');
+  const badgeClasses = { wire: 'badge-wire', resistor: 'badge-resistor', capacitor: 'badge-capacitor',
+    ground: 'badge-gnd', source: 'badge-source', opamp: 'badge-opamp', junction: 'badge-junction' };
+  const prefixes = { wire: 'W', resistor: 'R', capacitor: 'C', ground: 'GND', source: 'V', opamp: 'U', junction: 'J' };
+
+  let listHtml = '';
+  for (const el of compItems) {
+    const badge = badgeClasses[el.type] || 'badge-wire';
+    const prefix = prefixes[el.type] || '?';
+    const nodes = elNodes.get(el.id);
+    let nodeStr = '';
+    if (nodes) {
+      if (nodes.center != null) nodeStr = `N${nodes.center}`;
+      else if (nodes.start != null && nodes.end != null) nodeStr = `N${nodes.start}-N${nodes.end}`;
+    }
+    listHtml += `<div class="comp-item"><span>${prefix}${el.id} <span style="color:#8a5a5a">${nodeStr}</span></span><span class="type-badge ${badge}">${el.type}</span></div>`;
+  }
+  document.getElementById('compList').innerHTML = listHtml || '<div class="comp-item" style="color:#8a5a5a">No components</div>';
+
+  // Netlist
+  let netlistStr = '* Circuit Netlist\n* Generated by FreeChipStore Analyzer\n\n';
+  for (const el of elements) {
+    if (el.type === 'label' || el.type === 'junction') continue;
+    const nodes = elNodes.get(el.id);
+    if (!nodes) continue;
+    const prefix = prefixes[el.type] || 'X';
+    const n1 = nodes.start != null ? nodes.start : '?';
+    const n2 = nodes.end != null ? nodes.end : '?';
+
+    if (el.type === 'wire') {
+      netlistStr += `* Wire ${el.id}: N${n1} -- N${n2}\n`;
+    } else if (el.type === 'resistor') {
+      netlistStr += `R${el.id} N${n1} N${n2} 1k\n`;
+    } else if (el.type === 'capacitor') {
+      netlistStr += `C${el.id} N${n1} N${n2} 100n\n`;
+    } else if (el.type === 'source') {
+      netlistStr += `V${el.id} N${n1} N${n2} DC 5\n`;
+    } else if (el.type === 'opamp') {
+      netlistStr += `U${el.id} N${n1} N${n2} OPAMP\n`;
+    } else if (el.type === 'ground') {
+      netlistStr += `* GND${el.id}: N${n1} -- N${n2} (0V ref)\n`;
+    }
+  }
+  netlistStr += '\n.end';
+  document.getElementById('netlist').textContent = netlistStr;
+  analyzed = true;
+}
+
+// Example circuits
+function loadExample(name) {
+  clearCanvas();
+  const cx = canvas.width / 2, cy = canvas.height / 2;
+  const G = GRID;
+
+  if (name === 'divider') {
+    // Voltage source on left, 2 resistors in series, ground at bottom
+    const left = cx - 8 * G, right = cx + 4 * G;
+    const top = cy - 6 * G, mid = cy, bot = cy + 6 * G;
+
+    elements.push({ id: nextId++, type: 'source', x1: left, y1: bot, x2: left, y2: top });
+    elements.push({ id: nextId++, type: 'wire', x1: left, y1: top, x2: right, y2: top });
+    elements.push({ id: nextId++, type: 'resistor', x1: right, y1: top, x2: right, y2: mid });
+    elements.push({ id: nextId++, type: 'junction', x: right, y: mid });
+    elements.push({ id: nextId++, type: 'resistor', x1: right, y1: mid, x2: right, y2: bot });
+    elements.push({ id: nextId++, type: 'wire', x1: right, y1: bot, x2: left, y2: bot });
+    elements.push({ id: nextId++, type: 'ground', x1: (left + right) / 2, y1: bot, x2: (left + right) / 2, y2: bot + 3 * G });
+    // Output label
+    elements.push({ id: nextId++, type: 'wire', x1: right, y1: mid, x2: right + 4 * G, y2: mid });
+    elements.push({ id: nextId++, type: 'label', x: right + 4 * G + 8, y: mid + 4, text: 'Vout' });
+    elements.push({ id: nextId++, type: 'label', x: left - 3 * G, y: cy, text: 'Vin' });
+  }
+  else if (name === 'rcfilter') {
+    const left = cx - 8 * G, mid = cx, right = cx + 6 * G;
+    const top = cy - 4 * G, bot = cy + 4 * G;
+
+    elements.push({ id: nextId++, type: 'source', x1: left, y1: bot, x2: left, y2: top });
+    elements.push({ id: nextId++, type: 'resistor', x1: left, y1: top, x2: mid, y2: top });
+    elements.push({ id: nextId++, type: 'junction', x: mid, y: top });
+    elements.push({ id: nextId++, type: 'capacitor', x1: mid, y1: top, x2: mid, y2: bot });
+    elements.push({ id: nextId++, type: 'wire', x1: mid, y1: bot, x2: left, y2: bot });
+    elements.push({ id: nextId++, type: 'ground', x1: left, y1: bot, x2: left, y2: bot + 3 * G });
+    elements.push({ id: nextId++, type: 'wire', x1: mid, y1: top, x2: right, y2: top });
+    elements.push({ id: nextId++, type: 'label', x: right + 8, y: top + 4, text: 'Vout' });
+    elements.push({ id: nextId++, type: 'label', x: left - 3 * G, y: cy, text: 'Vin' });
+  }
+  else if (name === 'inverter') {
+    const opx = cx, opy = cy;
+    const left = cx - 10 * G, right = cx + 8 * G;
+    const top = cy - 6 * G, bot = cy + 4 * G;
+
+    // Input resistor
+    elements.push({ id: nextId++, type: 'resistor', x1: left, y1: opy - 2 * G, x2: opx - 4 * G, y2: opy - 2 * G });
+    // Feedback resistor (top)
+    elements.push({ id: nextId++, type: 'resistor', x1: opx - 4 * G, y1: top, x2: opx + 4 * G, y2: top });
+    // Op-amp
+    elements.push({ id: nextId++, type: 'opamp', x1: opx - 4 * G, y1: opy, x2: opx + 4 * G, y2: opy });
+    // Wires connecting
+    elements.push({ id: nextId++, type: 'wire', x1: opx - 4 * G, y1: opy - 2 * G, x2: opx - 4 * G, y2: top });
+    elements.push({ id: nextId++, type: 'junction', x: opx - 4 * G, y: opy - 2 * G });
+    elements.push({ id: nextId++, type: 'wire', x1: opx + 4 * G, y1: opy, x2: opx + 4 * G, y2: top });
+    elements.push({ id: nextId++, type: 'junction', x: opx + 4 * G, y: opy });
+    elements.push({ id: nextId++, type: 'wire', x1: opx + 4 * G, y1: opy, x2: right, y2: opy });
+    // Non-inverting input to ground
+    elements.push({ id: nextId++, type: 'wire', x1: opx - 4 * G, y1: opy + 2 * G, x2: opx - 4 * G, y2: bot });
+    elements.push({ id: nextId++, type: 'ground', x1: opx - 4 * G, y1: bot, x2: opx - 4 * G, y2: bot + 3 * G });
+    // Labels
+    elements.push({ id: nextId++, type: 'label', x: left - G, y: opy - 2 * G + 4, text: 'Vin' });
+    elements.push({ id: nextId++, type: 'label', x: right + 8, y: opy + 4, text: 'Vout' });
+    elements.push({ id: nextId++, type: 'label', x: opx - 2 * G, y: top - 8, text: 'Rf' });
+    elements.push({ id: nextId++, type: 'label', x: left + 2 * G, y: opy - 2 * G - 8, text: 'Rin' });
+  }
+
+  redraw();
+  updateCounts();
+}
+
+// Initialize with voltage divider example
+setTimeout(() => { resizeCanvas(); loadExample('divider'); }, 100);
+</script>
+
+</body>
+</html>

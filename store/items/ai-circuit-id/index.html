@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AI Circuit Classifier - FreeChipStore</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:#0a0a0a;color:#e5e5e5;font-family:system-ui,-apple-system,sans-serif;min-height:100vh;display:flex;flex-direction:column;align-items:center}
+header{width:100%;padding:16px 24px;display:flex;align-items:center;gap:12px;border-bottom:1px solid #222}
+header span.logo{font-size:20px}
+header h1{font-size:18px;font-weight:600;color:#ef4444}
+header small{color:#777;margin-left:auto;font-size:13px}
+.container{max-width:900px;width:100%;padding:24px;display:flex;flex-direction:column;gap:20px}
+h2{font-size:15px;color:#aaa;font-weight:500;margin-bottom:8px}
+.row{display:flex;gap:20px;flex-wrap:wrap}
+.panel{background:#141414;border:1px solid #262626;border-radius:10px;padding:20px;flex:1;min-width:300px}
+canvas{border:1px solid #333;border-radius:6px;cursor:crosshair;display:block;background:#000}
+.btn-row{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}
+button{background:#262626;color:#e5e5e5;border:1px solid #333;padding:8px 14px;border-radius:6px;cursor:pointer;font-size:13px;transition:background .15s}
+button:hover{background:#333}
+button.primary{background:#ef4444;border-color:#ef4444;color:#fff}
+button.primary:hover{background:#dc2626}
+button.preset{font-size:11px;padding:5px 10px}
+.results{margin-top:16px}
+.bar-row{display:flex;align-items:center;gap:10px;margin:6px 0}
+.bar-label{width:90px;font-size:13px;color:#ccc;text-align:right}
+.bar-track{flex:1;height:22px;background:#1a1a1a;border-radius:4px;overflow:hidden;position:relative}
+.bar-fill{height:100%;background:#ef4444;border-radius:4px;transition:width .4s ease}
+.bar-val{position:absolute;right:6px;top:2px;font-size:12px;color:#fff}
+.status{font-size:13px;color:#888;margin-top:10px;min-height:20px}
+.loading{color:#ef4444;font-style:italic}
+</style>
+</head>
+<body>
+<header>
+<span class="logo">&#x1f532;</span>
+<h1>FreeChipStore</h1>
+<small>AI Circuit Classifier</small>
+</header>
+<div class="container">
+<div class="row">
+<div class="panel">
+<h2>Draw a Circuit Component</h2>
+<canvas id="drawCanvas" width="320" height="320"></canvas>
+<div class="btn-row">
+<button class="primary" id="identifyBtn">Identify</button>
+<button id="clearBtn">Clear</button>
+</div>
+<div class="btn-row">
+<h2 style="width:100%;margin-top:8px">Presets</h2>
+<button class="preset" data-p="and">AND Gate</button>
+<button class="preset" data-p="or">OR Gate</button>
+<button class="preset" data-p="resistor">Resistor</button>
+<button class="preset" data-p="capacitor">Capacitor</button>
+<button class="preset" data-p="opamp">Op-Amp</button>
+<button class="preset" data-p="transistor">Transistor</button>
+</div>
+</div>
+<div class="panel">
+<h2>Classification Results</h2>
+<div class="results" id="results">
+<p style="color:#555;font-size:13px">Draw or select a preset, then click Identify.</p>
+</div>
+<div class="status" id="status"></div>
+</div>
+</div>
+</div>
+<script type="module">
+import { pipeline } from 'https://cdn.jsdelivr.net/npm/@huggingface/transformers@3.5.1';
+
+const canvas = document.getElementById('drawCanvas');
+const ctx = canvas.getContext('2d');
+const statusEl = document.getElementById('status');
+const resultsEl = document.getElementById('results');
+let drawing = false;
+let classifier = null;
+
+const labels = ['AND gate','OR gate','NOT gate','resistor','capacitor','inductor','transistor','op-amp','diode','LED'];
+
+function clearCanvas() {
+  ctx.fillStyle = '#000';
+  ctx.fillRect(0, 0, 320, 320);
+}
+clearCanvas();
+
+canvas.addEventListener('pointerdown', e => { drawing = true; ctx.beginPath(); ctx.moveTo(e.offsetX, e.offsetY); });
+canvas.addEventListener('pointermove', e => {
+  if (!drawing) return;
+  ctx.strokeStyle = '#0f0';
+  ctx.lineWidth = 3;
+  ctx.lineCap = 'round';
+  ctx.lineTo(e.offsetX, e.offsetY);
+  ctx.stroke();
+});
+canvas.addEventListener('pointerup', () => drawing = false);
+canvas.addEventListener('pointerleave', () => drawing = false);
+
+document.getElementById('clearBtn').addEventListener('click', clearCanvas);
+
+// Preset drawings
+const presets = {
+  and(c) {
+    c.strokeStyle='#0f0'; c.lineWidth=3;
+    c.beginPath(); c.moveTo(80,100); c.lineTo(160,100); c.lineTo(160,100);
+    c.arc(160,160,60,-Math.PI/2,Math.PI/2); c.lineTo(80,220); c.closePath(); c.stroke();
+    c.beginPath(); c.moveTo(40,130); c.lineTo(80,130); c.stroke();
+    c.beginPath(); c.moveTo(40,190); c.lineTo(80,190); c.stroke();
+    c.beginPath(); c.moveTo(220,160); c.lineTo(280,160); c.stroke();
+    c.fillStyle='#0f0'; c.font='16px monospace'; c.fillText('AND',120,165);
+  },
+  or(c) {
+    c.strokeStyle='#0f0'; c.lineWidth=3;
+    c.beginPath(); c.moveTo(80,100); c.quadraticCurveTo(120,160,80,220);
+    c.quadraticCurveTo(180,220,240,160); c.quadraticCurveTo(180,100,80,100); c.stroke();
+    c.beginPath(); c.moveTo(40,130); c.lineTo(100,130); c.stroke();
+    c.beginPath(); c.moveTo(40,190); c.lineTo(100,190); c.stroke();
+    c.beginPath(); c.moveTo(240,160); c.lineTo(280,160); c.stroke();
+    c.fillStyle='#0f0'; c.font='16px monospace'; c.fillText('OR',130,165);
+  },
+  resistor(c) {
+    c.strokeStyle='#0f0'; c.lineWidth=3; c.beginPath();
+    c.moveTo(40,160); c.lineTo(80,160);
+    const pts = [[95,120],[115,200],[135,120],[155,200],[175,120],[195,200],[210,160]];
+    for(const [x,y] of pts) c.lineTo(x,y);
+    c.lineTo(280,160); c.stroke();
+    c.fillStyle='#0f0'; c.font='14px monospace'; c.fillText('R',145,110);
+  },
+  capacitor(c) {
+    c.strokeStyle='#0f0'; c.lineWidth=3;
+    c.beginPath(); c.moveTo(40,160); c.lineTo(145,160); c.stroke();
+    c.beginPath(); c.moveTo(145,100); c.lineTo(145,220); c.stroke();
+    c.beginPath(); c.moveTo(175,100); c.lineTo(175,220); c.stroke();
+    c.beginPath(); c.moveTo(175,160); c.lineTo(280,160); c.stroke();
+    c.fillStyle='#0f0'; c.font='14px monospace'; c.fillText('C',152,90);
+  },
+  opamp(c) {
+    c.strokeStyle='#0f0'; c.lineWidth=3;
+    c.beginPath(); c.moveTo(100,80); c.lineTo(100,240); c.lineTo(240,160); c.closePath(); c.stroke();
+    c.beginPath(); c.moveTo(40,120); c.lineTo(100,120); c.stroke();
+    c.beginPath(); c.moveTo(40,200); c.lineTo(100,200); c.stroke();
+    c.beginPath(); c.moveTo(240,160); c.lineTo(280,160); c.stroke();
+    c.fillStyle='#0f0'; c.font='20px monospace'; c.fillText('+',106,208); c.fillText('-',106,128);
+  },
+  transistor(c) {
+    c.strokeStyle='#0f0'; c.lineWidth=3;
+    c.beginPath(); c.moveTo(140,80); c.lineTo(140,240); c.stroke();
+    c.beginPath(); c.moveTo(40,160); c.lineTo(140,160); c.stroke();
+    c.beginPath(); c.moveTo(140,120); c.lineTo(220,80); c.stroke();
+    c.beginPath(); c.moveTo(140,200); c.lineTo(220,240); c.stroke();
+    c.beginPath(); c.moveTo(220,80); c.lineTo(220,40); c.stroke();
+    c.beginPath(); c.moveTo(220,240); c.lineTo(220,280); c.stroke();
+    c.fillStyle='#0f0'; c.font='14px monospace'; c.fillText('NPN',155,165);
+  }
+};
+
+document.querySelectorAll('.preset').forEach(btn => {
+  btn.addEventListener('click', () => {
+    clearCanvas();
+    presets[btn.dataset.p](ctx);
+  });
+});
+
+async function loadModel() {
+  statusEl.textContent = 'Loading CLIP model (first run downloads ~350MB)...';
+  statusEl.className = 'status loading';
+  try {
+    classifier = await pipeline('zero-shot-image-classification', 'Xenova/clip-vit-base-patch32');
+    statusEl.textContent = 'Model loaded. Ready to classify.';
+    statusEl.className = 'status';
+  } catch(e) {
+    statusEl.textContent = 'Error loading model: ' + e.message;
+    statusEl.className = 'status';
+  }
+}
+
+document.getElementById('identifyBtn').addEventListener('click', async () => {
+  if (!classifier) {
+    await loadModel();
+    if (!classifier) return;
+  }
+  statusEl.textContent = 'Classifying...';
+  statusEl.className = 'status loading';
+  try {
+    const url = canvas.toDataURL('image/png');
+    const circuitLabels = labels.map(l => 'a drawing of a ' + l + ' electronic component');
+    const raw = await classifier(url, circuitLabels);
+    statusEl.textContent = 'Done.';
+    statusEl.className = 'status';
+    const sorted = raw.sort((a,b) => b.score - a.score);
+    let html = '';
+    sorted.slice(0, 10).forEach((r, i) => {
+      const pct = (r.score * 100).toFixed(1);
+      const label = labels[circuitLabels.indexOf(r.label)];
+      const isTop = i < 3;
+      html += `<div class="bar-row">
+        <span class="bar-label">${label}</span>
+        <div class="bar-track">
+          <div class="bar-fill" style="width:${pct}%;opacity:${isTop?1:0.4}"></div>
+          <span class="bar-val">${pct}%</span>
+        </div>
+      </div>`;
+    });
+    resultsEl.innerHTML = html;
+  } catch(e) {
+    statusEl.textContent = 'Classification error: ' + e.message;
+    statusEl.className = 'status';
+  }
+});
+
+loadModel();
+</script>
+</body>
+</html>

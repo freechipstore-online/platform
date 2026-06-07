@@ -1,0 +1,704 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Binary Calculator | FreeChipStore</title>
+<style>
+  *{margin:0;padding:0;box-sizing:border-box}
+  body{background:#0a0a0f;color:#e2e2e8;font-family:'Segoe UI',system-ui,sans-serif;min-height:100vh}
+  header{padding:18px 24px;display:flex;align-items:center;gap:12px;border-bottom:1px solid #1e1e2e}
+  header .logo{font-size:24px}
+  header h1{font-size:18px;font-weight:600;color:#fca5a5}
+  header span{font-size:13px;color:#ef4444;margin-left:auto;font-weight:500}
+  .container{max-width:1200px;margin:0 auto;padding:20px;display:grid;grid-template-columns:1fr 1fr;gap:20px}
+  .panel{background:#12121c;border:1px solid #1e1e2e;border-radius:12px;padding:20px}
+  .full{grid-column:1/-1}
+  h2{font-size:14px;font-weight:600;color:#fca5a5;margin-bottom:12px;text-transform:uppercase;letter-spacing:0.5px}
+  h3{font-size:12px;color:#888;margin:10px 0 6px;text-transform:uppercase}
+  button{background:#ef4444;color:#fff;border:none;padding:8px 14px;border-radius:6px;font-size:12px;font-weight:600;cursor:pointer;transition:all 0.15s}
+  button:hover{background:#dc2626}
+  button.secondary{background:#1e1e2e;color:#fca5a5;border:1px solid #2e2e3e}
+  button.secondary:hover{background:#2e2e3e}
+  button.op-btn{min-width:50px;padding:10px 14px;font-family:'Courier New',monospace;font-size:13px}
+  button.op-btn.active{background:#dc2626;box-shadow:0 0 8px #ef444444}
+  .bit-row{display:flex;gap:2px;margin:8px 0}
+  .bit{width:36px;height:36px;display:flex;align-items:center;justify-content:center;background:#0d0d14;border:1px solid #1e1e2e;border-radius:4px;font-family:'Courier New',monospace;font-size:16px;font-weight:700;cursor:pointer;transition:all 0.15s;user-select:none}
+  .bit:hover{border-color:#ef4444}
+  .bit.on{background:#ef444422;color:#fca5a5;border-color:#ef4444}
+  .bit.off{color:#444}
+  .bit-label{display:flex;gap:2px;margin-bottom:2px}
+  .bit-label span{width:36px;text-align:center;font-size:9px;color:#555;font-family:'Courier New',monospace}
+  input[type=text]{background:#0d0d14;border:1px solid #1e1e2e;color:#e2e2e8;padding:10px 14px;border-radius:6px;font-family:'Courier New',monospace;font-size:16px;width:100%}
+  input[type=text]:focus{outline:none;border-color:#ef4444}
+  .mode-toggle{display:flex;gap:4px;margin-bottom:12px}
+  .mode-toggle button{flex:1}
+  .mode-toggle button.active{background:#ef4444}
+  .result-box{background:#0d0d14;border:1px solid #1e1e2e;border-radius:8px;padding:14px;margin:8px 0}
+  .result-box label{font-size:11px;color:#888;text-transform:uppercase;display:block;margin-bottom:4px}
+  .result-box .val{font-family:'Courier New',monospace;font-size:18px;color:#fca5a5;font-weight:700}
+  .ops-grid{display:flex;flex-wrap:wrap;gap:4px}
+  .gate-viz{background:#0d0d14;border:1px solid #1e1e2e;border-radius:8px;padding:16px;min-height:200px}
+  canvas{display:block;width:100%}
+  .ieee-row{display:grid;grid-template-columns:auto 1fr;gap:4px 12px;font-size:12px;align-items:center}
+  .ieee-row .label{color:#888;text-align:right}
+  .ieee-row .val{font-family:'Courier New',monospace;color:#fca5a5}
+  .ieee-bits{display:flex;gap:1px;margin:8px 0}
+  .ieee-bit{width:18px;height:24px;display:flex;align-items:center;justify-content:center;font-family:'Courier New',monospace;font-size:11px;font-weight:700;border-radius:2px}
+  .ieee-sign{background:#7c3aed33;color:#a78bfa}
+  .ieee-exp{background:#ef444433;color:#fca5a5}
+  .ieee-man{background:#10b98133;color:#6ee7b7}
+  .ascii-box{background:#0d0d14;border:1px solid #1e1e2e;border-radius:6px;padding:8px 12px;font-size:13px;display:flex;gap:12px;align-items:center;margin-top:8px}
+  .ascii-char{font-size:28px;color:#fca5a5;font-weight:700;width:40px;text-align:center}
+  .twos-info{font-size:12px;color:#888;margin-top:6px}
+  @media(max-width:900px){.container{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<header>
+  <div class="logo">&#11036;</div>
+  <h1>Binary Calculator</h1>
+  <span>FreeChipStore</span>
+</header>
+
+<div class="container">
+  <!-- Input A -->
+  <div class="panel">
+    <h2>Operand A</h2>
+    <div class="mode-toggle">
+      <button class="secondary active" onclick="setBits(8)" id="m8">8-bit</button>
+      <button class="secondary" onclick="setBits(16)" id="m16">16-bit</button>
+    </div>
+    <h3>Binary (click bits to toggle)</h3>
+    <div class="bit-label" id="bitLabelsA"></div>
+    <div class="bit-row" id="bitsA"></div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px">
+      <div>
+        <h3>Decimal</h3>
+        <input type="text" id="decA" value="0" oninput="fromDecA()">
+      </div>
+      <div>
+        <h3>Hexadecimal</h3>
+        <input type="text" id="hexA" value="0x00" oninput="fromHexA()">
+      </div>
+    </div>
+    <div class="twos-info" id="twosA">Unsigned: 0 | Signed (two's complement): 0</div>
+    <div class="ascii-box" id="asciiA">
+      <div class="ascii-char">-</div>
+      <div><span style="color:#888">ASCII:</span> <span id="asciiAName">N/A</span></div>
+    </div>
+  </div>
+
+  <!-- Input B -->
+  <div class="panel">
+    <h2>Operand B</h2>
+    <h3>Binary (click bits to toggle)</h3>
+    <div class="bit-label" id="bitLabelsB"></div>
+    <div class="bit-row" id="bitsB"></div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px">
+      <div>
+        <h3>Decimal</h3>
+        <input type="text" id="decB" value="0" oninput="fromDecB()">
+      </div>
+      <div>
+        <h3>Hexadecimal</h3>
+        <input type="text" id="hexB" value="0x00" oninput="fromHexB()">
+      </div>
+    </div>
+    <div class="twos-info" id="twosB">Unsigned: 0 | Signed (two's complement): 0</div>
+  </div>
+
+  <!-- Operations -->
+  <div class="panel full">
+    <h2>Operations</h2>
+    <div class="ops-grid">
+      <button class="op-btn active" onclick="setOp('ADD')" id="opADD">ADD</button>
+      <button class="op-btn secondary" onclick="setOp('SUB')" id="opSUB">SUB</button>
+      <button class="op-btn secondary" onclick="setOp('MUL')" id="opMUL">MUL</button>
+      <button class="op-btn secondary" onclick="setOp('AND')" id="opAND">AND</button>
+      <button class="op-btn secondary" onclick="setOp('OR')" id="opOR">OR</button>
+      <button class="op-btn secondary" onclick="setOp('XOR')" id="opXOR">XOR</button>
+      <button class="op-btn secondary" onclick="setOp('NOT')" id="opNOT">NOT</button>
+      <button class="op-btn secondary" onclick="setOp('SHL')" id="opSHL">SHL</button>
+      <button class="op-btn secondary" onclick="setOp('SHR')" id="opSHR">SHR</button>
+      <button class="op-btn secondary" onclick="setOp('ROL')" id="opROL">ROL</button>
+      <button class="op-btn secondary" onclick="setOp('ROR')" id="opROR">ROR</button>
+    </div>
+  </div>
+
+  <!-- Result -->
+  <div class="panel">
+    <h2>Result</h2>
+    <div class="bit-label" id="bitLabelsR"></div>
+    <div class="bit-row" id="bitsR"></div>
+    <div class="result-box">
+      <label>Decimal (unsigned)</label>
+      <div class="val" id="resultDec">0</div>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+      <div class="result-box">
+        <label>Hexadecimal</label>
+        <div class="val" id="resultHex">0x00</div>
+      </div>
+      <div class="result-box">
+        <label>Signed</label>
+        <div class="val" id="resultSigned">0</div>
+      </div>
+    </div>
+    <div class="result-box" id="carryBox" style="display:none">
+      <label>Carry / Overflow</label>
+      <div class="val" id="carryVal">-</div>
+    </div>
+  </div>
+
+  <!-- Gate visualization -->
+  <div class="panel">
+    <h2>Gate-Level Visualization</h2>
+    <div class="gate-viz">
+      <canvas id="gateCanvas" width="500" height="300"></canvas>
+    </div>
+  </div>
+
+  <!-- IEEE 754 -->
+  <div class="panel full">
+    <h2>IEEE 754 Single Precision (Operand A as float)</h2>
+    <div class="ieee-bits" id="ieeeBits"></div>
+    <div style="display:flex;gap:16px;font-size:11px;margin:6px 0;color:#888">
+      <span><span style="color:#a78bfa">&#9632;</span> Sign (1 bit)</span>
+      <span><span style="color:#fca5a5">&#9632;</span> Exponent (8 bits)</span>
+      <span><span style="color:#6ee7b7">&#9632;</span> Mantissa (23 bits)</span>
+    </div>
+    <div class="ieee-row" id="ieeeInfo">
+      <span class="label">Value:</span><span class="val" id="ieeeVal">0.0</span>
+      <span class="label">Sign:</span><span class="val" id="ieeeSign">0 (+)</span>
+      <span class="label">Exponent:</span><span class="val" id="ieeeExp">0 (biased: 127)</span>
+      <span class="label">Mantissa:</span><span class="val" id="ieeeMant">1.0</span>
+      <span class="label">Formula:</span><span class="val" id="ieeeFormula">(-1)^0 x 1.0 x 2^0 = 0.0</span>
+    </div>
+  </div>
+</div>
+
+<script>
+let numBits = 8;
+let valA = 0, valB = 0;
+let currentOp = 'ADD';
+const mask = () => (1 << numBits) - 1;
+
+function setBits(n) {
+  numBits = n;
+  document.getElementById('m8').className = n === 8 ? 'secondary active' : 'secondary';
+  document.getElementById('m16').className = n === 16 ? 'secondary active' : 'secondary';
+  valA &= mask();
+  valB &= mask();
+  renderAll();
+}
+
+function setOp(op) {
+  currentOp = op;
+  document.querySelectorAll('.op-btn').forEach(b => {
+    b.className = b.id === 'op' + op ? 'op-btn active' : 'op-btn secondary';
+  });
+  compute();
+}
+
+function renderBitRow(containerId, labelId, value, clickable, setter) {
+  const container = document.getElementById(containerId);
+  const labels = document.getElementById(labelId);
+  container.innerHTML = '';
+  labels.innerHTML = '';
+  for (let i = numBits - 1; i >= 0; i--) {
+    const bit = (value >> i) & 1;
+    const span = document.createElement('span');
+    span.textContent = labels.innerHTML += `<span>${i}</span>`;
+  }
+  labels.innerHTML = '';
+  for (let i = numBits - 1; i >= 0; i--) {
+    const lbl = document.createElement('span');
+    lbl.textContent = i;
+    labels.appendChild(lbl);
+  }
+  for (let i = numBits - 1; i >= 0; i--) {
+    const bit = (value >> i) & 1;
+    const el = document.createElement('div');
+    el.className = 'bit ' + (bit ? 'on' : 'off');
+    el.textContent = bit;
+    if (clickable) {
+      const idx = i;
+      el.onclick = () => {
+        setter(setter === setValA ? (valA ^ (1 << idx)) : (valB ^ (1 << idx)));
+        renderAll();
+      };
+    }
+    container.appendChild(el);
+  }
+}
+
+function setValA(v) { valA = v & mask(); }
+function setValB(v) { valB = v & mask(); }
+
+function toSigned(v) {
+  if (v >= (1 << (numBits - 1))) return v - (1 << numBits);
+  return v;
+}
+
+function renderAll() {
+  renderBitRow('bitsA', 'bitLabelsA', valA, true, (v) => { setValA(v); valA = v & mask(); });
+  renderBitRow('bitsB', 'bitLabelsB', valB, true, (v) => { setValB(v); valB = v & mask(); });
+
+  // Fix click handlers
+  const bitsAEls = document.getElementById('bitsA').children;
+  for (let j = 0; j < bitsAEls.length; j++) {
+    const idx = numBits - 1 - j;
+    bitsAEls[j].onclick = () => { valA ^= (1 << idx); renderAll(); };
+  }
+  const bitsBEls = document.getElementById('bitsB').children;
+  for (let j = 0; j < bitsBEls.length; j++) {
+    const idx = numBits - 1 - j;
+    bitsBEls[j].onclick = () => { valB ^= (1 << idx); renderAll(); };
+  }
+
+  document.getElementById('decA').value = valA;
+  document.getElementById('hexA').value = '0x' + valA.toString(16).toUpperCase().padStart(numBits / 4, '0');
+  document.getElementById('twosA').textContent = `Unsigned: ${valA} | Signed: ${toSigned(valA)}`;
+
+  document.getElementById('decB').value = valB;
+  document.getElementById('hexB').value = '0x' + valB.toString(16).toUpperCase().padStart(numBits / 4, '0');
+  document.getElementById('twosB').textContent = `Unsigned: ${valB} | Signed: ${toSigned(valB)}`;
+
+  // ASCII
+  const asciiA = document.getElementById('asciiA');
+  const char = valA >= 32 && valA <= 126 ? String.fromCharCode(valA) : '';
+  asciiA.querySelector('.ascii-char').textContent = char || '-';
+  document.getElementById('asciiAName').textContent = valA >= 32 && valA <= 126 ? `'${char}' (${valA})` : valA < 32 ? `Control char (${valA})` : `Extended (${valA})`;
+
+  compute();
+  renderIEEE();
+}
+
+function fromDecA() {
+  const v = parseInt(document.getElementById('decA').value, 10);
+  if (!isNaN(v)) { valA = v & mask(); renderAll(); }
+}
+function fromHexA() {
+  const v = parseInt(document.getElementById('hexA').value, 16);
+  if (!isNaN(v)) { valA = v & mask(); renderAll(); }
+}
+function fromDecB() {
+  const v = parseInt(document.getElementById('decB').value, 10);
+  if (!isNaN(v)) { valB = v & mask(); renderAll(); }
+}
+function fromHexB() {
+  const v = parseInt(document.getElementById('hexB').value, 16);
+  if (!isNaN(v)) { valB = v & mask(); renderAll(); }
+}
+
+function compute() {
+  let result = 0, carry = false, overflow = false;
+  const m = mask();
+  const full = (1 << numBits);
+
+  switch (currentOp) {
+    case 'ADD': { const s = valA + valB; result = s & m; carry = s >= full; break; }
+    case 'SUB': { const s = valA - valB; result = ((s % full) + full) % full; carry = valA < valB; break; }
+    case 'MUL': { result = (valA * valB) & m; carry = (valA * valB) >= full; break; }
+    case 'AND': result = valA & valB; break;
+    case 'OR':  result = valA | valB; break;
+    case 'XOR': result = valA ^ valB; break;
+    case 'NOT': result = (~valA) & m; break;
+    case 'SHL': result = (valA << (valB & 0xF)) & m; break;
+    case 'SHR': result = (valA >>> (valB & 0xF)) & m; break;
+    case 'ROL': { const sh = valB % numBits; result = ((valA << sh) | (valA >>> (numBits - sh))) & m; break; }
+    case 'ROR': { const sh = valB % numBits; result = ((valA >>> sh) | (valA << (numBits - sh))) & m; break; }
+  }
+
+  // Render result bits
+  const container = document.getElementById('bitsR');
+  const labels = document.getElementById('bitLabelsR');
+  container.innerHTML = '';
+  labels.innerHTML = '';
+  for (let i = numBits - 1; i >= 0; i--) {
+    const lbl = document.createElement('span');
+    lbl.textContent = i;
+    labels.appendChild(lbl);
+    const bit = (result >> i) & 1;
+    const el = document.createElement('div');
+    el.className = 'bit ' + (bit ? 'on' : 'off');
+    el.textContent = bit;
+    container.appendChild(el);
+  }
+
+  document.getElementById('resultDec').textContent = result;
+  document.getElementById('resultHex').textContent = '0x' + result.toString(16).toUpperCase().padStart(numBits / 4, '0');
+  document.getElementById('resultSigned').textContent = toSigned(result);
+
+  const carryBox = document.getElementById('carryBox');
+  if (['ADD', 'SUB', 'MUL'].includes(currentOp)) {
+    carryBox.style.display = 'block';
+    document.getElementById('carryVal').textContent = carry ? 'Yes (overflow)' : 'No';
+    document.getElementById('carryVal').style.color = carry ? '#ef4444' : '#6ee7b7';
+  } else {
+    carryBox.style.display = 'none';
+  }
+
+  drawGates(result, carry);
+}
+
+function drawGates(result, carry) {
+  const canvas = document.getElementById('gateCanvas');
+  const ctx = canvas.getContext('2d');
+  const W = canvas.width, H = canvas.height;
+  ctx.clearRect(0, 0, W, H);
+
+  ctx.fillStyle = '#888';
+  ctx.font = '11px monospace';
+
+  if (currentOp === 'ADD') {
+    drawRippleCarryAdder(ctx, W, H);
+  } else if (currentOp === 'MUL') {
+    drawMultiplier(ctx, W, H);
+  } else if (['AND', 'OR', 'XOR', 'NOT'].includes(currentOp)) {
+    drawLogicGates(ctx, W, H);
+  } else if (['SHL', 'SHR', 'ROL', 'ROR'].includes(currentOp)) {
+    drawShifter(ctx, W, H);
+  } else {
+    drawSubtractor(ctx, W, H);
+  }
+}
+
+function drawRippleCarryAdder(ctx, W, H) {
+  const bits = Math.min(numBits, 8); // show up to 8 for clarity
+  const boxW = 50, boxH = 50;
+  const startX = W - 60;
+  const gap = (W - 40) / bits;
+
+  ctx.fillStyle = '#fca5a5';
+  ctx.font = 'bold 12px sans-serif';
+  ctx.fillText('Ripple Carry Adder', 10, 20);
+
+  let carryIn = 0;
+  for (let i = 0; i < bits; i++) {
+    const x = startX - i * gap;
+    const y = H / 2 - boxH / 2;
+    const a = (valA >> i) & 1;
+    const b = (valB >> i) & 1;
+    const sum = a ^ b ^ carryIn;
+    const carryOut = (a & b) | (a & carryIn) | (b & carryIn);
+
+    // Box
+    ctx.strokeStyle = '#ef444488';
+    ctx.lineWidth = 1.5;
+    ctx.strokeRect(x, y, boxW, boxH);
+    ctx.fillStyle = '#ef444411';
+    ctx.fillRect(x, y, boxW, boxH);
+
+    // Label
+    ctx.fillStyle = '#fca5a5';
+    ctx.font = 'bold 10px monospace';
+    ctx.textAlign = 'center';
+    ctx.fillText('FA', x + boxW / 2, y + boxH / 2 + 3);
+    ctx.font = '9px monospace';
+    ctx.fillText(`bit ${i}`, x + boxW / 2, y + boxH + 14);
+
+    // Inputs
+    ctx.fillStyle = '#60a5fa';
+    ctx.fillText(`A=${a}`, x + boxW / 2 - 14, y - 18);
+    ctx.fillText(`B=${b}`, x + boxW / 2 + 14, y - 18);
+
+    // Input wires
+    ctx.strokeStyle = '#60a5fa44';
+    ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.moveTo(x + boxW / 2 - 10, y - 14); ctx.lineTo(x + boxW / 2 - 10, y); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(x + boxW / 2 + 10, y - 14); ctx.lineTo(x + boxW / 2 + 10, y); ctx.stroke();
+
+    // Sum output
+    ctx.fillStyle = '#6ee7b7';
+    ctx.fillText(`S=${sum}`, x + boxW / 2, y + boxH + 26);
+    ctx.strokeStyle = '#6ee7b744';
+    ctx.beginPath(); ctx.moveTo(x + boxW / 2, y + boxH); ctx.lineTo(x + boxW / 2, y + boxH + 18); ctx.stroke();
+
+    // Carry wire
+    if (i < bits - 1) {
+      ctx.strokeStyle = carryOut ? '#ef4444' : '#ef444444';
+      ctx.lineWidth = carryOut ? 2 : 1;
+      ctx.beginPath();
+      ctx.moveTo(x, y + boxH / 2);
+      ctx.lineTo(x - gap + boxW, y + boxH / 2);
+      ctx.stroke();
+      ctx.fillStyle = '#fca5a5';
+      ctx.fillText(carryOut ? 'C=1' : 'C=0', x - gap / 2 + boxW / 2, y + boxH / 2 - 6);
+    } else if (carryOut) {
+      ctx.fillStyle = '#ef4444';
+      ctx.fillText('Cout=1', x - 30, y + boxH / 2 + 3);
+    }
+
+    // Carry in for bit 0
+    if (i === 0) {
+      ctx.fillStyle = '#888';
+      ctx.fillText('Cin=0', x + boxW + 8, y + boxH / 2 + 3);
+    }
+
+    carryIn = carryOut;
+  }
+  ctx.textAlign = 'left';
+}
+
+function drawSubtractor(ctx, W, H) {
+  ctx.fillStyle = '#fca5a5';
+  ctx.font = 'bold 12px sans-serif';
+  ctx.fillText('Subtractor (A + NOT(B) + 1)', 10, 20);
+
+  const notB = (~valB) & mask();
+  const bits = Math.min(numBits, 8);
+  const gap = (W - 40) / bits;
+  const startX = W - 60;
+  const boxW = 50, boxH = 40;
+
+  let carryIn = 1; // +1 for two's complement
+  for (let i = 0; i < bits; i++) {
+    const x = startX - i * gap;
+    const y = H / 2 - boxH / 2;
+    const a = (valA >> i) & 1;
+    const nb = (notB >> i) & 1;
+    const sum = a ^ nb ^ carryIn;
+    const carryOut = (a & nb) | (a & carryIn) | (nb & carryIn);
+
+    ctx.strokeStyle = '#ef444488';
+    ctx.lineWidth = 1.5;
+    ctx.strokeRect(x, y, boxW, boxH);
+    ctx.fillStyle = '#ef444411';
+    ctx.fillRect(x, y, boxW, boxH);
+
+    ctx.fillStyle = '#fca5a5';
+    ctx.font = '10px monospace';
+    ctx.textAlign = 'center';
+    ctx.fillText('FA', x + boxW / 2, y + boxH / 2 + 3);
+    ctx.fillStyle = '#60a5fa';
+    ctx.font = '9px monospace';
+    ctx.fillText(`${a}+${nb}`, x + boxW / 2, y - 6);
+    ctx.fillStyle = '#6ee7b7';
+    ctx.fillText(`=${sum}`, x + boxW / 2, y + boxH + 12);
+
+    carryIn = carryOut;
+  }
+  ctx.textAlign = 'left';
+}
+
+function drawMultiplier(ctx, W, H) {
+  ctx.fillStyle = '#fca5a5';
+  ctx.font = 'bold 12px sans-serif';
+  ctx.fillText('Shift-and-Add Multiplier', 10, 20);
+
+  const bits = Math.min(numBits, 8);
+  const rowH = 22;
+  let y = 45;
+
+  ctx.font = '11px monospace';
+  ctx.fillStyle = '#60a5fa';
+  ctx.fillText(`A = ${valA.toString(2).padStart(bits, '0')}`, 20, y);
+  ctx.fillText(`B = ${valB.toString(2).padStart(bits, '0')}`, 200, y);
+  y += rowH;
+
+  ctx.fillStyle = '#888';
+  ctx.fillText('Partial products:', 20, y);
+  y += 4;
+
+  for (let i = 0; i < Math.min(bits, 6); i++) {
+    y += rowH;
+    const bBit = (valB >> i) & 1;
+    const partial = bBit ? (valA << i) : 0;
+    const pStr = partial.toString(2).padStart(bits * 2, '0');
+    ctx.fillStyle = bBit ? '#fca5a5' : '#333';
+    ctx.fillText(`B[${i}]=${bBit}:  ${'  '.repeat(i)}${bBit ? valA.toString(2).padStart(bits, '0') : '0'.repeat(bits)}${'  '.repeat(Math.max(0, bits - i - 1))}  (${partial})`, 20, y);
+  }
+
+  y += rowH + 4;
+  ctx.strokeStyle = '#ef444444';
+  ctx.beginPath(); ctx.moveTo(20, y - 8); ctx.lineTo(W - 20, y - 8); ctx.stroke();
+
+  const result = (valA * valB) & mask();
+  ctx.fillStyle = '#6ee7b7';
+  ctx.font = 'bold 12px monospace';
+  ctx.fillText(`Result: ${result.toString(2).padStart(bits, '0')} = ${result}`, 20, y + 4);
+}
+
+function drawLogicGates(ctx, W, H) {
+  const label = currentOp === 'NOT' ? 'NOT Gate (Inverter)' : `${currentOp} Gate Array`;
+  ctx.fillStyle = '#fca5a5';
+  ctx.font = 'bold 12px sans-serif';
+  ctx.fillText(label, 10, 20);
+
+  const bits = Math.min(numBits, 8);
+  const gateW = 44, gateH = 30;
+  const gap = (W - 20) / bits;
+
+  for (let i = 0; i < bits; i++) {
+    const x = 20 + i * gap;
+    const y = H / 2 - gateH / 2;
+    const a = (valA >> (bits - 1 - i)) & 1;
+    const b = (valB >> (bits - 1 - i)) & 1;
+    let out;
+    switch (currentOp) {
+      case 'AND': out = a & b; break;
+      case 'OR': out = a | b; break;
+      case 'XOR': out = a ^ b; break;
+      case 'NOT': out = 1 - a; break;
+    }
+
+    // Gate shape
+    ctx.strokeStyle = out ? '#ef4444' : '#ef444444';
+    ctx.lineWidth = 1.5;
+    ctx.fillStyle = out ? '#ef444422' : '#0d0d14';
+
+    if (currentOp === 'AND') {
+      ctx.beginPath();
+      ctx.moveTo(x, y);
+      ctx.lineTo(x + gateW * 0.6, y);
+      ctx.arc(x + gateW * 0.6, y + gateH / 2, gateH / 2, -Math.PI / 2, Math.PI / 2);
+      ctx.lineTo(x, y + gateH);
+      ctx.closePath();
+      ctx.fill(); ctx.stroke();
+    } else if (currentOp === 'OR') {
+      ctx.beginPath();
+      ctx.moveTo(x, y);
+      ctx.quadraticCurveTo(x + gateW * 0.8, y, x + gateW, y + gateH / 2);
+      ctx.quadraticCurveTo(x + gateW * 0.8, y + gateH, x, y + gateH);
+      ctx.quadraticCurveTo(x + gateW * 0.2, y + gateH / 2, x, y);
+      ctx.fill(); ctx.stroke();
+    } else {
+      ctx.strokeRect(x, y, gateW, gateH);
+      ctx.fillRect(x, y, gateW, gateH);
+    }
+
+    // Label
+    ctx.fillStyle = '#fca5a5';
+    ctx.font = '9px monospace';
+    ctx.textAlign = 'center';
+    ctx.fillText(currentOp, x + gateW / 2, y + gateH / 2 + 3);
+
+    // Inputs
+    ctx.fillStyle = '#60a5fa';
+    ctx.font = '10px monospace';
+    ctx.fillText(a.toString(), x + gateW / 2 - (currentOp === 'NOT' ? 0 : 8), y - 8);
+    if (currentOp !== 'NOT') ctx.fillText(b.toString(), x + gateW / 2 + 8, y - 8);
+
+    // Output
+    ctx.fillStyle = out ? '#6ee7b7' : '#333';
+    ctx.fillText(out.toString(), x + gateW / 2, y + gateH + 14);
+  }
+  ctx.textAlign = 'left';
+}
+
+function drawShifter(ctx, W, H) {
+  ctx.fillStyle = '#fca5a5';
+  ctx.font = 'bold 12px sans-serif';
+  ctx.fillText(`${currentOp} by ${valB & 0xF}`, 10, 20);
+
+  const bits = Math.min(numBits, 8);
+  const boxS = 32;
+  const startY = 50;
+
+  // Input row
+  ctx.fillStyle = '#60a5fa';
+  ctx.font = '11px monospace';
+  ctx.fillText('Input:', 10, startY + boxS / 2 + 4);
+  for (let i = 0; i < bits; i++) {
+    const x = 80 + i * (boxS + 4);
+    const bit = (valA >> (bits - 1 - i)) & 1;
+    ctx.fillStyle = bit ? '#60a5fa22' : '#0d0d14';
+    ctx.fillRect(x, startY, boxS, boxS);
+    ctx.strokeStyle = '#1e1e2e';
+    ctx.strokeRect(x, startY, boxS, boxS);
+    ctx.fillStyle = bit ? '#60a5fa' : '#333';
+    ctx.font = '14px monospace';
+    ctx.textAlign = 'center';
+    ctx.fillText(bit.toString(), x + boxS / 2, startY + boxS / 2 + 5);
+  }
+
+  // Arrows
+  const shAmt = valB % bits || 0;
+  const outY = startY + boxS + 60;
+  ctx.strokeStyle = '#ef444466';
+  ctx.lineWidth = 1;
+  for (let i = 0; i < bits; i++) {
+    const fromX = 80 + i * (boxS + 4) + boxS / 2;
+    let toIdx;
+    if (currentOp === 'SHL') toIdx = i - shAmt;
+    else if (currentOp === 'SHR') toIdx = i + shAmt;
+    else if (currentOp === 'ROL') toIdx = (i - shAmt + bits) % bits;
+    else toIdx = (i + shAmt) % bits;
+
+    if (toIdx >= 0 && toIdx < bits) {
+      const toX = 80 + toIdx * (boxS + 4) + boxS / 2;
+      ctx.beginPath();
+      ctx.moveTo(fromX, startY + boxS);
+      ctx.lineTo(toX, outY);
+      ctx.stroke();
+    }
+  }
+
+  // Output row
+  let result;
+  switch (currentOp) {
+    case 'SHL': result = (valA << shAmt) & mask(); break;
+    case 'SHR': result = (valA >>> shAmt) & mask(); break;
+    case 'ROL': result = ((valA << shAmt) | (valA >>> (bits - shAmt))) & mask(); break;
+    case 'ROR': result = ((valA >>> shAmt) | (valA << (bits - shAmt))) & mask(); break;
+  }
+
+  ctx.fillStyle = '#6ee7b7';
+  ctx.font = '11px monospace';
+  ctx.textAlign = 'left';
+  ctx.fillText('Output:', 10, outY + boxS / 2 + 4);
+  for (let i = 0; i < bits; i++) {
+    const x = 80 + i * (boxS + 4);
+    const bit = (result >> (bits - 1 - i)) & 1;
+    ctx.fillStyle = bit ? '#6ee7b722' : '#0d0d14';
+    ctx.fillRect(x, outY, boxS, boxS);
+    ctx.strokeStyle = '#1e1e2e';
+    ctx.strokeRect(x, outY, boxS, boxS);
+    ctx.fillStyle = bit ? '#6ee7b7' : '#333';
+    ctx.font = '14px monospace';
+    ctx.textAlign = 'center';
+    ctx.fillText(bit.toString(), x + boxS / 2, outY + boxS / 2 + 5);
+  }
+  ctx.textAlign = 'left';
+}
+
+function renderIEEE() {
+  // Convert valA (interpreted as unsigned integer) to IEEE 754 float representation
+  const floatVal = toSigned(valA); // interpret as signed for float
+  const buf = new ArrayBuffer(4);
+  new Float32Array(buf)[0] = floatVal;
+  const intBits = new Uint32Array(buf)[0];
+
+  const container = document.getElementById('ieeeBits');
+  container.innerHTML = '';
+  for (let i = 31; i >= 0; i--) {
+    const bit = (intBits >> i) & 1;
+    const el = document.createElement('div');
+    el.className = 'ieee-bit ';
+    if (i === 31) el.className += 'ieee-sign';
+    else if (i >= 23) el.className += 'ieee-exp';
+    else el.className += 'ieee-man';
+    el.textContent = bit;
+    container.appendChild(el);
+  }
+
+  const sign = (intBits >> 31) & 1;
+  const exp = (intBits >> 23) & 0xFF;
+  const mantissa = intBits & 0x7FFFFF;
+  const mantVal = 1 + mantissa / (1 << 23);
+  const actualExp = exp - 127;
+
+  document.getElementById('ieeeVal').textContent = floatVal.toFixed(6);
+  document.getElementById('ieeeSign').textContent = `${sign} (${sign ? '-' : '+'})`;
+  document.getElementById('ieeeExp').textContent = `${actualExp} (biased: ${exp})`;
+  document.getElementById('ieeeMant').textContent = mantVal.toFixed(8);
+  document.getElementById('ieeeFormula').textContent = `(-1)^${sign} x ${mantVal.toFixed(4)} x 2^${actualExp} = ${floatVal}`;
+}
+
+// Init
+renderAll();
+</script>
+</body>
+</html>

@@ -1,6 +1,18 @@
 {
   "robots": [
     {
+      "id": "binary-calc",
+      "name": "Binary Calculator",
+      "description": "Binary/hex/decimal converter with gate-level visualization. Ripple carry adder, shift-and-add multiplier, IEEE 754 floats.",
+      "storeType": "behavior",
+      "category": "fundamentals",
+      "icon": "\ud83d\udd22",
+      "iconBg": "#ef4444",
+      "creator": "serge-ivo",
+      "creatorName": "Serge",
+      "creatorAvatar": "https://github.com/serge-ivo.png?size=96"
+    },
+    {
       "id": "logic-gates",
       "name": "Logic Gates",
       "description": "AND, OR, NOT, NAND, XOR, XNOR, NOR \u2014 click inputs to toggle, see truth tables, watch signals propagate through gates.",

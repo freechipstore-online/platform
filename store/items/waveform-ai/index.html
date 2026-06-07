@@ -1,0 +1,228 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AI Waveform Analyzer - FreeChipStore</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:#0a0a0a;color:#e5e5e5;font-family:system-ui,-apple-system,sans-serif;min-height:100vh;display:flex;flex-direction:column;align-items:center}
+header{width:100%;padding:16px 24px;display:flex;align-items:center;gap:12px;border-bottom:1px solid #222}
+header span.logo{font-size:20px}
+header h1{font-size:18px;font-weight:600;color:#ef4444}
+header small{color:#777;margin-left:auto;font-size:13px}
+.container{max-width:960px;width:100%;padding:24px;display:flex;flex-direction:column;gap:20px}
+.row{display:flex;gap:20px;flex-wrap:wrap}
+.panel{background:#141414;border:1px solid #262626;border-radius:10px;padding:20px;flex:1;min-width:280px}
+h2{font-size:15px;color:#aaa;font-weight:500;margin-bottom:10px}
+canvas{border:1px solid #333;border-radius:6px;display:block;background:#000;width:100%}
+.btn-row{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}
+button{background:#262626;color:#e5e5e5;border:1px solid #333;padding:8px 14px;border-radius:6px;cursor:pointer;font-size:13px;transition:background .15s}
+button:hover{background:#333}
+button.primary{background:#ef4444;border-color:#ef4444;color:#fff}
+button.primary:hover{background:#dc2626}
+.bar-row{display:flex;align-items:center;gap:10px;margin:5px 0}
+.bar-label{width:60px;font-size:13px;color:#ccc;text-align:right}
+.bar-track{flex:1;height:20px;background:#1a1a1a;border-radius:4px;overflow:hidden;position:relative}
+.bar-fill{height:100%;background:#ef4444;border-radius:4px;transition:width .3s}
+.bar-val{position:absolute;right:6px;top:1px;font-size:12px;color:#fff}
+.status{font-size:13px;color:#888;margin-top:8px;min-height:18px}
+.status.ok{color:#22c55e}
+</style>
+</head>
+<body>
+<header>
+<span class="logo">&#x1f532;</span>
+<h1>FreeChipStore</h1>
+<small>AI Waveform Analyzer</small>
+</header>
+<div class="container">
+<div class="row">
+<div class="panel" style="flex:2;min-width:400px">
+<h2>Oscilloscope</h2>
+<canvas id="scope" width="640" height="280"></canvas>
+<div class="btn-row">
+<button class="primary" id="classifyBtn" disabled>Classify</button>
+<button class="primary" id="trainBtn">Train Network</button>
+<button id="drawMode">Draw Mode</button>
+</div>
+<div class="btn-row">
+<button data-w="clock">Clock</button>
+<button data-w="pwm">PWM</button>
+<button data-w="spi">SPI</button>
+<button data-w="i2c">I2C</button>
+<button data-w="uart">UART</button>
+<button data-w="noise">Noise</button>
+</div>
+<div class="status" id="status">Train the network first, then classify waveforms.</div>
+</div>
+<div class="panel">
+<h2>Prediction</h2>
+<div id="results"><p style="color:#555;font-size:13px">Not yet trained.</p></div>
+<h2 style="margin-top:20px">Network Info</h2>
+<div id="netInfo" style="font-size:12px;color:#666">Layers: 64 &rarr; 32 &rarr; 6<br>Activation: ReLU / Softmax<br>Status: untrained</div>
+</div>
+</div>
+</div>
+<script>
+const CLASSES = ['clock','pwm','spi','i2c','uart','noise'];
+const N_IN = 64, N_HID = 32, N_OUT = 6;
+const canvas = document.getElementById('scope');
+const ctx = canvas.getContext('2d');
+const statusEl = document.getElementById('status');
+const resultsEl = document.getElementById('results');
+const netInfoEl = document.getElementById('netInfo');
+let waveform = new Float32Array(N_IN);
+let trained = false, isDrawing = false, drawMode = false;
+
+// --- Neural Network from scratch ---
+function randn() { let u=0,v=0; while(!u) u=Math.random(); v=Math.random(); return Math.sqrt(-2*Math.log(u))*Math.cos(2*Math.PI*v); }
+function zeros(n) { return new Float32Array(n); }
+function randWeights(rows, cols) {
+  const w = []; const s = Math.sqrt(2/cols);
+  for (let i=0;i<rows;i++) { w[i]=new Float32Array(cols); for(let j=0;j<cols;j++) w[i][j]=randn()*s; }
+  return w;
+}
+let W1 = randWeights(N_HID, N_IN), b1 = zeros(N_HID);
+let W2 = randWeights(N_OUT, N_HID), b2 = zeros(N_OUT);
+
+function relu(x) { return Math.max(0, x); }
+function forward(input) {
+  const h = zeros(N_HID);
+  for (let i=0;i<N_HID;i++) { let s=b1[i]; for(let j=0;j<N_IN;j++) s+=W1[i][j]*input[j]; h[i]=relu(s); }
+  const o = zeros(N_OUT);
+  let maxO = -Infinity;
+  for (let i=0;i<N_OUT;i++) { let s=b2[i]; for(let j=0;j<N_HID;j++) s+=W2[i][j]*h[j]; o[i]=s; if(s>maxO) maxO=s; }
+  let sumE = 0;
+  const prob = zeros(N_OUT);
+  for (let i=0;i<N_OUT;i++) { prob[i]=Math.exp(o[i]-maxO); sumE+=prob[i]; }
+  for (let i=0;i<N_OUT;i++) prob[i]/=sumE;
+  return { h, prob };
+}
+
+function trainStep(input, label, lr) {
+  const { h, prob } = forward(input);
+  const dO = new Float32Array(prob);
+  dO[label] -= 1;
+  const dH = zeros(N_HID);
+  for (let i=0;i<N_OUT;i++) {
+    for (let j=0;j<N_HID;j++) { W2[i][j] -= lr * dO[i] * h[j]; dH[j] += W2[i][j] * dO[i]; }
+    b2[i] -= lr * dO[i];
+  }
+  for (let i=0;i<N_HID;i++) {
+    if (h[i] <= 0) continue;
+    for (let j=0;j<N_IN;j++) W1[i][j] -= lr * dH[i] * input[j];
+    b1[i] -= lr * dH[i];
+  }
+}
+
+// --- Waveform generators ---
+function genClock() { const w=zeros(N_IN); for(let i=0;i<N_IN;i++) w[i]=(i%(8+Math.floor(Math.random()*6)))<(4+Math.floor(Math.random()*2))?1:0; return w; }
+function genPWM() { const d=0.1+Math.random()*0.8, p=6+Math.floor(Math.random()*8); const w=zeros(N_IN); for(let i=0;i<N_IN;i++) w[i]=((i%p)/p<d)?1:0; return w; }
+function genSPI() { const w=zeros(N_IN); let byte=Math.floor(Math.random()*256); for(let i=0;i<N_IN;i++){if(i%8===0) byte=Math.floor(Math.random()*256); w[i]=((byte>>(i%8))&1)?1:0;} return w; }
+function genI2C() {
+  const w=zeros(N_IN);
+  w[0]=1; w[1]=0; // start
+  for(let i=2;i<N_IN-2;i++){
+    if(i%9===0) { w[i]=Math.random()>0.5?1:0; } // ACK
+    else w[i]=Math.random()>0.5?1:0;
+  }
+  w[N_IN-2]=0; w[N_IN-1]=1; // stop
+  return w;
+}
+function genUART() {
+  const w=zeros(N_IN); let pos=0;
+  while(pos<N_IN-10){ w[pos]=1; pos++; w[pos]=0; pos++; // idle then start
+    for(let b=0;b<8&&pos<N_IN;b++){w[pos]=Math.random()>0.5?1:0;pos++;} if(pos<N_IN){w[pos]=1;pos++;} // stop
+  }
+  for(;pos<N_IN;pos++) w[pos]=1;
+  return w;
+}
+function genNoise() { const w=zeros(N_IN); for(let i=0;i<N_IN;i++) w[i]=Math.random(); return w; }
+const generators = [genClock, genPWM, genSPI, genI2C, genUART, genNoise];
+
+function setWaveform(w) { waveform = w; drawScope(); }
+
+function drawScope() {
+  ctx.fillStyle='#000'; ctx.fillRect(0,0,640,280);
+  // grid
+  ctx.strokeStyle='#1a2a1a'; ctx.lineWidth=1;
+  for(let y=0;y<280;y+=56){ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(640,y);ctx.stroke();}
+  for(let x=0;x<640;x+=80){ctx.beginPath();ctx.moveTo(x,0);ctx.lineTo(x,280);ctx.stroke();}
+  // waveform
+  ctx.strokeStyle='#22c55e'; ctx.lineWidth=2; ctx.beginPath();
+  for(let i=0;i<N_IN;i++){
+    const x=i*(640/N_IN), y=260-waveform[i]*220;
+    if(i===0) ctx.moveTo(x,y); else { ctx.lineTo(x,y); }
+  }
+  ctx.stroke();
+  // labels
+  ctx.fillStyle='#333'; ctx.font='11px monospace';
+  ctx.fillText('1V',4,38); ctx.fillText('0V',4,268); ctx.fillText('Time -->',560,270);
+}
+
+// --- Draw mode ---
+document.getElementById('drawMode').addEventListener('click', function() {
+  drawMode = !drawMode;
+  this.style.background = drawMode ? '#ef4444' : '';
+  this.textContent = drawMode ? 'Drawing ON' : 'Draw Mode';
+});
+canvas.addEventListener('pointerdown', e => { if(drawMode) isDrawing=true; });
+canvas.addEventListener('pointermove', e => {
+  if(!isDrawing||!drawMode) return;
+  const rect=canvas.getBoundingClientRect();
+  const x=Math.floor((e.clientX-rect.left)/(rect.width/N_IN));
+  const y=1-(e.clientY-rect.top-20)/(rect.height-40);
+  if(x>=0&&x<N_IN) { waveform[x]=Math.max(0,Math.min(1,y)); drawScope(); }
+});
+canvas.addEventListener('pointerup', ()=>isDrawing=false);
+canvas.addEventListener('pointerleave', ()=>isDrawing=false);
+
+// Preset buttons
+document.querySelectorAll('[data-w]').forEach(btn=>{
+  btn.addEventListener('click', ()=>{ const idx=CLASSES.indexOf(btn.dataset.w); setWaveform(generators[idx]()); });
+});
+
+// --- Training ---
+document.getElementById('trainBtn').addEventListener('click', ()=>{
+  statusEl.textContent='Training on 600 examples (100/class)...';
+  W1=randWeights(N_HID,N_IN); b1=zeros(N_HID);
+  W2=randWeights(N_OUT,N_HID); b2=zeros(N_OUT);
+  setTimeout(()=>{
+    const data=[];
+    for(let c=0;c<N_OUT;c++) for(let n=0;n<100;n++) data.push({x:generators[c](),y:c});
+    for(let epoch=0;epoch<15;epoch++){
+      for(let i=data.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[data[i],data[j]]=[data[j],data[i]];}
+      const lr=0.01/(1+epoch*0.1);
+      for(const d of data) trainStep(d.x,d.y,lr);
+    }
+    let correct=0;
+    for(const d of data){const{prob}=forward(d.x);let mx=0;for(let i=1;i<N_OUT;i++)if(prob[i]>prob[mx])mx=i;if(mx===d.y)correct++;}
+    const acc=(correct/data.length*100).toFixed(1);
+    trained=true;
+    document.getElementById('classifyBtn').disabled=false;
+    statusEl.textContent=`Trained! Accuracy: ${acc}% on training set.`;
+    statusEl.className='status ok';
+    netInfoEl.innerHTML=`Layers: 64 &rarr; 32 &rarr; 6<br>Activation: ReLU / Softmax<br>Epochs: 15, LR: 0.01 decay<br>Training accuracy: ${acc}%`;
+  }, 50);
+});
+
+// --- Classification ---
+document.getElementById('classifyBtn').addEventListener('click', ()=>{
+  if(!trained) return;
+  const{prob}=forward(waveform);
+  const sorted=CLASSES.map((c,i)=>({c,p:prob[i]})).sort((a,b)=>b.p-a.p);
+  let html='';
+  sorted.forEach(r=>{
+    const pct=(r.p*100).toFixed(1);
+    html+=`<div class="bar-row"><span class="bar-label">${r.c}</span><div class="bar-track"><div class="bar-fill" style="width:${pct}%"></div><span class="bar-val">${pct}%</span></div></div>`;
+  });
+  resultsEl.innerHTML=html;
+});
+
+// Init
+setWaveform(genClock());
+drawScope();
+</script>
+</body>
+</html>

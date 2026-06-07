@@ -1,0 +1,240 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Logic Gates — FreeChipStore</title>
+  <style>
+    *{margin:0;padding:0;box-sizing:border-box}
+    body{background:#0a0a0a;color:#fafafa;font-family:'Manrope',system-ui,sans-serif;display:flex;flex-direction:column;align-items:center;min-height:100vh}
+    h1{font-size:1.3rem;font-weight:700;margin:1.25rem 0 .25rem} h1 span{color:#ef4444}
+    .sub{color:#737373;font-size:.85rem;margin-bottom:.5rem;text-align:center;max-width:540px}
+    canvas{border:1px solid #262626;border-radius:12px;cursor:pointer}
+    .controls{display:flex;gap:.5rem;margin:.75rem 0;flex-wrap:wrap;justify-content:center}
+    button{padding:.4rem .9rem;border-radius:8px;border:1px solid #333;background:#171717;color:#fafafa;font-size:.78rem;font-weight:600;cursor:pointer;font-family:inherit}
+    button:hover{border-color:#ef4444;color:#ef4444}
+    button.active{background:#ef4444;border-color:#ef4444;color:#fff}
+    .truth-table{background:#141414;border:1px solid #262626;border-radius:10px;padding:.75rem;margin:.5rem;font-family:'JetBrains Mono',monospace;font-size:.75rem}
+    .truth-table th{color:#ef4444;padding:.15rem .5rem;text-align:center}
+    .truth-table td{color:#a3a3a3;padding:.15rem .5rem;text-align:center}
+    .truth-table td.on{color:#10b981;font-weight:700}
+    .truth-table td.off{color:#525252}
+    .info{font-size:.75rem;color:#525252;margin:.35rem}
+    a{color:#525252;text-decoration:none}
+  </style>
+</head>
+<body>
+  <h1>Logic <span>Gates</span></h1>
+  <p class="sub">Click inputs to toggle 0/1. Watch signals propagate through gates. See the truth table update. Build chains of gates to create combinational logic.</p>
+
+  <canvas id="sim" width="800" height="350"></canvas>
+
+  <div class="controls">
+    <button class="active" id="btn-and">AND</button>
+    <button id="btn-or">OR</button>
+    <button id="btn-not">NOT</button>
+    <button id="btn-nand">NAND</button>
+    <button id="btn-xor">XOR</button>
+    <button id="btn-xnor">XNOR</button>
+    <button id="btn-nor">NOR</button>
+  </div>
+
+  <div class="truth-table" id="truth-table"></div>
+  <div class="info">Click on inputs (left side) to toggle. | <a href="https://freechipstore.pages.dev">FreeChipStore</a></div>
+
+  <script>
+    const canvas = document.getElementById('sim');
+    const ctx = canvas.getContext('2d');
+    const W = canvas.width, H = canvas.height;
+
+    let currentGate = 'AND';
+    let inputA = 0, inputB = 0;
+    const gateInfo = {
+      AND:  { fn: (a,b) => a&b, symbol: '&', desc: 'Output is 1 only when BOTH inputs are 1' },
+      OR:   { fn: (a,b) => a|b, symbol: '≥1', desc: 'Output is 1 when ANY input is 1' },
+      NOT:  { fn: (a) => 1-a, symbol: '1', desc: 'Output is the OPPOSITE of input', inputs: 1 },
+      NAND: { fn: (a,b) => 1-(a&b), symbol: '&', desc: 'NOT-AND: output is 0 only when both inputs are 1', inverted: true },
+      XOR:  { fn: (a,b) => a^b, symbol: '=1', desc: 'Output is 1 when inputs are DIFFERENT' },
+      XNOR: { fn: (a,b) => 1-(a^b), symbol: '=1', desc: 'Output is 1 when inputs are the SAME', inverted: true },
+      NOR:  { fn: (a,b) => 1-(a|b), symbol: '≥1', desc: 'NOT-OR: output is 0 when any input is 1', inverted: true },
+    };
+
+    // Gate buttons
+    for (const [name] of Object.entries(gateInfo)) {
+      const btn = document.getElementById(`btn-${name.toLowerCase()}`);
+      if (btn) btn.addEventListener('click', () => {
+        currentGate = name;
+        document.querySelectorAll('.controls button').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        updateTruthTable();
+      });
+    }
+
+    // Click handling
+    canvas.addEventListener('click', (e) => {
+      const rect = canvas.getBoundingClientRect();
+      const x = e.clientX - rect.left, y = e.clientY - rect.top;
+
+      const gate = gateInfo[currentGate];
+      const inputs = gate.inputs || 2;
+
+      // Input A click zone
+      if (x < 200 && y > H*0.25 && y < H*0.45) { inputA = 1 - inputA; }
+      // Input B click zone (if 2 inputs)
+      if (inputs === 2 && x < 200 && y > H*0.55 && y < H*0.75) { inputB = 1 - inputB; }
+    });
+
+    function updateTruthTable() {
+      const gate = gateInfo[currentGate];
+      const inputs = gate.inputs || 2;
+      let html = `<table><tr>${inputs===2?'<th>A</th><th>B</th>':'<th>A</th>'}<th>Out</th></tr>`;
+
+      if (inputs === 2) {
+        for (let a = 0; a <= 1; a++) for (let b = 0; b <= 1; b++) {
+          const out = gate.fn(a, b);
+          const highlight = a === inputA && b === inputB;
+          html += `<tr${highlight?' style="background:#1e1e1e"':''}><td class="${a?'on':'off'}">${a}</td><td class="${b?'on':'off'}">${b}</td><td class="${out?'on':'off'}">${out}</td></tr>`;
+        }
+      } else {
+        for (let a = 0; a <= 1; a++) {
+          const out = gate.fn(a);
+          const highlight = a === inputA;
+          html += `<tr${highlight?' style="background:#1e1e1e"':''}><td class="${a?'on':'off'}">${a}</td><td class="${out?'on':'off'}">${out}</td></tr>`;
+        }
+      }
+      html += '</table>';
+      document.getElementById('truth-table').innerHTML = html;
+    }
+
+    function draw() {
+      ctx.fillStyle = '#0a0a0a';
+      ctx.fillRect(0, 0, W, H);
+
+      // Grid
+      ctx.strokeStyle = '#141414'; ctx.lineWidth = 0.5;
+      for (let x = 0; x < W; x += 40) { ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, H); ctx.stroke(); }
+      for (let y = 0; y < H; y += 40) { ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(W, y); ctx.stroke(); }
+
+      const gate = gateInfo[currentGate];
+      const inputs = gate.inputs || 2;
+      const output = inputs === 2 ? gate.fn(inputA, inputB) : gate.fn(inputA);
+
+      const gx = W * 0.45, gy = H * 0.5, gw = 80, gh = 70;
+
+      // Input wires
+      const inAy = inputs === 2 ? gy - 20 : gy;
+      const inBy = gy + 20;
+
+      // Wire A
+      ctx.strokeStyle = inputA ? '#10b981' : '#333'; ctx.lineWidth = 3;
+      ctx.beginPath(); ctx.moveTo(120, inAy); ctx.lineTo(gx, inAy); ctx.stroke();
+      // Wire B (if 2 inputs)
+      if (inputs === 2) {
+        ctx.strokeStyle = inputB ? '#10b981' : '#333';
+        ctx.beginPath(); ctx.moveTo(120, inBy); ctx.lineTo(gx, inBy); ctx.stroke();
+      }
+
+      // Output wire
+      ctx.strokeStyle = output ? '#10b981' : '#333'; ctx.lineWidth = 3;
+      ctx.beginPath(); ctx.moveTo(gx + gw, gy); ctx.lineTo(W - 120, gy); ctx.stroke();
+
+      // Input buttons
+      function drawInput(x, y, val, label) {
+        ctx.fillStyle = val ? '#10b981' : '#1e1e1e';
+        ctx.strokeStyle = val ? '#10b981' : '#404040'; ctx.lineWidth = 2;
+        ctx.beginPath(); ctx.arc(x, y, 18, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+        ctx.fillStyle = '#fafafa'; ctx.font = '700 16px JetBrains Mono'; ctx.textAlign = 'center';
+        ctx.fillText(val.toString(), x, y + 6);
+        ctx.fillStyle = '#525252'; ctx.font = '11px Manrope';
+        ctx.fillText(label, x, y - 28);
+        ctx.fillStyle = '#404040'; ctx.font = '9px Manrope';
+        ctx.fillText('click to toggle', x, y + 35);
+        ctx.textAlign = 'start';
+      }
+      drawInput(100, inAy, inputA, 'Input A');
+      if (inputs === 2) drawInput(100, inBy, inputB, 'Input B');
+
+      // Gate body
+      ctx.fillStyle = '#1a1a2e'; ctx.strokeStyle = '#ef4444'; ctx.lineWidth = 2;
+
+      if (currentGate === 'NOT') {
+        // Triangle + bubble
+        ctx.beginPath();
+        ctx.moveTo(gx, gy - 30);
+        ctx.lineTo(gx + gw - 10, gy);
+        ctx.lineTo(gx, gy + 30);
+        ctx.closePath();
+        ctx.fill(); ctx.stroke();
+        // Inversion bubble
+        ctx.beginPath(); ctx.arc(gx + gw, gy, 8, 0, Math.PI * 2);
+        ctx.fillStyle = '#1a1a2e'; ctx.fill(); ctx.stroke();
+      } else if (currentGate === 'OR' || currentGate === 'NOR' || currentGate === 'XOR' || currentGate === 'XNOR') {
+        // Curved OR shape
+        ctx.beginPath();
+        ctx.moveTo(gx, gy - 35);
+        ctx.quadraticCurveTo(gx + 20, gy, gx, gy + 35);
+        ctx.quadraticCurveTo(gx + gw * 0.5, gy + 35, gx + gw, gy);
+        ctx.quadraticCurveTo(gx + gw * 0.5, gy - 35, gx, gy - 35);
+        ctx.fill(); ctx.stroke();
+        if (currentGate === 'XOR' || currentGate === 'XNOR') {
+          ctx.beginPath();
+          ctx.moveTo(gx - 8, gy - 35);
+          ctx.quadraticCurveTo(gx + 12, gy, gx - 8, gy + 35);
+          ctx.stroke();
+        }
+        if (gate.inverted) {
+          ctx.beginPath(); ctx.arc(gx + gw + 8, gy, 6, 0, Math.PI * 2);
+          ctx.fillStyle = '#1a1a2e'; ctx.fill(); ctx.stroke();
+        }
+      } else {
+        // AND shape (flat left, rounded right)
+        ctx.beginPath();
+        ctx.moveTo(gx, gy - 35);
+        ctx.lineTo(gx + gw * 0.5, gy - 35);
+        ctx.arc(gx + gw * 0.5, gy, 35, -Math.PI / 2, Math.PI / 2);
+        ctx.lineTo(gx, gy + 35);
+        ctx.closePath();
+        ctx.fill(); ctx.stroke();
+        if (gate.inverted) {
+          ctx.beginPath(); ctx.arc(gx + gw + 8, gy, 6, 0, Math.PI * 2);
+          ctx.fillStyle = '#1a1a2e'; ctx.fill(); ctx.stroke();
+        }
+      }
+
+      // Gate label
+      ctx.fillStyle = '#ef4444'; ctx.font = '700 14px JetBrains Mono'; ctx.textAlign = 'center';
+      ctx.fillText(gate.symbol, gx + gw * 0.4, gy + 5);
+
+      // Output indicator
+      ctx.fillStyle = output ? '#10b981' : '#1e1e1e';
+      ctx.strokeStyle = output ? '#10b981' : '#404040'; ctx.lineWidth = 2;
+      ctx.beginPath(); ctx.arc(W - 100, gy, 22, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+      ctx.fillStyle = '#fafafa'; ctx.font = '700 20px JetBrains Mono';
+      ctx.fillText(output.toString(), W - 100, gy + 7);
+      ctx.fillStyle = '#525252'; ctx.font = '11px Manrope';
+      ctx.fillText('Output', W - 100, gy - 32);
+
+      // Gate name + description
+      ctx.textAlign = 'center';
+      ctx.fillStyle = '#ef4444'; ctx.font = '700 18px Manrope';
+      ctx.fillText(`${currentGate} Gate`, W / 2, 30);
+      ctx.fillStyle = '#737373'; ctx.font = '12px Manrope';
+      ctx.fillText(gate.desc, W / 2, 50);
+
+      // Signal flow animation
+      const t = (performance.now() % 2000) / 2000;
+      const pulseX = 120 + t * (W - 240);
+      if (output || inputA || inputB) {
+        ctx.fillStyle = `rgba(16, 185, 129, ${0.3 * (1 - t)})`;
+        ctx.beginPath(); ctx.arc(pulseX, gy, 4, 0, Math.PI * 2); ctx.fill();
+      }
+
+      ctx.textAlign = 'start';
+    }
+
+    function loop() { requestAnimationFrame(loop); draw(); }
+    updateTruthTable();
+    loop();
+  </script>
+</body>
+</html>

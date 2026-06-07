@@ -1,0 +1,268 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Flip-Flops & Counters — FreeChipStore</title>
+  <style>
+    *{margin:0;padding:0;box-sizing:border-box}
+    body{background:#0a0a0a;color:#fafafa;font-family:'Manrope',system-ui,sans-serif;display:flex;flex-direction:column;align-items:center;min-height:100vh}
+    h1{font-size:1.3rem;font-weight:700;margin:1.25rem 0 .25rem} h1 span{color:#ef4444}
+    .sub{color:#737373;font-size:.85rem;margin-bottom:.75rem;text-align:center;max-width:540px}
+    canvas{border:1px solid #262626;border-radius:12px}
+    .controls{display:flex;gap:.5rem;margin:.75rem 0;flex-wrap:wrap;justify-content:center}
+    button{padding:.45rem 1rem;border-radius:8px;border:1px solid #333;background:#171717;color:#fafafa;font-size:.82rem;font-weight:600;cursor:pointer;font-family:inherit}
+    button:hover{border-color:#ef4444;color:#ef4444}
+    button.primary{background:#ef4444;border-color:#ef4444;color:#fff}
+    button.active{background:#ef4444;border-color:#ef4444;color:#fff}
+    .info{font-size:.75rem;color:#525252;margin:.5rem;text-align:center;max-width:600px;line-height:1.5}
+    .info b{color:#ef4444}
+    a{color:#525252;text-decoration:none}
+  </style>
+</head>
+<body>
+  <h1>Flip-Flops & <span>Counters</span></h1>
+  <p class="sub">Sequential logic — circuits that remember. Click the clock to advance, toggle inputs, watch the state change. Build a 4-bit counter from flip-flops.</p>
+
+  <canvas id="sim" width="750" height="400"></canvas>
+
+  <div class="controls">
+    <button class="primary" id="btn-clock">Clock Pulse ⏱️</button>
+    <button id="btn-set">Set (S=1)</button>
+    <button id="btn-reset">Reset (R=1)</button>
+    <button id="btn-toggle">Toggle (T)</button>
+    <button class="active" id="btn-sr">SR Latch</button>
+    <button id="btn-d">D Flip-Flop</button>
+    <button id="btn-jk">JK Flip-Flop</button>
+    <button id="btn-counter">4-bit Counter</button>
+    <button id="btn-auto">Auto Clock</button>
+  </div>
+
+  <div class="info" id="desc">
+    <b>SR Latch:</b> Set-Reset latch. S=1 sets Q to 1. R=1 resets Q to 0. Both S=R=1 is forbidden (undefined behavior). The most basic memory element.
+  </div>
+  <div class="info"><a href="https://freechipstore.pages.dev">FreeChipStore</a></div>
+
+  <script>
+    const canvas = document.getElementById('sim');
+    const ctx = canvas.getContext('2d');
+    const W = canvas.width, H = canvas.height;
+
+    let mode = 'sr'; // sr, d, jk, counter
+    let S = 0, R = 0, D = 0, J = 0, K = 0, Q = 0, Qbar = 1, clk = 0;
+    let counter = [0, 0, 0, 0]; // 4-bit
+    let clockHistory = [];
+    let qHistory = [];
+    let autoClocking = false, autoTimer = 0;
+    let flashTimer = 0;
+
+    const sl = id => document.getElementById(id);
+    const descriptions = {
+      sr: '<b>SR Latch:</b> S=1 sets Q to 1. R=1 resets Q to 0. S=R=1 is forbidden. The most basic memory element — two cross-coupled NOR gates.',
+      d: '<b>D Flip-Flop:</b> On the rising edge of the clock, Q takes the value of D. "Data" flip-flop — stores one bit. Used in registers.',
+      jk: '<b>JK Flip-Flop:</b> J=1,K=0 → Set. J=0,K=1 → Reset. J=K=1 → Toggle. J=K=0 → Hold. The "universal" flip-flop — no forbidden states.',
+      counter: '<b>4-bit Binary Counter:</b> Each clock pulse increments by 1. Counts 0000 → 1111 (0-15) then wraps. Built from cascaded T flip-flops.',
+    };
+
+    function setMode(m) {
+      mode = m;
+      S = R = D = J = K = 0;
+      Q = 0; Qbar = 1;
+      counter = [0, 0, 0, 0];
+      clockHistory = []; qHistory = [];
+      ['btn-sr','btn-d','btn-jk','btn-counter'].forEach(id => sl(id).classList.remove('active'));
+      sl(`btn-${m === 'counter' ? 'counter' : m}`).classList.add('active');
+      sl('desc').innerHTML = descriptions[m];
+    }
+
+    sl('btn-sr').addEventListener('click', () => setMode('sr'));
+    sl('btn-d').addEventListener('click', () => setMode('d'));
+    sl('btn-jk').addEventListener('click', () => setMode('jk'));
+    sl('btn-counter').addEventListener('click', () => setMode('counter'));
+
+    sl('btn-set').addEventListener('click', () => { S = 1; R = 0; D = 1; J = 1; K = 0; });
+    sl('btn-reset').addEventListener('click', () => { S = 0; R = 1; D = 0; J = 0; K = 1; Q = 0; Qbar = 1; counter = [0,0,0,0]; });
+    sl('btn-toggle').addEventListener('click', () => { D = 1 - D; J = 1; K = 1; });
+    sl('btn-auto').addEventListener('click', function() { autoClocking = !autoClocking; this.textContent = autoClocking ? 'Stop Clock' : 'Auto Clock'; });
+
+    sl('btn-clock').addEventListener('click', clockPulse);
+
+    function clockPulse() {
+      clk = 1;
+      flashTimer = 15;
+
+      if (mode === 'sr') {
+        if (S && !R) { Q = 1; Qbar = 0; }
+        else if (R && !S) { Q = 0; Qbar = 1; }
+        // S=R=1 → forbidden (keep current)
+      } else if (mode === 'd') {
+        Q = D;
+        Qbar = 1 - Q;
+      } else if (mode === 'jk') {
+        if (J && !K) { Q = 1; Qbar = 0; }
+        else if (K && !J) { Q = 0; Qbar = 1; }
+        else if (J && K) { Q = 1 - Q; Qbar = 1 - Qbar; }
+      } else if (mode === 'counter') {
+        let carry = 1;
+        for (let i = 3; i >= 0; i--) {
+          const sum = counter[i] + carry;
+          counter[i] = sum % 2;
+          carry = Math.floor(sum / 2);
+        }
+        Q = counter[3];
+      }
+
+      clockHistory.push(clk);
+      qHistory.push(Q);
+      if (clockHistory.length > 40) { clockHistory.shift(); qHistory.shift(); }
+
+      setTimeout(() => { clk = 0; clockHistory.push(0); qHistory.push(Q); if (clockHistory.length > 40) { clockHistory.shift(); qHistory.shift(); } }, 200);
+    }
+
+    function draw() {
+      ctx.fillStyle = '#0a0a0a';
+      ctx.fillRect(0, 0, W, H);
+
+      if (flashTimer > 0) { flashTimer--; }
+
+      const cx = W * 0.4, cy = H * 0.35;
+
+      if (mode === 'counter') {
+        // Draw 4-bit counter display
+        ctx.fillStyle = '#141414';
+        ctx.fillRect(cx - 120, cy - 40, 240, 80);
+        ctx.strokeStyle = '#262626'; ctx.lineWidth = 2;
+        ctx.strokeRect(cx - 120, cy - 40, 240, 80);
+
+        for (let i = 0; i < 4; i++) {
+          const bx = cx - 90 + i * 55;
+          ctx.fillStyle = counter[i] ? '#ef4444' : '#1e1e1e';
+          ctx.strokeStyle = counter[i] ? '#ef4444' : '#333';
+          ctx.lineWidth = 2;
+          ctx.beginPath(); ctx.arc(bx, cy, 18, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+          ctx.fillStyle = '#fafafa'; ctx.font = '700 16px JetBrains Mono'; ctx.textAlign = 'center';
+          ctx.fillText(counter[i], bx, cy + 6);
+          ctx.fillStyle = '#525252'; ctx.font = '9px Manrope';
+          ctx.fillText(`Bit ${3-i}`, bx, cy + 35);
+        }
+
+        // Decimal value
+        const val = counter[0]*8 + counter[1]*4 + counter[2]*2 + counter[3];
+        ctx.fillStyle = '#ef4444'; ctx.font = '700 24px JetBrains Mono';
+        ctx.fillText(`= ${val}`, cx + 140, cy + 8);
+        ctx.fillStyle = '#525252'; ctx.font = '10px Manrope';
+        ctx.fillText('Decimal', cx + 140, cy + 25);
+      } else {
+        // Draw flip-flop box
+        const boxW = 100, boxH = 80;
+        ctx.fillStyle = flashTimer > 0 ? '#1a1a2e' : '#141414';
+        ctx.strokeStyle = flashTimer > 0 ? '#ef4444' : '#262626'; ctx.lineWidth = 2;
+        ctx.fillRect(cx - boxW/2, cy - boxH/2, boxW, boxH);
+        ctx.strokeRect(cx - boxW/2, cy - boxH/2, boxW, boxH);
+
+        // Flip-flop label
+        ctx.fillStyle = '#ef4444'; ctx.font = '700 14px JetBrains Mono'; ctx.textAlign = 'center';
+        const labels = { sr: 'SR', d: 'D-FF', jk: 'JK' };
+        ctx.fillText(labels[mode], cx, cy - boxH/2 - 8);
+
+        // Inputs (left side)
+        const inputLabels = mode === 'sr' ? [['S', S], ['R', R]] :
+                           mode === 'd' ? [['D', D]] :
+                           [['J', J], ['K', K]];
+
+        inputLabels.forEach(([label, val], i) => {
+          const iy = cy - 15 + i * 30;
+          // Wire
+          ctx.strokeStyle = val ? '#10b981' : '#333'; ctx.lineWidth = 3;
+          ctx.beginPath(); ctx.moveTo(cx - boxW/2 - 60, iy); ctx.lineTo(cx - boxW/2, iy); ctx.stroke();
+          // Label
+          ctx.fillStyle = val ? '#10b981' : '#525252'; ctx.font = '700 12px JetBrains Mono'; ctx.textAlign = 'center';
+          ctx.fillText(label, cx - boxW/2 - 75, iy + 4);
+          // Value dot
+          ctx.fillStyle = val ? '#10b981' : '#262626';
+          ctx.beginPath(); ctx.arc(cx - boxW/2 - 60, iy, 8, 0, Math.PI * 2); ctx.fill();
+          ctx.fillStyle = '#fafafa'; ctx.font = '700 10px JetBrains Mono';
+          ctx.fillText(val, cx - boxW/2 - 60, iy + 4);
+        });
+
+        // Clock input (bottom)
+        ctx.strokeStyle = clk ? '#eab308' : '#333'; ctx.lineWidth = 3;
+        ctx.beginPath(); ctx.moveTo(cx, cy + boxH/2); ctx.lineTo(cx, cy + boxH/2 + 30); ctx.stroke();
+        // Triangle clock symbol
+        ctx.fillStyle = clk ? '#eab308' : '#525252';
+        ctx.beginPath(); ctx.moveTo(cx - 6, cy + boxH/2); ctx.lineTo(cx, cy + boxH/2 - 8); ctx.lineTo(cx + 6, cy + boxH/2); ctx.fill();
+        ctx.font = '9px Manrope'; ctx.textAlign = 'center';
+        ctx.fillText('CLK', cx, cy + boxH/2 + 45);
+
+        // Outputs (right side)
+        // Q
+        ctx.strokeStyle = Q ? '#10b981' : '#333'; ctx.lineWidth = 3;
+        ctx.beginPath(); ctx.moveTo(cx + boxW/2, cy - 15); ctx.lineTo(cx + boxW/2 + 60, cy - 15); ctx.stroke();
+        ctx.fillStyle = Q ? '#10b981' : '#262626';
+        ctx.beginPath(); ctx.arc(cx + boxW/2 + 60, cy - 15, 12, 0, Math.PI * 2); ctx.fill();
+        ctx.fillStyle = '#fafafa'; ctx.font = '700 14px JetBrains Mono'; ctx.textAlign = 'center';
+        ctx.fillText(Q, cx + boxW/2 + 60, cy - 11);
+        ctx.fillStyle = '#525252'; ctx.font = '10px Manrope';
+        ctx.fillText('Q', cx + boxW/2 + 60, cy - 30);
+
+        // Q-bar
+        ctx.strokeStyle = Qbar ? '#ef4444' : '#333'; ctx.lineWidth = 3;
+        ctx.beginPath(); ctx.moveTo(cx + boxW/2, cy + 15); ctx.lineTo(cx + boxW/2 + 60, cy + 15); ctx.stroke();
+        ctx.fillStyle = Qbar ? '#ef4444' : '#262626';
+        ctx.beginPath(); ctx.arc(cx + boxW/2 + 60, cy + 15, 12, 0, Math.PI * 2); ctx.fill();
+        ctx.fillStyle = '#fafafa'; ctx.font = '700 14px JetBrains Mono';
+        ctx.fillText(Qbar, cx + boxW/2 + 60, cy + 19);
+        ctx.fillStyle = '#525252'; ctx.font = '10px Manrope';
+        ctx.fillText('Q̄', cx + boxW/2 + 60, cy + 32);
+      }
+
+      // Timing diagram (bottom half)
+      const tdY = H * 0.6, tdH = H * 0.35, tdW = W - 40;
+      ctx.fillStyle = '#0f0f0f';
+      ctx.fillRect(20, tdY, tdW, tdH);
+      ctx.strokeStyle = '#1a1a1a'; ctx.lineWidth = 1;
+      ctx.strokeRect(20, tdY, tdW, tdH);
+
+      if (clockHistory.length > 1) {
+        const stepW = tdW / 40;
+
+        // Clock signal
+        ctx.strokeStyle = '#eab308'; ctx.lineWidth = 1.5;
+        ctx.beginPath();
+        for (let i = 0; i < clockHistory.length; i++) {
+          const x = 20 + i * stepW;
+          const y = tdY + 10 + (1 - clockHistory[i]) * 25;
+          if (i === 0) ctx.moveTo(x, y); else { ctx.lineTo(x, y); }
+        }
+        ctx.stroke();
+        ctx.fillStyle = '#eab308'; ctx.font = '9px Manrope'; ctx.textAlign = 'left';
+        ctx.fillText('CLK', 5, tdY + 20);
+
+        // Q signal
+        ctx.strokeStyle = '#10b981'; ctx.lineWidth = 1.5;
+        ctx.beginPath();
+        for (let i = 0; i < qHistory.length; i++) {
+          const x = 20 + i * stepW;
+          const y = tdY + 55 + (1 - qHistory[i]) * 25;
+          if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+        }
+        ctx.stroke();
+        ctx.fillStyle = '#10b981';
+        ctx.fillText('Q', 5, tdY + 65);
+      }
+
+      ctx.textAlign = 'start';
+
+      // Auto clock
+      if (autoClocking) {
+        autoTimer++;
+        if (autoTimer % 30 === 0) clockPulse();
+      }
+    }
+
+    function loop() { requestAnimationFrame(loop); draw(); }
+    setMode('sr');
+    loop();
+  </script>
+</body>
+</html>

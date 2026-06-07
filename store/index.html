@@ -173,7 +173,7 @@
 
     <section>
       <div class="tabs">
-          <button class="tab active" onclick="switchTab('all')">All <span class="tab-count">2</span></button>
+          <button class="tab active" onclick="switchTab('all')">All <span class="tab-count">3</span></button>
           <button class="tab" onclick="switchTab('library')">Libraries <span class="tab-count">undefined</span></button>
           <button class="tab" onclick="switchTab('model')">Models <span class="tab-count">0</span></button>
           <button class="tab" onclick="switchTab('agent')">Agents <span class="tab-count">undefined</span></button>
@@ -183,15 +183,16 @@
         <input type="text" class="search-input" id="searchInput" placeholder="Search agents..." autocomplete="off" />
         <button class="filter-btn active" onclick="filterCategory('all')">All</button>
         <button class="filter-btn" onclick="filterCategory('fundamentals')">Fundamentals</button>
-        <span class="agent-count" id="agentCount">2 agents</span>
+        <button class="filter-btn" onclick="filterCategory('sequential')">Sequential</button>
+        <span class="agent-count" id="agentCount">3 agents</span>
       </div>
             <div class="agents-grid" id="agentsGrid">
-        <div class="agent-card" data-category="fundamentals" data-store-type="behavior" data-name="logic gates" data-desc="interactive and, or, not, nand, xor, xnor, nor. click inputs to toggle, see truth tables, watch signals propagate.">
+        <div class="agent-card" data-category="fundamentals" data-store-type="behavior" data-name="logic gates" data-desc="and, or, not, nand, xor, xnor, nor — click inputs to toggle, see truth tables, watch signals propagate through gates.">
           <a href="/items/logic-gates/" class="agent-card-body">
             <div class="agent-icon" style="background:#ef4444">🔲</div>
             <div class="agent-body">
               <span class="agent-name">Logic Gates</span>
-              <span class="agent-desc">Interactive AND, OR, NOT, NAND, XOR, XNOR, NOR. Click inputs...</span>
+              <span class="agent-desc">AND, OR, NOT, NAND, XOR, XNOR, NOR — click inputs to toggle,...</span>
               <div class="agent-meta">
                 <span class="tag" style="background:rgba(124,58,237,0.15);color:#a78bfa">behavior</span>
                 <span class="tag"></span>
@@ -204,12 +205,12 @@
           </a>
         </div>
 
-        <div class="agent-card" data-category="fundamentals" data-store-type="behavior" data-name="alu simulator" data-desc="arithmetic logic unit — click bits to set values, choose add/sub/and/or/xor/not/shl/shr. see binary math and cpu flags.">
+        <div class="agent-card" data-category="fundamentals" data-store-type="behavior" data-name="alu simulator" data-desc="8-bit alu — click individual bits, choose add/sub/and/or/xor/not/shl/shr. see binary math + cpu flags (z/n/c/v).">
           <a href="/items/alu-sim/" class="agent-card-body">
             <div class="agent-icon" style="background:#3b82f6">➕</div>
             <div class="agent-body">
               <span class="agent-name">ALU Simulator</span>
-              <span class="agent-desc">Arithmetic Logic Unit — click bits to set values, choose ADD...</span>
+              <span class="agent-desc">8-bit ALU — click individual bits, choose ADD/SUB/AND/OR/XOR...</span>
               <div class="agent-meta">
                 <span class="tag" style="background:rgba(124,58,237,0.15);color:#a78bfa">behavior</span>
                 <span class="tag"></span>
@@ -217,6 +218,24 @@
             </div>
           </a>
           <a href="/items/alu-sim/" class="agent-cta">
+            <svg viewBox="0 0 24 24"><polygon points="6,4 20,12 6,20"/></svg>
+            Open
+          </a>
+        </div>
+
+        <div class="agent-card" data-category="sequential" data-store-type="behavior" data-name="flip-flops & counters" data-desc="sr latch, d flip-flop, jk flip-flop, 4-bit counter. clock pulse, timing diagram, sequential logic explained.">
+          <a href="/items/flip-flop/" class="agent-card-body">
+            <div class="agent-icon" style="background:#ef4444">⏱️</div>
+            <div class="agent-body">
+              <span class="agent-name">Flip-Flops &amp; Counters</span>
+              <span class="agent-desc">SR Latch, D Flip-Flop, JK Flip-Flop, 4-bit Counter. Clock pu...</span>
+              <div class="agent-meta">
+                <span class="tag" style="background:rgba(124,58,237,0.15);color:#a78bfa">behavior</span>
+                <span class="tag"></span>
+              </div>
+            </div>
+          </a>
+          <a href="/items/flip-flop/" class="agent-cta">
             <svg viewBox="0 0 24 24"><polygon points="6,4 20,12 6,20"/></svg>
             Open
           </a>

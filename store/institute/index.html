@@ -1,0 +1,327 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Chip Design Institute — Powered by Zensical</title>
+  <meta name="description" content="Free educational resources for chip design and digital electronics. Tutorials, research papers, courses, tools, and community.">
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,700&family=Manrope:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    *{margin:0;padding:0;box-sizing:border-box}
+    :root{--accent:#ef4444;--paper:#0a0a0a;--ink:#fafafa;--muted:#737373;--panel:#141414;--line:#262626}
+    body{font-family:'Manrope',system-ui,sans-serif;background:var(--paper);color:var(--ink);line-height:1.7;-webkit-font-smoothing:antialiased}
+    .container{max-width:900px;margin:0 auto;padding:0 1.5rem}
+    a{color:var(--accent);text-decoration:none}a:hover{text-decoration:underline}
+    header{border-bottom:1px solid var(--line);padding:.75rem 0}
+    header .container{display:flex;align-items:center;gap:1rem;flex-wrap:wrap}
+    .brand{display:flex;align-items:center;gap:.5rem;text-decoration:none;color:var(--ink)}
+    .brand-emoji{font-size:1.5rem}
+    .brand-text{font-family:'Fraunces',serif;font-size:1.05rem;font-weight:700}
+    .brand-tag{font-size:.68rem;color:var(--muted)}
+    nav{display:flex;gap:1rem;font-size:.82rem;font-weight:600;margin-left:auto}
+    nav a{color:var(--muted)}nav a:hover{color:var(--ink)}
+    .hero{text-align:center;padding:2.5rem 0 1.5rem;border-bottom:1px solid var(--line)}
+    .hero h1{font-family:'Fraunces',serif;font-size:1.8rem;font-weight:700;margin-bottom:.5rem}
+    .hero h1 em{color:var(--accent);font-style:normal}
+    .hero p{color:var(--muted);max-width:600px;margin:0 auto;font-size:.95rem}
+    .powered{font-size:.72rem;color:#525252;margin-top:.75rem}
+    .powered a{color:#525252}
+    .toc{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:1rem 1.25rem;margin:1.5rem 0}
+    .toc h3{font-size:.85rem;font-weight:700;margin-bottom:.5rem;color:var(--accent)}
+    .toc ul{list-style:none;padding:0;columns:2}
+    .toc li{margin:.2rem 0}.toc a{color:#a3a3a3;font-size:.82rem}.toc a:hover{color:var(--ink)}
+    .section{margin-bottom:2rem;padding-top:1rem}
+    .section h2{font-family:'Fraunces',serif;font-size:1.3rem;font-weight:700;margin-bottom:.5rem;padding-bottom:.35rem;border-bottom:1px solid var(--line)}
+    .section h3{font-size:.95rem;font-weight:700;margin:1rem 0 .35rem;color:#e5e5e5}
+    .section p,.section li{color:#a3a3a3;font-size:.88rem}
+    ul{padding-left:1.25rem;margin:.35rem 0}
+    li{margin-bottom:.3rem}
+    .cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:.6rem;margin:.5rem 0}
+    .card{background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:.85rem;transition:border-color .15s}
+    .card:hover{border-color:var(--accent)}
+    .card h4{font-size:.85rem;font-weight:700;margin-bottom:.2rem}
+    .card h4 a{color:var(--ink)}.card p{font-size:.75rem;color:var(--muted);margin:0;line-height:1.5}
+    .card .meta{font-size:.65rem;color:#525252;margin-top:.25rem}
+    footer{border-top:1px solid var(--line);padding:1.5rem 0;text-align:center;font-size:.75rem;color:#525252}
+  </style>
+</head>
+<body>
+  <header>
+    <div class="container">
+      <a href="/institute/" class="brand">
+        <span class="brand-emoji">🔲</span>
+        <span><span class="brand-text">Chip Design Institute</span><br><span class="brand-tag">Powered by <a href="https://zensical.org" style="color:#525252">Zensical</a></span></span>
+      </a>
+      <nav>
+        <a href="/">Chips</a>
+        <a href="/institute/">Institute</a>
+        <a href="https://zensical.org">Zensical</a>
+      </nav>
+    </div>
+  </header>
+
+  <div class="container">
+    <section class="hero">
+      <h1>Chip Design <em>Institute</em></h1>
+      <p>Everything you need to learn chip design. Free courses, research papers, open-source EDA tools, and community resources — curated for practitioners.</p>
+      <p class="powered">Knowledge base powered by <a href="https://zensical.org">Zensical</a> — open educational infrastructure</p>
+    </section>
+
+    <nav class="toc">
+      <h3>Contents</h3>
+      <ul>
+        <li><a href="#fundamentals">Fundamentals</a></li>
+        <li><a href="#courses">Free Courses</a></li>
+        <li><a href="#textbooks">Textbooks</a></li>
+        <li><a href="#research">Key Research Papers</a></li>
+        <li><a href="#tools">Open-Source Tools</a></li>
+        <li><a href="#hardware">Industry & Hardware</a></li>
+        <li><a href="#reference">Reference</a></li>
+        <li><a href="#community">Community</a></li>
+      </ul>
+    </nav>
+
+    <section class="section" id="fundamentals">
+      <h2>Fundamentals</h2>
+      <h3>What is Chip Design?</h3>
+      <p>Chip design (VLSI design) is the process of creating integrated circuits — from defining architecture and writing hardware description languages (Verilog/VHDL) to physical layout and fabrication. Modern chips contain billions of transistors and power everything from smartphones to data centers.</p>
+
+      <h3>Key Concepts</h3>
+      <ul>
+        <li><strong>Boolean Algebra</strong> — the mathematical foundation of digital logic. AND, OR, NOT, XOR gates implement Boolean functions in silicon.</li>
+        <li><strong>Flip-Flops & Latches</strong> — sequential storage elements. D flip-flops store one bit, triggered by clock edges. Foundation of registers and memory.</li>
+        <li><strong>Finite State Machines</strong> — Mealy and Moore machines model sequential logic. States, transitions, outputs. Used everywhere from protocol controllers to CPUs.</li>
+        <li><strong>Pipelining</strong> — break computation into stages, process multiple instructions simultaneously. Increases throughput at the cost of latency.</li>
+        <li><strong>Caches</strong> — small, fast memory close to the CPU. L1/L2/L3 hierarchy. Spatial and temporal locality. Cache coherence in multicore.</li>
+        <li><strong>RISC-V ISA</strong> — open-source instruction set architecture. Base integer ISA (RV32I/RV64I) plus standard extensions (M, A, F, D, C). The Linux of hardware.</li>
+      </ul>
+
+      <h3>Abstraction Layers</h3>
+      <ul>
+        <li>System architecture → microarchitecture → RTL (Register Transfer Level) → gate-level netlist → transistor-level → physical layout → fabrication.</li>
+        <li>RTL is written in Verilog or VHDL, synthesized to gates by tools like Yosys, then placed and routed into a physical chip layout.</li>
+        <li>FPGAs let you prototype designs on reconfigurable hardware before committing to an ASIC (application-specific integrated circuit) tape-out.</li>
+        <li>Modern SoCs (System-on-Chip) integrate CPU cores, GPU, memory controllers, I/O, and accelerators on a single die.</li>
+      </ul>
+    </section>
+
+    <section class="section" id="courses">
+      <h2>Free Courses</h2>
+      <div class="cards">
+        <div class="card">
+          <h4><a href="https://ocw.mit.edu/courses/6-004-computation-structures-spring-2017/">MIT 6.004: Computation Structures</a></h4>
+          <p>From gates to processors. Digital logic, computer architecture, pipelining, caches, virtual memory. The gold standard intro course.</p>
+          <div class="meta">MIT OpenCourseWare | Free | Intermediate</div>
+        </div>
+        <div class="card">
+          <h4><a href="https://www.nand2tetris.org">Nand2Tetris</a></h4>
+          <p>Build a complete computer from NAND gates. Hardware, assembler, VM, compiler, OS — all from scratch. The best way to understand computers.</p>
+          <div class="meta">Hebrew University | Free | Beginner</div>
+        </div>
+        <div class="card">
+          <h4><a href="https://www.coursera.org/learn/digital-systems">Coursera: Digital Systems (UAB)</a></h4>
+          <p>Fundamentals of digital design. Combinational and sequential logic, Verilog, FPGA implementation. Free to audit.</p>
+          <div class="meta">Autonomous University of Barcelona | Free audit | Beginner</div>
+        </div>
+        <div class="card">
+          <h4><a href="https://www.edx.org/learn/fpga">edX: FPGA Design Courses</a></h4>
+          <p>Multiple FPGA courses from universities. Learn Verilog/VHDL, synthesis, timing analysis, and FPGA implementation.</p>
+          <div class="meta">edX | Free audit | Intermediate</div>
+        </div>
+        <div class="card">
+          <h4><a href="https://zipcpu.com/tutorial/">ZipCPU Tutorials</a></h4>
+          <p>Practical Verilog tutorials and FPGA design. Formal verification, bus protocols, DDR memory controllers. Excellent blog.</p>
+          <div class="meta">Free | Intermediate to Advanced</div>
+        </div>
+        <div class="card">
+          <h4><a href="https://riscv.org/technical/specifications/">RISC-V Specifications</a></h4>
+          <p>Official RISC-V ISA specifications. Unprivileged, privileged, and debug specs. The foundation for open-source CPU design.</p>
+          <div class="meta">RISC-V International | Free | Reference</div>
+        </div>
+      </div>
+    </section>
+
+    <section class="section" id="textbooks">
+      <h2>Textbooks</h2>
+      <ul>
+        <li><strong><a href="https://www.elsevier.com/books/digital-design-and-computer-architecture/harris/978-0-12-820064-3">Harris & Harris: Digital Design and Computer Architecture</a></strong> — Best intro textbook. Covers combinational/sequential logic, Verilog/SystemVerilog, MIPS and RISC-V architectures.</li>
+        <li><strong><a href="https://www.elsevier.com/books/computer-organization-and-design-risc-v-edition/patterson/978-0-12-820331-6">Patterson & Hennessy: Computer Organization and Design (RISC-V Edition)</a></strong> — Classic textbook on computer architecture. Pipeline, memory hierarchy, parallelism. RISC-V edition is the latest.</li>
+        <li><strong><a href="https://www.elsevier.com/books/computer-architecture/hennessy/978-0-12-811905-1">Hennessy & Patterson: Computer Architecture — A Quantitative Approach</a></strong> — Graduate-level. Instruction-level parallelism, memory, multiprocessors, warehouse-scale computing.</li>
+        <li><strong><a href="https://pages.hmc.edu/harris/cmosvlsi/4e/index.html">Weste & Harris: CMOS VLSI Design</a></strong> — Comprehensive treatment of CMOS circuit and layout design. From transistors to systems.</li>
+        <li><strong><a href="https://www.nand2tetris.org/book">Nisan & Schocken: The Elements of Computing Systems</a></strong> — The Nand2Tetris textbook. Build a computer, assembler, VM, compiler, and OS from first principles.</li>
+      </ul>
+    </section>
+
+    <section class="section" id="research">
+      <h2>Key Research Papers</h2>
+      <div class="cards">
+        <div class="card">
+          <h4><a href="https://newsroom.intel.com/wp-content/uploads/sites/11/2018/05/moores-law-electronics.pdf">Moore (1965): Cramming More Components</a></h4>
+          <p>Predicted transistor count doubles every two years. This observation drove the semiconductor industry for six decades and shaped modern computing.</p>
+          <div class="meta">Gordon Moore | Electronics Magazine</div>
+        </div>
+        <div class="card">
+          <h4><a href="https://ieeexplore.ieee.org/document/1050511">Dennard et al (1974): Scaling Theory</a></h4>
+          <p>Dennard scaling: as transistors shrink, voltage and current scale proportionally, keeping power density constant. Broke down around 2006 (power wall).</p>
+          <div class="meta">Robert Dennard | IBM | IEEE JSSC</div>
+        </div>
+        <div class="card">
+          <h4><a href="https://riscv.org/wp-content/uploads/2015/01/riscv-spec-v2.0.pdf">Waterman et al (2014): The RISC-V ISA</a></h4>
+          <p>The RISC-V instruction set architecture specification. Clean, modular, open-source ISA. Now used in billions of chips.</p>
+          <div class="meta">UC Berkeley | RISC-V Foundation</div>
+        </div>
+        <div class="card">
+          <h4><a href="https://dl.acm.org/doi/10.1145/234286.1057458">Patterson & Ditzel (1980): The Case for RISC</a></h4>
+          <p>Argued for Reduced Instruction Set Computers over CISC. Simpler instructions, faster clock, better pipelining. Spawned SPARC, MIPS, ARM, RISC-V.</p>
+          <div class="meta">Patterson & Ditzel | ACM SIGARCH</div>
+        </div>
+        <div class="card">
+          <h4><a href="https://ieeexplore.ieee.org/document/5695544">Esmaeilzadeh et al (2011): Dark Silicon</a></h4>
+          <p>Showed that power constraints mean most transistors on future chips must be powered off ("dark"). Motivated specialization and accelerators.</p>
+          <div class="meta">ISCA 2011 | Best Paper</div>
+        </div>
+        <div class="card">
+          <h4><a href="https://ieeexplore.ieee.org/document/6241601">Jouppi et al (2017): TPU — In-Datacenter Performance</a></h4>
+          <p>Google's Tensor Processing Unit. Custom ASIC for neural network inference. 15-30x faster than GPUs for ML workloads. Launched the AI accelerator era.</p>
+          <div class="meta">Google | ISCA 2017</div>
+        </div>
+      </div>
+    </section>
+
+    <section class="section" id="tools">
+      <h2>Open-Source Tools</h2>
+      <div class="cards">
+        <div class="card">
+          <h4><a href="https://github.com/verilator/verilator">Verilator</a></h4>
+          <p>Fastest open-source Verilog/SystemVerilog simulator. Compiles RTL to optimized C++/SystemC. Used in industry and academia.</p>
+          <div class="meta">C++ | 5K+ stars | LGPL</div>
+        </div>
+        <div class="card">
+          <h4><a href="https://github.com/YosysHQ/yosys">Yosys</a></h4>
+          <p>Open-source synthesis suite. Verilog RTL to gate-level netlist. Supports FPGA and ASIC flows. Foundation of the open-source EDA ecosystem.</p>
+          <div class="meta">C++ | 3K+ stars | ISC License</div>
+        </div>
+        <div class="card">
+          <h4><a href="https://github.com/ghdl/ghdl">GHDL</a></h4>
+          <p>Open-source VHDL simulator. Supports VHDL-87/93/2002/2008. Synthesis via ghdl-yosys-plugin. Complete VHDL workflow.</p>
+          <div class="meta">Ada / C | 2K+ stars | GPL</div>
+        </div>
+        <div class="card">
+          <h4><a href="https://github.com/The-OpenROAD-Project/OpenROAD">OpenROAD</a></h4>
+          <p>Complete open-source RTL-to-GDS flow. Floorplanning, placement, CTS, routing. Autonomous, no-human-in-the-loop chip design.</p>
+          <div class="meta">C++ | DARPA-funded | BSD</div>
+        </div>
+        <div class="card">
+          <h4><a href="https://www.kicad.org">KiCad</a></h4>
+          <p>Open-source PCB design suite. Schematic capture, PCB layout, 3D viewer, Gerber output. Professional-quality, completely free.</p>
+          <div class="meta">C++ | CERN-origin | GPL</div>
+        </div>
+        <div class="card">
+          <h4><a href="https://github.com/steveicarus/iverilog">Icarus Verilog</a></h4>
+          <p>Open-source Verilog simulation and synthesis tool. Lightweight, fast compilation, good for learning and small projects.</p>
+          <div class="meta">C++ | 2.5K+ stars | GPL</div>
+        </div>
+      </div>
+    </section>
+
+    <section class="section" id="hardware">
+      <h2>Industry & Hardware</h2>
+      <div class="cards">
+        <div class="card">
+          <h4><a href="https://www.amd.com">AMD</a></h4>
+          <p>Ryzen CPUs, EPYC servers, Radeon GPUs. Chiplet architecture (Zen). Major x86 competitor. Acquired Xilinx (FPGAs).</p>
+          <div class="meta">CPUs / GPUs / FPGAs</div>
+        </div>
+        <div class="card">
+          <h4><a href="https://www.intel.com">Intel</a></h4>
+          <p>World's largest chipmaker. Core/Xeon CPUs, Intel Foundry Services. Pioneered x86, pushing Intel 18A process node.</p>
+          <div class="meta">CPUs / Foundry</div>
+        </div>
+        <div class="card">
+          <h4><a href="https://www.tsmc.com">TSMC</a></h4>
+          <p>Taiwan Semiconductor Manufacturing Company. World's largest foundry. Manufactures chips for Apple, AMD, NVIDIA, Qualcomm. Leading-edge nodes (3nm, 2nm).</p>
+          <div class="meta">Foundry | Market leader</div>
+        </div>
+        <div class="card">
+          <h4><a href="https://www.nvidia.com">NVIDIA</a></h4>
+          <p>GPU computing leader. GeForce (gaming), A100/H100 (AI training), Grace-Hopper (superchips). CUDA ecosystem dominates ML/HPC.</p>
+          <div class="meta">GPUs / AI accelerators</div>
+        </div>
+        <div class="card">
+          <h4><a href="https://www.latticesemi.com">Lattice Semiconductor</a></h4>
+          <p>Low-power FPGAs. iCE40 (open-source toolchain via Yosys+nextpnr), ECP5, CrossLink-NX. Accessible FPGA development.</p>
+          <div class="meta">FPGAs | Low-power</div>
+        </div>
+        <div class="card">
+          <h4><a href="https://www.raspberrypi.com/products/raspberry-pi-pico/">Raspberry Pi Pico</a></h4>
+          <p>RP2040 microcontroller. Dual-core ARM Cortex-M0+, PIO (Programmable I/O) state machines. $4. Great for learning embedded design.</p>
+          <div class="meta">Microcontroller | $4 | Open docs</div>
+        </div>
+      </div>
+    </section>
+
+    <section class="section" id="reference">
+      <h2>Reference</h2>
+      <h3>Digital Logic</h3>
+      <ul>
+        <li><strong>Boolean Algebra</strong> — AND (a&b), OR (a|b), NOT (!a), XOR (a^b). De Morgan's laws: !(a&b) = !a|!b. Karnaugh maps for minimization.</li>
+        <li><strong>Combinational Logic</strong> — multiplexers, decoders, encoders, adders (ripple-carry, carry-lookahead), ALUs. Output depends only on current inputs.</li>
+        <li><strong>Sequential Logic</strong> — flip-flops (D, JK, T), registers, counters, shift registers. Output depends on inputs AND current state (clock-driven).</li>
+        <li><strong>FSMs</strong> — Finite State Machines: Moore (output = f(state)) or Mealy (output = f(state, input)). State diagrams, state tables, encoding.</li>
+      </ul>
+
+      <h3>Computer Architecture</h3>
+      <ul>
+        <li><strong>Pipelining</strong> — IF→ID→EX→MEM→WB. Hazards: data (forwarding/stalling), control (branch prediction), structural (resource conflicts).</li>
+        <li><strong>Caches</strong> — direct-mapped, set-associative, fully-associative. Write-back vs write-through. Replacement: LRU, FIFO, random.</li>
+        <li><strong>Branch Prediction</strong> — static (always taken), dynamic (BHT, 2-bit saturating counters), BTB, tournament predictors.</li>
+        <li><strong>Out-of-Order Execution</strong> — Tomasulo's algorithm, reservation stations, reorder buffer (ROB), register renaming. ILP extraction.</li>
+      </ul>
+
+      <h3>RISC-V</h3>
+      <ul>
+        <li><strong>Base ISA</strong> — RV32I (32-bit integer): 47 instructions. Load/store architecture, 32 registers (x0=0), 6 instruction formats (R/I/S/B/U/J).</li>
+        <li><strong>Standard Extensions</strong> — M (multiply/divide), A (atomic), F/D (single/double float), C (compressed 16-bit instructions), V (vector).</li>
+        <li><strong>Privileged Spec</strong> — Machine (M), Supervisor (S), User (U) modes. CSRs, interrupts, virtual memory (Sv39/Sv48 page tables).</li>
+        <li><strong>Ecosystem</strong> — BOOM, Rocket (UCB generators), CVA6, PicoRV32, VexRiscv. Linux, Zephyr, FreeRTOS support.</li>
+      </ul>
+    </section>
+
+    <section class="section" id="community">
+      <h2>Community & News</h2>
+      <div class="cards">
+        <div class="card">
+          <h4><a href="https://www.reddit.com/r/FPGA/">r/FPGA</a></h4>
+          <p>Reddit community for FPGA designers. Tool tips, project showcases, career discussion, synthesis gotchas. 60K+ members.</p>
+        </div>
+        <div class="card">
+          <h4><a href="https://www.reddit.com/r/chipdesign/">r/chipdesign</a></h4>
+          <p>Reddit community for ASIC and chip design professionals. Verification, physical design, industry news, career advice.</p>
+        </div>
+        <div class="card">
+          <h4><a href="https://riscv.org">RISC-V International</a></h4>
+          <p>Global open-standard ISA foundation. Specifications, member directory, RISC-V Summit, working groups, and ecosystem.</p>
+        </div>
+        <div class="card">
+          <h4><a href="https://hackaday.com">Hackaday</a></h4>
+          <p>Hardware hacking and electronics projects. FPGA builds, custom PCBs, chip decapping, retro computing, and open hardware.</p>
+        </div>
+        <div class="card">
+          <h4><a href="https://arxiv.org/list/cs.AR/new">arXiv cs.AR</a></h4>
+          <p>Preprints in computer architecture. New processor designs, accelerators, memory systems — where research appears first.</p>
+        </div>
+        <div class="card">
+          <h4><a href="https://semiengineering.com">Semiconductor Engineering</a></h4>
+          <p>Industry news covering chip design, manufacturing, EDA, packaging, and emerging technologies. Expert analysis.</p>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <footer>
+    <div class="container">
+      <a href="/">FreeChipStore</a> · <a href="/institute/">Institute</a> · Powered by <a href="https://zensical.org">Zensical</a>
+    </div>
+  </footer>
+</body>
+</html>

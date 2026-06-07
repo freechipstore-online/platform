@@ -1,6 +1,30 @@
 {
   "robots": [
     {
+      "id": "waveform-ai",
+      "name": "Waveform Analyzer",
+      "description": "Neural net trained in-browser classifies digital signals",
+      "storeType": " clock, PWM, SPI, I2C, UART, noise. Oscilloscope display.",
+      "category": "model",
+      "icon": "\ud83e\udd16",
+      "iconBg": "ai:#ef4444",
+      "creator": "serge-ivo",
+      "creatorName": "Serge",
+      "creatorAvatar": "https://github.com/serge-ivo.png?size=96"
+    },
+    {
+      "id": "ai-circuit-id",
+      "name": "AI Circuit Classifier",
+      "description": "CLIP model identifies hand-drawn circuit components. Draw or pick presets \u2014 AI classifies AND/OR/resistor/capacitor/op-amp.",
+      "storeType": "model",
+      "category": "ai",
+      "icon": "\ud83e\udd16",
+      "iconBg": "#ef4444",
+      "creator": "serge-ivo",
+      "creatorName": "Serge",
+      "creatorAvatar": "https://github.com/serge-ivo.png?size=96"
+    },
+    {
       "id": "binary-calc",
       "name": "Binary Calculator",
       "description": "Binary/hex/decimal converter with gate-level visualization. Ripple carry adder, shift-and-add multiplier, IEEE 754 floats.",

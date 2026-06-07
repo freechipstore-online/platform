@@ -1,0 +1,315 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>RISC-V — Chip Design Institute</title>
+  <meta name="description" content="RISC-V instruction set architecture. Base ISA, standard extensions (M/A/F/D/C), privileged architecture, ecosystem, and implementations.">
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,700&family=Manrope:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    *{margin:0;padding:0;box-sizing:border-box}
+    :root{--accent:#ef4444;--paper:#0a0a0a;--ink:#fafafa;--muted:#737373;--panel:#141414;--line:#262626}
+    body{font-family:'Manrope',system-ui,sans-serif;background:var(--paper);color:var(--ink);line-height:1.7;-webkit-font-smoothing:antialiased}
+    .container{max-width:900px;margin:0 auto;padding:0 1.5rem}
+    a{color:var(--accent);text-decoration:none}a:hover{text-decoration:underline}
+    header{border-bottom:1px solid var(--line);padding:.75rem 0}
+    header .container{display:flex;align-items:center;gap:1rem;flex-wrap:wrap}
+    .brand{display:flex;align-items:center;gap:.5rem;text-decoration:none;color:var(--ink)}
+    .brand-emoji{font-size:1.5rem}
+    .brand-text{font-family:'Fraunces',serif;font-size:1.05rem;font-weight:700}
+    .brand-tag{font-size:.68rem;color:var(--muted)}
+    nav{display:flex;gap:1rem;font-size:.82rem;font-weight:600;margin-left:auto}
+    nav a{color:var(--muted)}nav a:hover{color:var(--ink)}
+    .hero{text-align:center;padding:2.5rem 0 1.5rem;border-bottom:1px solid var(--line)}
+    .hero h1{font-family:'Fraunces',serif;font-size:1.8rem;font-weight:700;margin-bottom:.5rem}
+    .hero h1 em{color:var(--accent);font-style:normal}
+    .hero p{color:var(--muted);max-width:600px;margin:0 auto;font-size:.95rem}
+    .toc{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:1rem 1.25rem;margin:1.5rem 0}
+    .toc h3{font-size:.85rem;font-weight:700;margin-bottom:.5rem;color:var(--accent)}
+    .toc ul{list-style:none;padding:0;columns:2}
+    .toc li{margin:.2rem 0}.toc a{color:#a3a3a3;font-size:.82rem}.toc a:hover{color:var(--ink)}
+    .section{margin-bottom:2rem;padding-top:1rem}
+    .section h2{font-family:'Fraunces',serif;font-size:1.3rem;font-weight:700;margin-bottom:.5rem;padding-bottom:.35rem;border-bottom:1px solid var(--line)}
+    .section h3{font-size:.95rem;font-weight:700;margin:1rem 0 .35rem;color:#e5e5e5}
+    .section p,.section li{color:#a3a3a3;font-size:.88rem}
+    ul{padding-left:1.25rem;margin:.35rem 0}
+    li{margin-bottom:.3rem}
+    .cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:.6rem;margin:.5rem 0}
+    .card{background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:.85rem;transition:border-color .15s}
+    .card:hover{border-color:var(--accent)}
+    .card h4{font-size:.85rem;font-weight:700;margin-bottom:.2rem}
+    .card h4 a{color:var(--ink)}.card p{font-size:.75rem;color:var(--muted);margin:0;line-height:1.5}
+    .card .meta{font-size:.65rem;color:#525252;margin-top:.25rem}
+    code{background:#1a1a1a;padding:.15rem .35rem;border-radius:4px;font-size:.82rem;color:#e5e5e5}
+    table{width:100%;border-collapse:collapse;margin:.5rem 0;font-size:.82rem}
+    th,td{border:1px solid var(--line);padding:.4rem .6rem;text-align:left}
+    th{background:var(--panel);color:var(--ink);font-weight:600}
+    td{color:#a3a3a3}
+    footer{border-top:1px solid var(--line);padding:1.5rem 0;text-align:center;font-size:.75rem;color:#525252}
+  </style>
+</head>
+<body>
+  <header>
+    <div class="container">
+      <a href="/institute/" class="brand">
+        <span class="brand-emoji">🔲</span>
+        <span><span class="brand-text">Chip Design Institute</span><br><span class="brand-tag">Powered by <a href="https://zensical.org" style="color:#525252">Zensical</a></span></span>
+      </a>
+      <nav><a href="/institute/">Overview</a><a href="/institute/digital-logic">Logic</a><a href="/institute/cpu-architecture">CPU</a><a href="/institute/verilog">Verilog</a><a href="/institute/fpga">FPGA</a><a href="/institute/risc-v">RISC-V</a><a href="/">Simulations</a></nav>
+    </div>
+  </header>
+
+  <div class="container">
+    <section class="hero">
+      <h1><em>RISC-V</em></h1>
+      <p>The open-source instruction set architecture reshaping the semiconductor industry. Free to implement, free to extend, designed from clean-slate principles by UC Berkeley researchers.</p>
+    </section>
+
+    <nav class="toc">
+      <h3>Contents</h3>
+      <ul>
+        <li><a href="#overview">ISA Overview</a></li>
+        <li><a href="#base">Base Instructions</a></li>
+        <li><a href="#extensions">Standard Extensions</a></li>
+        <li><a href="#formats">Instruction Formats</a></li>
+        <li><a href="#privileged">Privileged Architecture</a></li>
+        <li><a href="#ecosystem">Ecosystem</a></li>
+        <li><a href="#implementations">Implementations</a></li>
+        <li><a href="#resources">Resources</a></li>
+      </ul>
+    </nav>
+
+    <section class="section" id="overview">
+      <h2>ISA Overview</h2>
+      <p>RISC-V (pronounced "risk-five") is an open, free instruction set architecture (ISA) that originated at UC Berkeley in 2010. Created by Krste Asanovic, Andrew Waterman, and Yunsup Lee, it was the fifth RISC ISA designed at Berkeley (after RISC-I, RISC-II, SOAR, and SPUR). Unlike ARM or x86, RISC-V is not owned by any company — it is governed by RISC-V International, a non-profit foundation with 4,000+ member organizations.</p>
+
+      <h3>Why RISC-V Matters</h3>
+      <ul>
+        <li><strong>Open and free</strong> — no license fees, no royalties, no permission needed. Anyone can design, manufacture, and sell RISC-V processors. This eliminates the vendor lock-in of ARM (royalties per chip) and x86 (Intel/AMD duopoly).</li>
+        <li><strong>Clean-slate design</strong> — learned from 40 years of ISA mistakes. No backward-compatibility baggage (unlike x86 carrying 8086-era instructions). Modular: small base ISA plus optional standard extensions.</li>
+        <li><strong>Modular and extensible</strong> — the base ISA is intentionally minimal (47 instructions for RV32I). Extensions add functionality: M (multiply/divide), A (atomics), F/D (floating-point), C (compressed), V (vector), and custom extensions for domain-specific accelerators.</li>
+        <li><strong>Growing ecosystem</strong> — Linux, FreeBSD, Zephyr RTOS, FreeRTOS. GCC, LLVM, Rust compiler. QEMU, Spike simulator. Android support. Billions of RISC-V cores shipped (mostly in microcontrollers).</li>
+      </ul>
+
+      <h3>RISC-V vs ARM vs x86</h3>
+      <ul>
+        <li><strong>x86-64</strong> — CISC, variable-length instructions (1-15 bytes), 400+ instructions, enormous backward compatibility surface. Dominant in desktops/servers. Intel and AMD only.</li>
+        <li><strong>ARM (AArch64)</strong> — RISC-ish, fixed 32-bit instructions, large ISA (~1,000 instructions including extensions). Dominant in mobile/embedded. Requires ARM license (~$1-5M + per-chip royalty).</li>
+        <li><strong>RISC-V</strong> — pure RISC, fixed 32-bit instructions (+ 16-bit compressed), minimal base ISA. Open and free. Growing from embedded into application processors. No single vendor controls it.</li>
+      </ul>
+    </section>
+
+    <section class="section" id="base">
+      <h2>Base Integer Instructions (RV32I)</h2>
+      <p>RV32I is the base 32-bit integer instruction set. It defines 47 instructions, 32 integer registers (x0-x31, each 32 bits wide), and a 32-bit program counter. Register x0 is hardwired to zero — reads always return 0, writes are discarded. This simplifies instruction encoding and eliminates the need for a separate "move" instruction (use <code>add rd, rs, x0</code>).</p>
+
+      <h3>Instruction Categories</h3>
+      <ul>
+        <li><strong>Arithmetic</strong> — <code>ADD</code>, <code>SUB</code>, <code>ADDI</code> (add immediate). No flags register — comparisons are done with branch instructions or SLT (Set Less Than).</li>
+        <li><strong>Logical</strong> — <code>AND</code>, <code>OR</code>, <code>XOR</code>, <code>ANDI</code>, <code>ORI</code>, <code>XORI</code>.</li>
+        <li><strong>Shift</strong> — <code>SLL</code> (shift left logical), <code>SRL</code> (shift right logical), <code>SRA</code> (shift right arithmetic). Immediate variants: <code>SLLI</code>, <code>SRLI</code>, <code>SRAI</code>.</li>
+        <li><strong>Compare</strong> — <code>SLT</code> (set less than, signed), <code>SLTU</code> (unsigned), <code>SLTI</code>, <code>SLTIU</code>. Sets destination register to 1 if condition holds, 0 otherwise.</li>
+        <li><strong>Load/Store</strong> — <code>LW</code> (load word), <code>LH</code>/<code>LHU</code> (load halfword signed/unsigned), <code>LB</code>/<code>LBU</code> (load byte). <code>SW</code>, <code>SH</code>, <code>SB</code> for stores. Load/store architecture: only these instructions access memory.</li>
+        <li><strong>Branch</strong> — <code>BEQ</code> (branch if equal), <code>BNE</code> (not equal), <code>BLT</code>/<code>BLTU</code> (less than signed/unsigned), <code>BGE</code>/<code>BGEU</code> (greater or equal). PC-relative, 12-bit signed offset (range: -4096 to +4094 bytes).</li>
+        <li><strong>Jump</strong> — <code>JAL</code> (jump and link: saves return address to rd), <code>JALR</code> (jump and link register: indirect jump). Used for function calls and returns.</li>
+        <li><strong>Upper immediate</strong> — <code>LUI</code> (load upper immediate: loads a 20-bit constant into the upper 20 bits of rd), <code>AUIPC</code> (add upper immediate to PC). Together with ADDI, these construct arbitrary 32-bit constants and addresses.</li>
+        <li><strong>System</strong> — <code>ECALL</code> (system call), <code>EBREAK</code> (debugger breakpoint), <code>FENCE</code> (memory ordering).</li>
+      </ul>
+
+      <h3>RV64I</h3>
+      <p>The 64-bit variant. Registers are 64 bits wide. Adds word-sized variants: <code>ADDW</code>, <code>SUBW</code>, <code>SLLW</code>, <code>SRLW</code>, <code>SRAW</code> (operate on the lower 32 bits and sign-extend the result), plus <code>LWU</code> (load word unsigned) and <code>LD</code>/<code>SD</code> (load/store doubleword). RV64I is the target for Linux-capable application processors.</p>
+    </section>
+
+    <section class="section" id="extensions">
+      <h2>Standard Extensions</h2>
+
+      <table>
+        <tr><th>Extension</th><th>Name</th><th>Description</th></tr>
+        <tr><td><strong>M</strong></td><td>Multiply/Divide</td><td>MUL, MULH, MULHU, MULHSU, DIV, DIVU, REM, REMU. Hardware integer multiplication and division. Essential for general-purpose computing.</td></tr>
+        <tr><td><strong>A</strong></td><td>Atomic</td><td>LR (Load-Reserved), SC (Store-Conditional), and AMO (Atomic Memory Operations: AMOSWAP, AMOADD, AMOAND, AMOOR, AMOXOR, AMOMAX, AMOMIN). For multi-core synchronization, mutexes, lock-free data structures.</td></tr>
+        <tr><td><strong>F</strong></td><td>Single-Precision Float</td><td>32 floating-point registers (f0-f31). FADD.S, FSUB.S, FMUL.S, FDIV.S, FSQRT.S, FMA (fused multiply-add), comparisons, conversions. IEEE 754 compliant.</td></tr>
+        <tr><td><strong>D</strong></td><td>Double-Precision Float</td><td>Extends F to 64-bit doubles. Same operations with .D suffix. f registers are 64 bits wide. Requires F extension.</td></tr>
+        <tr><td><strong>C</strong></td><td>Compressed</td><td>16-bit encodings for common instructions. Reduces code size by 25-30% with minimal hardware cost. A 16-bit C instruction maps to exactly one 32-bit base instruction. Mixed 16/32-bit instruction stream.</td></tr>
+        <tr><td><strong>V</strong></td><td>Vector</td><td>Scalable vector extension. Variable-length vectors (implementation chooses VLEN: 128-65536 bits). VADD, VMUL, VFMA, masked operations, strided/indexed loads. For SIMD, machine learning, DSP.</td></tr>
+        <tr><td><strong>Zicsr</strong></td><td>CSR Instructions</td><td>CSRRW, CSRRS, CSRRC (read/write/set/clear Control and Status Registers). Access performance counters, interrupt configuration, etc.</td></tr>
+        <tr><td><strong>Zifencei</strong></td><td>Instruction Fence</td><td>FENCE.I instruction for synchronizing instruction and data memory. Needed for self-modifying code, JIT compilers.</td></tr>
+        <tr><td><strong>B</strong></td><td>Bit Manipulation</td><td>Zba (address generation), Zbb (basic bit manipulation: CLZ, CTZ, CPOP, REV8, ORC.B), Zbc (carry-less multiply), Zbs (single-bit operations). Ratified 2024.</td></tr>
+      </table>
+
+      <h3>The "G" Shorthand</h3>
+      <p>RV32G = RV32IMAFDZicsr_Zifencei — the "general-purpose" ISA combining the base integer ISA with multiply, atomics, single and double float, CSR access, and instruction fence. This is the standard target for Linux-capable processors. RV64G is the 64-bit equivalent.</p>
+
+      <h3>Custom Extensions</h3>
+      <p>RISC-V explicitly reserves opcode space for custom extensions (four major opcodes reserved). Companies can add domain-specific instructions without conflicting with standard extensions. Examples: Qualcomm Hexagon-style VLIW extensions, AI accelerator instructions, cryptographic instructions. Custom extensions are a key advantage over ARM and x86, where adding instructions requires vendor approval.</p>
+    </section>
+
+    <section class="section" id="formats">
+      <h2>Instruction Formats</h2>
+      <p>RISC-V uses 6 instruction formats, all 32 bits wide. The opcode field (bits 6:0) is always in the same position. Source registers (rs1, rs2) and destination register (rd) are always in the same bit positions when present. This regularity simplifies decode hardware.</p>
+
+      <ul>
+        <li><strong>R-type</strong> — register-register operations: <code>[funct7 | rs2 | rs1 | funct3 | rd | opcode]</code>. Used for ADD, SUB, AND, OR, SLL, SLT, etc.</li>
+        <li><strong>I-type</strong> — immediate operations and loads: <code>[imm[11:0] | rs1 | funct3 | rd | opcode]</code>. 12-bit signed immediate. Used for ADDI, LW, JALR, etc.</li>
+        <li><strong>S-type</strong> — stores: <code>[imm[11:5] | rs2 | rs1 | funct3 | imm[4:0] | opcode]</code>. Immediate split across two fields (no rd needed for stores).</li>
+        <li><strong>B-type</strong> — branches: <code>[imm[12|10:5] | rs2 | rs1 | funct3 | imm[4:1|11] | opcode]</code>. 12-bit signed offset, always even (bit 0 implicitly 0). Allows +/- 4 KiB range.</li>
+        <li><strong>U-type</strong> — upper immediate: <code>[imm[31:12] | rd | opcode]</code>. 20-bit immediate placed in upper bits. Used for LUI, AUIPC.</li>
+        <li><strong>J-type</strong> — jumps: <code>[imm[20|10:1|11|19:12] | rd | opcode]</code>. 20-bit signed offset. JAL can jump +/- 1 MiB.</li>
+      </ul>
+
+      <h3>Design Rationale</h3>
+      <p>The consistent register field positions (rs1 at bits 19:15, rs2 at bits 24:20, rd at bits 11:7) allow the register file to be read before the instruction is fully decoded. The immediate encoding places the sign bit always at bit 31 for fast sign-extension. These seemingly minor choices significantly simplify high-performance pipeline implementations.</p>
+    </section>
+
+    <section class="section" id="privileged">
+      <h2>Privileged Architecture</h2>
+      <p>The RISC-V privileged specification defines the machine modes, interrupt handling, virtual memory, and system-level features needed to run operating systems.</p>
+
+      <h3>Privilege Levels</h3>
+      <ul>
+        <li><strong>Machine mode (M)</strong> — highest privilege. Always present. Has full access to all hardware and CSRs. Firmware, bootloader, and bare-metal code run here. Can trap and emulate missing features.</li>
+        <li><strong>Supervisor mode (S)</strong> — optional. OS kernel runs here. Can access its own CSRs and manage virtual memory, but cannot directly access M-mode CSRs. Traps to M-mode for firmware services (SBI — Supervisor Binary Interface).</li>
+        <li><strong>User mode (U)</strong> — optional. Application code runs here. Lowest privilege. Memory access controlled by page tables set up by S-mode. System calls trap to S-mode.</li>
+        <li><strong>Hypervisor extension (H)</strong> — adds VS (Virtual Supervisor) and VU (Virtual User) modes for hardware-assisted virtualization. A hypervisor in HS-mode manages multiple guest OSes, each running in VS/VU-mode.</li>
+      </ul>
+
+      <h3>CSRs (Control and Status Registers)</h3>
+      <ul>
+        <li><strong>mstatus/sstatus</strong> — global interrupt enable, privilege mode tracking, FP state (dirty/clean)</li>
+        <li><strong>mtvec/stvec</strong> — trap vector base address (where execution jumps on interrupt/exception)</li>
+        <li><strong>mepc/sepc</strong> — exception program counter (return address for MRET/SRET)</li>
+        <li><strong>mcause/scause</strong> — cause of the trap (interrupt bit + exception code)</li>
+        <li><strong>mie/sie, mip/sip</strong> — interrupt enable and pending bits (timer, software, external interrupts)</li>
+        <li><strong>satp</strong> — supervisor address translation and protection. Points to the root page table. Controls virtual memory mode (Bare, Sv32, Sv39, Sv48, Sv57).</li>
+        <li><strong>Performance counters</strong> — mcycle (clock cycles), minstret (instructions retired), mhpmcounter3-31 (configurable hardware performance counters).</li>
+      </ul>
+
+      <h3>Virtual Memory</h3>
+      <ul>
+        <li><strong>Sv32</strong> — 32-bit virtual addresses, 2-level page table, 4 KiB pages, 4 MiB megapages. For RV32.</li>
+        <li><strong>Sv39</strong> — 39-bit virtual addresses (512 GiB address space), 3-level page table, 4 KiB / 2 MiB / 1 GiB pages. The standard for RV64 Linux.</li>
+        <li><strong>Sv48</strong> — 48-bit virtual addresses (256 TiB), 4-level page table. For larger address spaces.</li>
+        <li><strong>Sv57</strong> — 57-bit virtual addresses (128 PiB), 5-level page table. For future large-memory systems.</li>
+        <li>TLB (Translation Lookaside Buffer) caches page table entries. SFENCE.VMA instruction flushes TLB entries (with optional ASID and address filtering).</li>
+      </ul>
+    </section>
+
+    <section class="section" id="ecosystem">
+      <h2>Ecosystem</h2>
+
+      <h3>Software</h3>
+      <ul>
+        <li><strong>Linux</strong> — full RISC-V port in mainline kernel since v5.17 (2022). Runs on QEMU, SiFive boards, StarFive VisionFive 2, and Milk-V Pioneer. Debian, Ubuntu, Fedora, Arch Linux all have RISC-V ports.</li>
+        <li><strong>Toolchains</strong> — GCC (full support since GCC 7), LLVM/Clang (since LLVM 9), Rust (tier 2 support for riscv64gc-unknown-linux-gnu). Go, Java (OpenJDK), Python, Node.js all run on RISC-V.</li>
+        <li><strong>RTOS</strong> — FreeRTOS, Zephyr, RT-Thread, NuttX. Essential for embedded RISC-V microcontrollers.</li>
+        <li><strong>Simulators</strong> — Spike (reference ISA simulator from Berkeley), QEMU (user-mode and full-system emulation), Renode (multi-node SoC simulation), and gem5 (cycle-accurate microarchitecture simulation).</li>
+        <li><strong>Android</strong> — AOSP RISC-V port in progress. Google announced official RISC-V support. Android 15 builds run on QEMU. Commercial Android RISC-V phones expected by 2026-2027.</li>
+      </ul>
+
+      <h3>SBI (Supervisor Binary Interface)</h3>
+      <p>The SBI is the firmware interface between S-mode (OS kernel) and M-mode (firmware). It provides standardized services: console I/O, timer, IPI (inter-processor interrupt), remote fence, HSM (hart state management), and PMU (performance monitoring). OpenSBI is the reference open-source SBI implementation. Analogous to BIOS/UEFI services in the x86 world.</p>
+
+      <h3>Debug Specification</h3>
+      <p>RISC-V defines a standard debug interface: debug module (DM), debug transport module (DTM), and trigger module. Supports external debug (via JTAG) and self-hosted debug (ebreak). GDB connects via OpenOCD. Hardware breakpoints (up to implementation-defined count) and single-stepping are specified.</p>
+    </section>
+
+    <section class="section" id="implementations">
+      <h2>Implementations</h2>
+
+      <h3>Open-Source Cores</h3>
+      <div class="cards">
+        <div class="card">
+          <h4><a href="https://github.com/chipsalliance/rocket-chip">Rocket</a></h4>
+          <p>In-order, 5-stage pipeline. Written in Chisel (Scala). The reference RISC-V implementation from UC Berkeley. Configurable, well-tested, and silicon-proven.</p>
+          <div class="meta">UC Berkeley | Chisel | BSD</div>
+        </div>
+        <div class="card">
+          <h4><a href="https://github.com/riscv-boom/riscv-boom">BOOM</a></h4>
+          <p>Berkeley Out-of-Order Machine. Superscalar, out-of-order, speculative. Written in Chisel. Research-grade implementation competitive with commercial cores.</p>
+          <div class="meta">UC Berkeley | Chisel | BSD</div>
+        </div>
+        <div class="card">
+          <h4><a href="https://github.com/openhwgroup/cva6">CVA6 (Ariane)</a></h4>
+          <p>6-stage, single-issue, in-order pipeline. SystemVerilog. Linux-capable. Maintained by OpenHW Group. Used in academic and industrial research.</p>
+          <div class="meta">ETH Zurich | SystemVerilog | Apache 2.0</div>
+        </div>
+        <div class="card">
+          <h4><a href="https://github.com/SpinalHDL/VexRiscv">VexRiscv</a></h4>
+          <p>Highly configurable RISC-V core. Written in SpinalHDL. From tiny (RV32E, 400 LUTs) to Linux-capable (RV32IMA, MMU). FPGA-optimized.</p>
+          <div class="meta">SpinalHDL | MIT License</div>
+        </div>
+        <div class="card">
+          <h4><a href="https://github.com/YosysHQ/picorv32">PicoRV32</a></h4>
+          <p>Tiny RISC-V core (RV32IMC). ~2000 lines of Verilog. Optimized for area (750-2000 LUTs). No pipeline — multicycle. Great for learning and tiny FPGA projects.</p>
+          <div class="meta">Clifford Wolf | Verilog | ISC</div>
+        </div>
+        <div class="card">
+          <h4><a href="https://github.com/stnolting/neorv32">NEORV32</a></h4>
+          <p>Full-featured RISC-V processor in VHDL. RV32/RV64, M/S/U modes, MMU, FPU, peripherals included. Targets any FPGA. Excellent documentation.</p>
+          <div class="meta">VHDL | BSD | FPGA-optimized</div>
+        </div>
+      </div>
+
+      <h3>Commercial Implementations</h3>
+      <ul>
+        <li><strong>SiFive</strong> — the first commercial RISC-V company (founded by RISC-V creators). U74 (Linux-capable, quad-core, in JH7110 SoC), P870 (high-performance, out-of-order, targeting mobile). SiFive licenses IP cores to chip companies.</li>
+        <li><strong>Alibaba T-Head (Xuantie)</strong> — C910 (high-performance, 12-stage, out-of-order, 2.5 GHz, open-sourced). C906 (Linux-capable, in-order). Used in Alibaba cloud servers and IoT. Largest volume RISC-V application processor deployment.</li>
+        <li><strong>Ventana Micro</strong> — Veyron V1 (data-center-class, 64-core, 192-core chiplet, targeting cloud/HPC). Built on TSMC 5nm. Competitive with ARM Neoverse in server workloads.</li>
+        <li><strong>Tenstorrent</strong> — Ascalon (high-performance RISC-V core, out-of-order, designed by Jim Keller). Targets AI/ML accelerators and general-purpose computing.</li>
+        <li><strong>WCH</strong> — CH32V series. Low-cost RISC-V microcontrollers ($0.10-$2). Huge volume in Chinese consumer electronics. CH32V003 is a 32-bit RISC-V MCU at $0.10.</li>
+        <li><strong>Espressif</strong> — ESP32-C3 and ESP32-C6 use a single-core RISC-V processor with WiFi/BLE. Popular in IoT/hobbyist market. Millions shipped.</li>
+        <li><strong>Qualcomm</strong> — announced RISC-V adoption for future wearable and IoT chips. Founding member of RISC-V International.</li>
+      </ul>
+
+      <h3>RISC-V in Numbers</h3>
+      <ul>
+        <li>Over 10 billion RISC-V cores shipped as of 2024 (mostly in microcontrollers and embedded SoCs)</li>
+        <li>4,000+ member organizations in RISC-V International</li>
+        <li>50+ RISC-V-based products available for purchase (dev boards, SBCs, microcontrollers)</li>
+        <li>RISC-V laptop (ROMA by DeepComputing) shipping with Debian Linux</li>
+      </ul>
+    </section>
+
+    <section class="section" id="resources">
+      <h2>Resources</h2>
+      <div class="cards">
+        <div class="card">
+          <h4><a href="https://riscv.org/technical/specifications/">RISC-V Specifications</a></h4>
+          <p>Official ISA specifications. Unprivileged spec, privileged spec, debug spec, and extension ratification status. The authoritative source.</p>
+          <div class="meta">RISC-V International | Free</div>
+        </div>
+        <div class="card">
+          <h4><a href="https://riscv.org/wp-content/uploads/2017/05/riscv-spec-v2.2.pdf">The RISC-V Reader</a></h4>
+          <p>Patterson & Waterman's practical introduction to RISC-V. Concise, well-written, covers the ISA and its design rationale. Available as free PDF.</p>
+          <div class="meta">Patterson & Waterman | Free PDF</div>
+        </div>
+        <div class="card">
+          <h4><a href="https://github.com/riscv-software-src/riscv-isa-sim">Spike ISA Simulator</a></h4>
+          <p>The reference functional RISC-V ISA simulator. Written in C++. Supports RV32/RV64, all standard extensions, and interactive debug mode.</p>
+          <div class="meta">GitHub | BSD</div>
+        </div>
+        <div class="card">
+          <h4><a href="https://github.com/riscv-collab/riscv-gnu-toolchain">RISC-V GNU Toolchain</a></h4>
+          <p>GCC, binutils, glibc/newlib for RISC-V. Cross-compiler for bare-metal (riscv64-unknown-elf) and Linux (riscv64-unknown-linux-gnu) targets.</p>
+          <div class="meta">GitHub | Free</div>
+        </div>
+        <div class="card">
+          <h4><a href="https://www.sifive.com/learn">SiFive Learn</a></h4>
+          <p>Free RISC-V courses and documentation from SiFive. Core architecture guides, software tutorials, and development board guides.</p>
+          <div class="meta">SiFive | Free</div>
+        </div>
+        <div class="card">
+          <h4><a href="https://five-embeddev.com">Five EmbedDev</a></h4>
+          <p>Comprehensive RISC-V reference. Instruction encoding tables, CSR documentation, extension summaries. Invaluable quick reference.</p>
+          <div class="meta">Reference | Free</div>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <footer>
+    <div class="container">
+      <a href="/">FreeChipStore</a> · <a href="/institute/">Institute</a> · Built with <a href="https://zensical.org">Zensical</a>
+    </div>
+  </footer>
+</body>
+</html>

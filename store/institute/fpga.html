@@ -1,0 +1,306 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>FPGA Design — Chip Design Institute</title>
+  <meta name="description" content="FPGA design fundamentals. CLBs, LUTs, routing, design flow with Vivado and Quartus, common projects, and FPGA vs ASIC trade-offs.">
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,700&family=Manrope:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    *{margin:0;padding:0;box-sizing:border-box}
+    :root{--accent:#ef4444;--paper:#0a0a0a;--ink:#fafafa;--muted:#737373;--panel:#141414;--line:#262626}
+    body{font-family:'Manrope',system-ui,sans-serif;background:var(--paper);color:var(--ink);line-height:1.7;-webkit-font-smoothing:antialiased}
+    .container{max-width:900px;margin:0 auto;padding:0 1.5rem}
+    a{color:var(--accent);text-decoration:none}a:hover{text-decoration:underline}
+    header{border-bottom:1px solid var(--line);padding:.75rem 0}
+    header .container{display:flex;align-items:center;gap:1rem;flex-wrap:wrap}
+    .brand{display:flex;align-items:center;gap:.5rem;text-decoration:none;color:var(--ink)}
+    .brand-emoji{font-size:1.5rem}
+    .brand-text{font-family:'Fraunces',serif;font-size:1.05rem;font-weight:700}
+    .brand-tag{font-size:.68rem;color:var(--muted)}
+    nav{display:flex;gap:1rem;font-size:.82rem;font-weight:600;margin-left:auto}
+    nav a{color:var(--muted)}nav a:hover{color:var(--ink)}
+    .hero{text-align:center;padding:2.5rem 0 1.5rem;border-bottom:1px solid var(--line)}
+    .hero h1{font-family:'Fraunces',serif;font-size:1.8rem;font-weight:700;margin-bottom:.5rem}
+    .hero h1 em{color:var(--accent);font-style:normal}
+    .hero p{color:var(--muted);max-width:600px;margin:0 auto;font-size:.95rem}
+    .toc{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:1rem 1.25rem;margin:1.5rem 0}
+    .toc h3{font-size:.85rem;font-weight:700;margin-bottom:.5rem;color:var(--accent)}
+    .toc ul{list-style:none;padding:0;columns:2}
+    .toc li{margin:.2rem 0}.toc a{color:#a3a3a3;font-size:.82rem}.toc a:hover{color:var(--ink)}
+    .section{margin-bottom:2rem;padding-top:1rem}
+    .section h2{font-family:'Fraunces',serif;font-size:1.3rem;font-weight:700;margin-bottom:.5rem;padding-bottom:.35rem;border-bottom:1px solid var(--line)}
+    .section h3{font-size:.95rem;font-weight:700;margin:1rem 0 .35rem;color:#e5e5e5}
+    .section p,.section li{color:#a3a3a3;font-size:.88rem}
+    ul{padding-left:1.25rem;margin:.35rem 0}
+    li{margin-bottom:.3rem}
+    .cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:.6rem;margin:.5rem 0}
+    .card{background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:.85rem;transition:border-color .15s}
+    .card:hover{border-color:var(--accent)}
+    .card h4{font-size:.85rem;font-weight:700;margin-bottom:.2rem}
+    .card h4 a{color:var(--ink)}.card p{font-size:.75rem;color:var(--muted);margin:0;line-height:1.5}
+    .card .meta{font-size:.65rem;color:#525252;margin-top:.25rem}
+    code{background:#1a1a1a;padding:.15rem .35rem;border-radius:4px;font-size:.82rem;color:#e5e5e5}
+    footer{border-top:1px solid var(--line);padding:1.5rem 0;text-align:center;font-size:.75rem;color:#525252}
+  </style>
+</head>
+<body>
+  <header>
+    <div class="container">
+      <a href="/institute/" class="brand">
+        <span class="brand-emoji">🔲</span>
+        <span><span class="brand-text">Chip Design Institute</span><br><span class="brand-tag">Powered by <a href="https://zensical.org" style="color:#525252">Zensical</a></span></span>
+      </a>
+      <nav><a href="/institute/">Overview</a><a href="/institute/digital-logic">Logic</a><a href="/institute/cpu-architecture">CPU</a><a href="/institute/verilog">Verilog</a><a href="/institute/fpga">FPGA</a><a href="/institute/risc-v">RISC-V</a><a href="/">Simulations</a></nav>
+    </div>
+  </header>
+
+  <div class="container">
+    <section class="hero">
+      <h1>FPGA <em>Design</em></h1>
+      <p>Field-Programmable Gate Arrays let you build custom digital hardware without a billion-dollar fab. From blinking LEDs to AI accelerators, FPGAs are the fastest path from idea to working silicon.</p>
+    </section>
+
+    <nav class="toc">
+      <h3>Contents</h3>
+      <ul>
+        <li><a href="#what">What is an FPGA?</a></li>
+        <li><a href="#architecture">FPGA Architecture</a></li>
+        <li><a href="#luts">LUTs & CLBs</a></li>
+        <li><a href="#routing">Routing</a></li>
+        <li><a href="#flow">Design Flow</a></li>
+        <li><a href="#tools">Tools: Vivado & Quartus</a></li>
+        <li><a href="#projects">Common Projects</a></li>
+        <li><a href="#vs-asic">FPGA vs ASIC</a></li>
+        <li><a href="#resources">Resources</a></li>
+      </ul>
+    </nav>
+
+    <section class="section" id="what">
+      <h2>What is an FPGA?</h2>
+      <p>A Field-Programmable Gate Array is an integrated circuit that can be configured by the user after manufacturing. Unlike an ASIC (Application-Specific Integrated Circuit), which is hardwired at the factory, an FPGA can be reprogrammed to implement any digital circuit that fits within its resources. The first commercial FPGA was the Xilinx XC2064, released in 1985 with just 64 Configurable Logic Blocks.</p>
+
+      <h3>Why FPGAs Matter</h3>
+      <ul>
+        <li><strong>Reconfigurability</strong> — change the design without manufacturing a new chip. Fix bugs, add features, adapt to new standards. A single FPGA board can be a CPU today, a video encoder tomorrow.</li>
+        <li><strong>Time-to-market</strong> — no 6-12 month ASIC fabrication cycle. Synthesize, place, route, program — in minutes to hours. Iterate rapidly.</li>
+        <li><strong>Parallelism</strong> — unlike a CPU that executes instructions sequentially, an FPGA runs all configured logic simultaneously. A 1000-stage pipeline? Done. 256 parallel multipliers? Done. Custom hardware for your specific algorithm.</li>
+        <li><strong>Low volume economics</strong> — ASICs cost $10M-$100M+ for the mask set at advanced nodes. FPGAs cost $5-$50K per device but zero NRE (Non-Recurring Engineering) for masks. Breakeven is typically 10K-100K units.</li>
+        <li><strong>Prototyping</strong> — validate ASIC designs on FPGAs before tape-out. Running at lower clock speeds but with real hardware behavior. Catches bugs that simulation misses.</li>
+      </ul>
+
+      <h3>Where FPGAs Are Used</h3>
+      <ul>
+        <li><strong>Telecommunications</strong> — 5G base stations, network switches, protocol processing. Huawei, Ericsson, Nokia all use FPGAs extensively.</li>
+        <li><strong>Data centers</strong> — Microsoft Project Catapult (network acceleration), Amazon F1 instances (custom FPGA accelerators), SmartNICs for DPUs.</li>
+        <li><strong>Defense & aerospace</strong> — radar processing, electronic warfare, satellite communications. Radiation-hardened FPGAs (Microchip RTG4) for space.</li>
+        <li><strong>Automotive</strong> — ADAS sensor fusion, infotainment, in-vehicle networking. Xilinx/AMD Zynq UltraScale+ in autonomous driving.</li>
+        <li><strong>High-frequency trading</strong> — sub-microsecond latency for order execution. FPGAs process market data and generate orders in hardware, bypassing OS and software stacks.</li>
+        <li><strong>AI inference</strong> — custom quantized neural network accelerators. Microsoft uses FPGAs for Bing search ranking and Azure AI.</li>
+      </ul>
+    </section>
+
+    <section class="section" id="architecture">
+      <h2>FPGA Architecture</h2>
+      <p>An FPGA consists of an array of configurable logic blocks (CLBs) connected by a programmable routing network, surrounded by I/O blocks (IOBs) and embedded hard IP blocks.</p>
+
+      <h3>Major Components</h3>
+      <ul>
+        <li><strong>Configurable Logic Blocks (CLBs)</strong> — the computing fabric. Each CLB contains lookup tables (LUTs), flip-flops, carry chains, and multiplexers. The LUTs implement arbitrary Boolean functions; the flip-flops store state.</li>
+        <li><strong>I/O Blocks (IOBs)</strong> — interface between internal logic and external pins. Support multiple I/O standards (LVCMOS, LVDS, SSTL, HSTL) and voltage levels. Configurable as input, output, or bidirectional with programmable drive strength and slew rate.</li>
+        <li><strong>Block RAM (BRAM)</strong> — embedded SRAM blocks, typically 18 or 36 Kbit each. Configurable as single-port, dual-port, or simple-dual-port RAM/ROM. Used for buffers, FIFOs, register files. Xilinx UltraScale+ has up to 2,160 BRAM blocks.</li>
+        <li><strong>DSP Slices</strong> — hardened multiply-accumulate units. Each DSP slice has a 27x18-bit multiplier, 48-bit accumulator, pre-adder, and pattern detector. Used for signal processing, neural networks, and math-heavy applications. A large FPGA has 2,000-12,000 DSP slices.</li>
+        <li><strong>Clock Management</strong> — PLLs (Phase-Locked Loops) and MMCMs (Mixed-Mode Clock Managers) generate and manipulate clock signals. Clock distribution networks (global, regional, local) minimize skew across the die.</li>
+        <li><strong>Transceivers</strong> — high-speed serial I/O for PCIe, Ethernet, HDMI, USB, SATA. Modern FPGAs support 32-58 Gbps per lane (GTY/GTM on AMD Versal). Used for multi-gigabit communication links.</li>
+        <li><strong>Hard IP</strong> — dedicated silicon for common functions: PCIe controllers, DDR memory controllers, Ethernet MACs, ARM processor cores (Zynq), AI engines (Versal). Faster and more power-efficient than implementing these in fabric.</li>
+      </ul>
+    </section>
+
+    <section class="section" id="luts">
+      <h2>LUTs & CLBs</h2>
+      <p>The Lookup Table (LUT) is the fundamental logic element of an FPGA. It can implement any Boolean function of its inputs by storing the truth table in SRAM cells.</p>
+
+      <h3>How a LUT Works</h3>
+      <ul>
+        <li>A k-input LUT stores 2^k SRAM bits. The input signals serve as the address; the stored bit at that address is the output.</li>
+        <li>A 6-input LUT (6-LUT, standard in modern FPGAs) stores 64 bits and can implement any function of 6 variables. It's essentially a 64x1 ROM whose contents are loaded during configuration.</li>
+        <li>Some LUTs can be split: a 6-LUT can function as two independent 5-LUTs with shared inputs (Xilinx) or as a small distributed RAM or shift register.</li>
+        <li>Functions larger than 6 inputs are decomposed across multiple LUTs, connected by the routing network.</li>
+      </ul>
+
+      <h3>CLB Structure (Xilinx 7-Series Example)</h3>
+      <ul>
+        <li>Each CLB contains 2 slices. Each slice contains 4 LUT6s, 8 flip-flops, carry chain logic, and multiplexers.</li>
+        <li>Some slices (SLICEM) can configure LUTs as 64-bit distributed RAM or 32-bit shift registers, in addition to normal logic.</li>
+        <li>The carry chain provides fast ripple-carry for arithmetic (addition, subtraction, comparison) without using the general routing network. Critical for performance of adders and counters.</li>
+        <li>The 8 flip-flops per slice can be configured as edge-triggered D flip-flops or level-sensitive latches, with optional clock enable and synchronous/asynchronous reset.</li>
+      </ul>
+
+      <h3>Intel/Altera: ALMs</h3>
+      <p>Intel FPGAs use Adaptive Logic Modules (ALMs) instead of CLBs. An ALM has an 8-input adaptive LUT that can be configured as two independent functions (up to 6 inputs each, or one function up to 7 inputs), plus 4 registers, adder logic, and register packing. Functionally similar to Xilinx CLBs but with different granularity and flexibility trade-offs.</p>
+    </section>
+
+    <section class="section" id="routing">
+      <h2>Routing</h2>
+      <p>The programmable routing network connects CLBs, BRAMs, DSPs, and I/O blocks. Routing typically consumes 50-80% of FPGA area and is often the bottleneck for timing closure.</p>
+
+      <h3>Routing Architecture</h3>
+      <ul>
+        <li><strong>Switch boxes</strong> — at the intersection of horizontal and vertical routing channels. Contain programmable pass transistors or multiplexers that connect wire segments.</li>
+        <li><strong>Wire segments</strong> — different lengths: single (span 1 CLB), double (2 CLBs), quad (4 CLBs), long (span the entire chip). Short wires are numerous but slow for distant connections; long wires are fast but scarce.</li>
+        <li><strong>Connection boxes</strong> — connect CLB pins to the routing channels. Not all pins connect to all wires; the connection pattern is carefully designed to balance flexibility and area.</li>
+        <li><strong>Routing delay</strong> — wire delay dominates in large FPGAs (not gate delay). A signal crossing the die may pass through 10-20 switch boxes, each adding ~200-500ps. This is why FPGA clock speeds (200-800 MHz) are lower than ASICs (2-5 GHz).</li>
+      </ul>
+
+      <h3>Timing Closure</h3>
+      <p>Meeting timing constraints means every path from one flip-flop to another (through combinational logic and routing) completes within one clock period. When the longest path is too slow, the designer must: reduce logic depth (pipeline more), guide placement (floorplan constraints), use dedicated resources (carry chains, DSPs), or lower the clock frequency. Timing closure is often the hardest part of FPGA design.</p>
+    </section>
+
+    <section class="section" id="flow">
+      <h2>Design Flow</h2>
+      <p>The FPGA design flow transforms HDL code into a bitstream that configures the FPGA.</p>
+
+      <h3>Steps</h3>
+      <ul>
+        <li><strong>1. Design Entry</strong> — write Verilog/VHDL/SystemVerilog or use block design (IP integrator). Define the top-level module with I/O connected to FPGA pins.</li>
+        <li><strong>2. Simulation</strong> — verify functionality with testbenches before synthesis. Fix bugs here — it's orders of magnitude easier than debugging on hardware.</li>
+        <li><strong>3. Synthesis</strong> — convert RTL to a netlist of FPGA primitives (LUTs, FFs, BRAMs, DSPs). The synthesizer optimizes for area, speed, or power based on constraints.</li>
+        <li><strong>4. Implementation</strong> — (a) Translate/map netlist to specific FPGA resources. (b) Place each element on the FPGA die. (c) Route connections between placed elements using the programmable routing network.</li>
+        <li><strong>5. Timing Analysis</strong> — static timing analysis (STA) checks all paths against clock constraints. Reports setup/hold slack. Negative slack means timing is not met — go back to step 1 or 4.</li>
+        <li><strong>6. Bitstream Generation</strong> — produce the binary file that configures the FPGA. For Xilinx: .bit file. For Intel: .sof or .pof file.</li>
+        <li><strong>7. Programming</strong> — load the bitstream via JTAG, SPI flash, or other interface. SRAM-based FPGAs (most common) must be reprogrammed on every power-up from external flash. Flash-based FPGAs (Microchip) retain configuration without external storage.</li>
+      </ul>
+    </section>
+
+    <section class="section" id="tools">
+      <h2>Tools: Vivado & Quartus</h2>
+
+      <h3>AMD/Xilinx Vivado</h3>
+      <ul>
+        <li>Design suite for Xilinx 7-series, UltraScale, UltraScale+, and Versal FPGAs. Free WebPack edition covers smaller devices (Artix-7, Zynq-7000, Spartan-7).</li>
+        <li>IP Integrator: graphical block design for connecting IP cores (AXI interconnect, DMA, processor systems). Essential for Zynq SoC designs.</li>
+        <li>Vivado HLS (now Vitis HLS): compile C/C++ to RTL for FPGA acceleration. Write algorithms in C, generate Verilog — with caveats about quality of results.</li>
+        <li>ILA (Integrated Logic Analyzer): embed a logic analyzer in the FPGA to capture signals in real-time. Invaluable for on-chip debugging.</li>
+      </ul>
+
+      <h3>Intel Quartus Prime</h3>
+      <ul>
+        <li>Design suite for Intel/Altera FPGAs (Cyclone, Arria, Stratix, Agilex). Free Lite edition covers Cyclone and MAX devices.</li>
+        <li>Platform Designer (formerly Qsys): system integration tool for Nios II soft processors and Avalon interconnect.</li>
+        <li>Signal Tap: equivalent of Vivado ILA — embedded logic analyzer for real-time signal capture.</li>
+        <li>Intel oneAPI: FPGA acceleration using SYCL/DPC++ — higher-level than HLS, targeting data center accelerator cards.</li>
+      </ul>
+
+      <h3>Open-Source Toolchain</h3>
+      <ul>
+        <li><strong>Yosys</strong> — open-source synthesis for Verilog. Supports Lattice iCE40 and ECP5 (fully open), partial support for Xilinx 7-series (via Symbiflow/F4PGA).</li>
+        <li><strong>nextpnr</strong> — open-source place-and-route. Targets iCE40 (complete), ECP5 (complete), Gowin (in progress). Fast, deterministic, and hackable.</li>
+        <li><strong>Project IceStorm</strong> — reverse-engineered bitstream format for Lattice iCE40. Enabled the first fully open-source FPGA toolchain. Pioneering work by Clifford Wolf (creator of Yosys).</li>
+        <li><strong>F4PGA (formerly Symbiflow)</strong> — FOSS FPGA framework targeting Xilinx 7-series and QuickLogic. Uses Yosys for synthesis and VPR or nextpnr for place-and-route.</li>
+        <li><strong>Amaranth</strong> — Python HDL that generates Verilog and integrates with the open-source toolchain. Clean API, great for rapid prototyping on iCE40/ECP5 boards.</li>
+      </ul>
+    </section>
+
+    <section class="section" id="projects">
+      <h2>Common FPGA Projects</h2>
+
+      <h3>Beginner</h3>
+      <ul>
+        <li><strong>LED blinker</strong> — the "Hello, World" of FPGAs. Counter-driven LED toggle. Teaches clock domains, pin constraints, and the build flow.</li>
+        <li><strong>Seven-segment display driver</strong> — BCD to 7-segment decoder. Multiplexed display for multi-digit output. Combinational logic practice.</li>
+        <li><strong>UART transmitter/receiver</strong> — serial communication at 9600-115200 baud. Shift registers, baud rate generators, FSMs. First "useful" peripheral.</li>
+        <li><strong>Debouncer</strong> — filter mechanical switch bounce. Counter-based debounce circuit. Seemingly simple, surprisingly instructive about metastability and clock domains.</li>
+      </ul>
+
+      <h3>Intermediate</h3>
+      <ul>
+        <li><strong>VGA/HDMI controller</strong> — generate video signals from the FPGA. H-sync, V-sync, pixel clock, frame buffer. Outputs to a monitor. Great for understanding timing-critical design.</li>
+        <li><strong>SPI/I2C controller</strong> — master or slave for common serial protocols. Interface with sensors, displays, memory chips. Practical and widely applicable.</li>
+        <li><strong>FIFO (First-In, First-Out)</strong> — asynchronous FIFO for clock domain crossing. Dual-port RAM, Gray code pointers, full/empty flags. A fundamental building block.</li>
+        <li><strong>PWM controller</strong> — pulse-width modulation for motor control, LED dimming, audio. Counter-based with configurable duty cycle and frequency.</li>
+      </ul>
+
+      <h3>Advanced</h3>
+      <ul>
+        <li><strong>RISC-V soft CPU</strong> — implement a RISC-V processor on the FPGA. PicoRV32 (small), VexRiscv (configurable), NEORV32 (full-featured). Run C code on your own CPU.</li>
+        <li><strong>DDR memory controller</strong> — interface with external DDR3/DDR4 SDRAM. Extremely timing-sensitive. Usually use vendor IP (MIG for Xilinx) but building one teaches deep hardware design.</li>
+        <li><strong>Ethernet MAC</strong> — 10/100/1000 Mbps Ethernet. MII/GMII interface, CRC calculation, frame parsing. Network-on-chip applications.</li>
+        <li><strong>Neural network accelerator</strong> — custom datapath for CNN/DNN inference. Fixed-point or INT8 matrix multiply using DSP slices. Real-world AI-at-the-edge.</li>
+      </ul>
+    </section>
+
+    <section class="section" id="vs-asic">
+      <h2>FPGA vs ASIC</h2>
+
+      <h3>Comparison</h3>
+      <ul>
+        <li><strong>Performance</strong> — ASICs run 5-10x faster (higher clock) and 10-100x lower power. FPGA routing overhead (switch boxes, configurable interconnect) adds delay and capacitance that custom ASIC metal layers avoid.</li>
+        <li><strong>Cost per unit</strong> — FPGA: $5-$50,000 per chip (depending on size). ASIC: $0.10-$50 per chip at volume, but $10M-$100M+ NRE for mask set, design, and verification.</li>
+        <li><strong>Time to market</strong> — FPGA: days to weeks. ASIC: 12-24 months from RTL-freeze to working silicon.</li>
+        <li><strong>Flexibility</strong> — FPGA: reprogram anytime. ASIC: fixed forever (or until the next tape-out, costing millions).</li>
+        <li><strong>Volume crossover</strong> — at low volume (&lt;10K units), FPGA is cheaper total. At high volume (&gt;100K units), ASIC wins on per-unit cost despite high NRE. The exact crossover depends on the FPGA/ASIC size and process node.</li>
+        <li><strong>Power</strong> — for equivalent functionality, an ASIC uses 10-50x less power. FPGA configuration SRAM and routing overhead consume substantial static power. This matters in battery-powered and data center applications.</li>
+      </ul>
+
+      <h3>When to Choose FPGA</h3>
+      <ul>
+        <li>Low to medium volume production (&lt;10K-50K units)</li>
+        <li>Requirements may change after deployment (field-upgradable)</li>
+        <li>Prototyping before ASIC tape-out</li>
+        <li>Time-critical deployment (can't wait for ASIC fab)</li>
+        <li>Applications needing hardware acceleration but not extreme power/performance</li>
+      </ul>
+
+      <h3>When to Choose ASIC</h3>
+      <ul>
+        <li>High volume (&gt;100K units) — unit cost dominates</li>
+        <li>Extreme performance or power requirements (mobile phones, data center)</li>
+        <li>Stable, well-understood design (low risk of respins)</li>
+        <li>Competitive market where performance-per-watt matters</li>
+      </ul>
+    </section>
+
+    <section class="section" id="resources">
+      <h2>Resources</h2>
+      <div class="cards">
+        <div class="card">
+          <h4><a href="https://www.reddit.com/r/FPGA/">r/FPGA</a></h4>
+          <p>Active Reddit community. Tool tips, project showcases, career advice, synthesis gotchas. 60K+ members. Great for beginners asking questions.</p>
+          <div class="meta">Community | Free</div>
+        </div>
+        <div class="card">
+          <h4><a href="https://www.nandland.com">Nandland</a></h4>
+          <p>FPGA tutorials and projects for beginners. Verilog and VHDL examples, FPGA board reviews, Go Board starter kit. Clear explanations.</p>
+          <div class="meta">Tutorials | Free + paid</div>
+        </div>
+        <div class="card">
+          <h4><a href="https://github.com/YosysHQ/yosys">Yosys + nextpnr</a></h4>
+          <p>Open-source synthesis and place-and-route. Full open toolchain for Lattice iCE40 and ECP5. No vendor lock-in.</p>
+          <div class="meta">GitHub | Open-source</div>
+        </div>
+        <div class="card">
+          <h4><a href="https://digilent.com">Digilent</a></h4>
+          <p>FPGA development boards (Basys 3, Nexys A7, Arty, Cmod). Academic pricing. Xilinx-based boards with extensive tutorials and reference designs.</p>
+          <div class="meta">Hardware | $35-$400</div>
+        </div>
+        <div class="card">
+          <h4><a href="https://zipcpu.com/tutorial/">ZipCPU Tutorials</a></h4>
+          <p>Deep, practical FPGA tutorials. Formal verification, AXI bus, DDR controllers, UART, SPI. One of the best engineering blogs on the internet.</p>
+          <div class="meta">Blog | Free</div>
+        </div>
+        <div class="card">
+          <h4><a href="https://1bitsquared.com/products/icebreaker">iCEBreaker FPGA</a></h4>
+          <p>Open-source FPGA development board using Lattice iCE40UP5K. Designed for the open-source toolchain (Yosys + nextpnr). $70, great for beginners.</p>
+          <div class="meta">Hardware | $70</div>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <footer>
+    <div class="container">
+      <a href="/">FreeChipStore</a> · <a href="/institute/">Institute</a> · Built with <a href="https://zensical.org">Zensical</a>
+    </div>
+  </footer>
+</body>
+</html>

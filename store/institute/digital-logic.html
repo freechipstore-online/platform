@@ -1,0 +1,291 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Digital Logic Fundamentals — Chip Design Institute</title>
+  <meta name="description" content="Learn digital logic from Boolean algebra to sequential circuits. Truth tables, Karnaugh maps, gate-level design, standard cells, and combinational vs sequential logic.">
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,700&family=Manrope:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    *{margin:0;padding:0;box-sizing:border-box}
+    :root{--accent:#ef4444;--paper:#0a0a0a;--ink:#fafafa;--muted:#737373;--panel:#141414;--line:#262626}
+    body{font-family:'Manrope',system-ui,sans-serif;background:var(--paper);color:var(--ink);line-height:1.7;-webkit-font-smoothing:antialiased}
+    .container{max-width:900px;margin:0 auto;padding:0 1.5rem}
+    a{color:var(--accent);text-decoration:none}a:hover{text-decoration:underline}
+    header{border-bottom:1px solid var(--line);padding:.75rem 0}
+    header .container{display:flex;align-items:center;gap:1rem;flex-wrap:wrap}
+    .brand{display:flex;align-items:center;gap:.5rem;text-decoration:none;color:var(--ink)}
+    .brand-emoji{font-size:1.5rem}
+    .brand-text{font-family:'Fraunces',serif;font-size:1.05rem;font-weight:700}
+    .brand-tag{font-size:.68rem;color:var(--muted)}
+    nav{display:flex;gap:1rem;font-size:.82rem;font-weight:600;margin-left:auto}
+    nav a{color:var(--muted)}nav a:hover{color:var(--ink)}
+    .hero{text-align:center;padding:2.5rem 0 1.5rem;border-bottom:1px solid var(--line)}
+    .hero h1{font-family:'Fraunces',serif;font-size:1.8rem;font-weight:700;margin-bottom:.5rem}
+    .hero h1 em{color:var(--accent);font-style:normal}
+    .hero p{color:var(--muted);max-width:600px;margin:0 auto;font-size:.95rem}
+    .toc{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:1rem 1.25rem;margin:1.5rem 0}
+    .toc h3{font-size:.85rem;font-weight:700;margin-bottom:.5rem;color:var(--accent)}
+    .toc ul{list-style:none;padding:0;columns:2}
+    .toc li{margin:.2rem 0}.toc a{color:#a3a3a3;font-size:.82rem}.toc a:hover{color:var(--ink)}
+    .section{margin-bottom:2rem;padding-top:1rem}
+    .section h2{font-family:'Fraunces',serif;font-size:1.3rem;font-weight:700;margin-bottom:.5rem;padding-bottom:.35rem;border-bottom:1px solid var(--line)}
+    .section h3{font-size:.95rem;font-weight:700;margin:1rem 0 .35rem;color:#e5e5e5}
+    .section p,.section li{color:#a3a3a3;font-size:.88rem}
+    ul{padding-left:1.25rem;margin:.35rem 0}
+    li{margin-bottom:.3rem}
+    .cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:.6rem;margin:.5rem 0}
+    .card{background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:.85rem;transition:border-color .15s}
+    .card:hover{border-color:var(--accent)}
+    .card h4{font-size:.85rem;font-weight:700;margin-bottom:.2rem}
+    .card h4 a{color:var(--ink)}.card p{font-size:.75rem;color:var(--muted);margin:0;line-height:1.5}
+    .card .meta{font-size:.65rem;color:#525252;margin-top:.25rem}
+    code{background:#1a1a1a;padding:.15rem .35rem;border-radius:4px;font-size:.82rem;color:#e5e5e5}
+    pre{background:#1a1a1a;border:1px solid var(--line);border-radius:8px;padding:1rem;overflow-x:auto;margin:.5rem 0;font-size:.8rem;line-height:1.5;color:#e5e5e5}
+    table{width:100%;border-collapse:collapse;margin:.5rem 0;font-size:.82rem}
+    th,td{border:1px solid var(--line);padding:.4rem .6rem;text-align:center}
+    th{background:var(--panel);color:var(--ink);font-weight:600}
+    td{color:#a3a3a3}
+    footer{border-top:1px solid var(--line);padding:1.5rem 0;text-align:center;font-size:.75rem;color:#525252}
+  </style>
+</head>
+<body>
+  <header>
+    <div class="container">
+      <a href="/institute/" class="brand">
+        <span class="brand-emoji">🔲</span>
+        <span><span class="brand-text">Chip Design Institute</span><br><span class="brand-tag">Powered by <a href="https://zensical.org" style="color:#525252">Zensical</a></span></span>
+      </a>
+      <nav><a href="/institute/">Overview</a><a href="/institute/digital-logic">Logic</a><a href="/institute/cpu-architecture">CPU</a><a href="/institute/verilog">Verilog</a><a href="/institute/fpga">FPGA</a><a href="/institute/risc-v">RISC-V</a><a href="/">Simulations</a></nav>
+    </div>
+  </header>
+
+  <div class="container">
+    <section class="hero">
+      <h1>Digital Logic <em>Fundamentals</em></h1>
+      <p>From Boolean algebra to gate-level design. The mathematical and physical foundation of every digital system ever built.</p>
+    </section>
+
+    <nav class="toc">
+      <h3>Contents</h3>
+      <ul>
+        <li><a href="#boolean">Boolean Algebra</a></li>
+        <li><a href="#truth-tables">Truth Tables</a></li>
+        <li><a href="#karnaugh">Karnaugh Maps</a></li>
+        <li><a href="#gates">Logic Gates</a></li>
+        <li><a href="#combinational">Combinational Logic</a></li>
+        <li><a href="#sequential">Sequential Logic</a></li>
+        <li><a href="#standard-cells">Standard Cells</a></li>
+        <li><a href="#resources">Resources</a></li>
+      </ul>
+    </nav>
+
+    <section class="section" id="boolean">
+      <h2>Boolean Algebra</h2>
+      <p>Boolean algebra, formalized by George Boole in 1854, is the mathematics of binary logic. Every digital circuit is ultimately an implementation of Boolean functions in silicon. Variables take only two values: 0 (false) and 1 (true).</p>
+
+      <h3>Fundamental Operations</h3>
+      <ul>
+        <li><strong>AND (conjunction)</strong> — written as A&middot;B or AB. Output is 1 only when both inputs are 1. In hardware: series transistors.</li>
+        <li><strong>OR (disjunction)</strong> — written as A+B. Output is 1 when at least one input is 1. In hardware: parallel transistors.</li>
+        <li><strong>NOT (complement)</strong> — written as A' or ~A. Inverts the input. In CMOS: a pMOS/nMOS inverter pair.</li>
+        <li><strong>XOR (exclusive or)</strong> — A xor B = AB' + A'B. Output is 1 when inputs differ. Fundamental to adders and parity.</li>
+        <li><strong>NAND</strong> — NOT-AND. Functionally complete: any Boolean function can be built from NAND gates alone.</li>
+        <li><strong>NOR</strong> — NOT-OR. Also functionally complete. The Apollo Guidance Computer used only NOR gates.</li>
+      </ul>
+
+      <h3>Key Theorems</h3>
+      <ul>
+        <li><strong>De Morgan's Laws</strong> — (AB)' = A' + B' and (A+B)' = A'B'. Convert between AND/OR by complementing. Critically important for NAND/NOR logic conversion.</li>
+        <li><strong>Idempotent</strong> — A + A = A, A&middot;A = A</li>
+        <li><strong>Complement</strong> — A + A' = 1, A&middot;A' = 0</li>
+        <li><strong>Absorption</strong> — A + AB = A, A(A+B) = A</li>
+        <li><strong>Distributive</strong> — A(B+C) = AB + AC, A+BC = (A+B)(A+C)</li>
+        <li><strong>Consensus</strong> — AB + A'C + BC = AB + A'C (the BC term is redundant)</li>
+        <li><strong>Shannon's Expansion</strong> — f(A,B,...) = A&middot;f(1,B,...) + A'&middot;f(0,B,...). Basis for multiplexer-based implementations and BDDs.</li>
+      </ul>
+
+      <h3>Canonical Forms</h3>
+      <ul>
+        <li><strong>Sum of Products (SOP)</strong> — OR of AND terms (minterms). Each minterm is a product of all variables in true or complemented form. Example: f = A'B'C + AB'C' + ABC.</li>
+        <li><strong>Product of Sums (POS)</strong> — AND of OR terms (maxterms). Dual of SOP. Example: f = (A+B+C)(A'+B+C')(A'+B'+C).</li>
+        <li>SOP maps directly to a two-level AND-OR circuit; POS maps to OR-AND. Both can be converted to all-NAND or all-NOR.</li>
+      </ul>
+    </section>
+
+    <section class="section" id="truth-tables">
+      <h2>Truth Tables</h2>
+      <p>A truth table exhaustively lists every possible input combination and the corresponding output. For n inputs, the table has 2^n rows. Truth tables completely specify a combinational function.</p>
+
+      <h3>Basic Gates</h3>
+      <table>
+        <tr><th>A</th><th>B</th><th>AND</th><th>OR</th><th>NAND</th><th>NOR</th><th>XOR</th><th>XNOR</th></tr>
+        <tr><td>0</td><td>0</td><td>0</td><td>0</td><td>1</td><td>1</td><td>0</td><td>1</td></tr>
+        <tr><td>0</td><td>1</td><td>0</td><td>1</td><td>1</td><td>0</td><td>1</td><td>0</td></tr>
+        <tr><td>1</td><td>0</td><td>0</td><td>1</td><td>1</td><td>0</td><td>1</td><td>0</td></tr>
+        <tr><td>1</td><td>1</td><td>1</td><td>1</td><td>0</td><td>0</td><td>0</td><td>1</td></tr>
+      </table>
+
+      <h3>Full Adder Truth Table</h3>
+      <p>The full adder computes Sum = A XOR B XOR Cin, and Cout = AB + BCin + ACin. It adds three single-bit inputs and produces a sum bit and a carry-out bit.</p>
+      <table>
+        <tr><th>A</th><th>B</th><th>Cin</th><th>Sum</th><th>Cout</th></tr>
+        <tr><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td></tr>
+        <tr><td>0</td><td>0</td><td>1</td><td>1</td><td>0</td></tr>
+        <tr><td>0</td><td>1</td><td>0</td><td>1</td><td>0</td></tr>
+        <tr><td>0</td><td>1</td><td>1</td><td>0</td><td>1</td></tr>
+        <tr><td>1</td><td>0</td><td>0</td><td>1</td><td>0</td></tr>
+        <tr><td>1</td><td>0</td><td>1</td><td>0</td><td>1</td></tr>
+        <tr><td>1</td><td>1</td><td>0</td><td>0</td><td>1</td></tr>
+        <tr><td>1</td><td>1</td><td>1</td><td>1</td><td>1</td></tr>
+      </table>
+
+      <h3>Don't-Care Conditions</h3>
+      <p>In many real designs, certain input combinations never occur (e.g., BCD digits only go 0-9, leaving 6 unused combinations in a 4-bit encoding). These "don't-care" entries (marked X or d) can be treated as either 0 or 1 during minimization, allowing simpler circuits. Don't-cares are critical for efficient Karnaugh map reduction.</p>
+    </section>
+
+    <section class="section" id="karnaugh">
+      <h2>Karnaugh Maps</h2>
+      <p>Maurice Karnaugh introduced K-maps in 1953 as a graphical method for simplifying Boolean functions. They exploit the spatial arrangement of minterms so that adjacent cells differ by exactly one variable — enabling visual identification of simplification opportunities.</p>
+
+      <h3>How K-Maps Work</h3>
+      <ul>
+        <li><strong>Gray code ordering</strong> — rows and columns are labeled in Gray code (00, 01, 11, 10) so adjacent cells differ by one bit. This includes wrap-around: the leftmost and rightmost columns are adjacent, as are the top and bottom rows.</li>
+        <li><strong>Grouping</strong> — circle groups of 1s in powers of 2 (1, 2, 4, 8). Each group eliminates variables that change within the group. A group of 2 eliminates one variable; a group of 4 eliminates two.</li>
+        <li><strong>Prime implicants</strong> — make groups as large as possible. An implicant that cannot be further enlarged is a prime implicant. The goal is to cover all 1s with the fewest, largest prime implicants.</li>
+        <li><strong>Essential prime implicants</strong> — a prime implicant that covers at least one minterm not covered by any other prime implicant. These must appear in the minimal solution.</li>
+      </ul>
+
+      <h3>2-Variable K-Map</h3>
+      <p>For f(A,B) = A'B + AB = B, the K-map shows both cells in column B=1 are 1. Grouping those two cells eliminates A, leaving f = B.</p>
+
+      <h3>4-Variable K-Map</h3>
+      <p>For 4 variables (A, B, C, D), the K-map is a 4x4 grid with 16 cells. Corner grouping is common: the four corners (0000, 0010, 1000, 1010) form a valid group of 4, giving B'D'. K-maps work well up to 5-6 variables; beyond that, use the Quine-McCluskey algorithm or Espresso heuristic minimizer.</p>
+
+      <h3>Quine-McCluskey Algorithm</h3>
+      <p>A tabular method for exact Boolean minimization. Systematically finds all prime implicants, then solves a covering problem for the minimum set. Guaranteed optimal but exponential time complexity (NP-hard in general). Tools like Espresso (developed at UC Berkeley) use heuristic approaches that produce near-optimal results in practical time.</p>
+    </section>
+
+    <section class="section" id="gates">
+      <h2>Logic Gates in Hardware</h2>
+      <p>Logic gates are the physical building blocks of digital circuits. In CMOS technology (Complementary Metal-Oxide-Semiconductor), gates are built from pairs of pMOS and nMOS transistors.</p>
+
+      <h3>CMOS Gate Implementation</h3>
+      <ul>
+        <li><strong>Inverter (NOT)</strong> — one pMOS (pull-up) and one nMOS (pull-down). When input is 0, pMOS conducts, output goes to VDD (1). When input is 1, nMOS conducts, output goes to GND (0).</li>
+        <li><strong>NAND gate</strong> — pMOS transistors in parallel (pull-up), nMOS in series (pull-down). Output is low only when all inputs are high. NAND is the natural gate in CMOS because it uses fewer transistors than AND.</li>
+        <li><strong>NOR gate</strong> — pMOS in series, nMOS in parallel. Complementary to NAND. Generally slower due to stacked pMOS (which have lower mobility than nMOS).</li>
+        <li><strong>Why NAND/NOR dominate</strong> — in CMOS, inverted outputs come "free" (the complementary structure naturally inverts). AND and OR gates require an extra inverter stage, adding delay and area. Real standard cell libraries are built primarily from NAND, NOR, and INV cells.</li>
+      </ul>
+
+      <h3>Fan-In and Fan-Out</h3>
+      <ul>
+        <li><strong>Fan-in</strong> — number of inputs to a gate. High fan-in (e.g., 8-input NAND) means more stacked transistors, increasing delay. Practical limit is 4-5 inputs; larger functions are decomposed.</li>
+        <li><strong>Fan-out</strong> — number of gates driven by one output. Each load adds capacitance, slowing the driving gate. Buffers are inserted when fan-out exceeds the drive strength.</li>
+      </ul>
+
+      <h3>Propagation Delay</h3>
+      <p>The time from input change to stable output. Measured as t_pHL (high-to-low transition) and t_pLH (low-to-high). Total delay through a circuit is the sum of gate delays along the critical path. In modern 5nm processes, inverter delay is approximately 10-15 picoseconds.</p>
+    </section>
+
+    <section class="section" id="combinational">
+      <h2>Combinational vs Sequential Logic</h2>
+
+      <h3>Combinational Logic</h3>
+      <p>Output depends only on current inputs. No memory, no feedback, no clock. Given the same inputs, a combinational circuit always produces the same outputs (after propagation delay).</p>
+      <ul>
+        <li><strong>Multiplexer (MUX)</strong> — selects one of 2^n inputs based on n select lines. A 2:1 MUX implements f = S'A + SB. MUXes can implement any Boolean function: an n-variable function needs a 2^(n-1):1 MUX.</li>
+        <li><strong>Decoder</strong> — converts an n-bit binary code to 2^n output lines, exactly one active. A 3-to-8 decoder activates one of 8 lines. Used for memory address decoding and instruction decoding.</li>
+        <li><strong>Encoder / Priority Encoder</strong> — reverse of decoder. Outputs the binary code of the highest-priority active input. Used in interrupt controllers.</li>
+        <li><strong>Adders</strong> — ripple-carry (simple, slow: O(n) delay), carry-lookahead (fast: O(log n) delay, more area), Kogge-Stone, Brent-Kung, carry-select, carry-skip. The adder is the most critical datapath component.</li>
+        <li><strong>ALU</strong> — Arithmetic Logic Unit. Combines an adder, logic unit, and shifter. Controlled by opcode bits to select operation (add, sub, AND, OR, shift, compare).</li>
+        <li><strong>Comparator</strong> — determines equality or magnitude (A &gt; B, A &lt; B, A = B). Equality is XNOR of corresponding bits, ANDed together.</li>
+      </ul>
+
+      <h3>Sequential Logic</h3>
+      <p>Output depends on current inputs AND stored state. Uses feedback and clock signals. Sequential circuits have memory — they can be in different states even with the same inputs.</p>
+      <ul>
+        <li><strong>SR Latch</strong> — the simplest storage element. Two cross-coupled NOR (or NAND) gates. Set and Reset inputs. Forbidden state when both S=R=1 (NOR version). Foundation for all sequential elements.</li>
+        <li><strong>D Latch</strong> — adds a data input and enable signal. When enable is high, output follows input (transparent). When enable goes low, output holds its last value. Problem: transparent during the entire enable-high phase.</li>
+        <li><strong>D Flip-Flop</strong> — edge-triggered (typically rising edge). Built from two D latches in master-slave configuration. Captures input only at the clock edge, eliminating transparency problems. The workhorse of synchronous design.</li>
+        <li><strong>Registers</strong> — a group of D flip-flops sharing a clock. An n-bit register stores n bits. CPU registers (e.g., RISC-V's 32 x 32-bit register file) are arrays of registers with read/write ports.</li>
+        <li><strong>Counters</strong> — sequential circuits that cycle through a sequence. Binary counter, Gray code counter, ring counter, Johnson counter. Used for addresses, timing, and control.</li>
+        <li><strong>Finite State Machines</strong> — Moore (output depends only on state) or Mealy (output depends on state and input). Defined by states, transitions, and outputs. Implemented as flip-flops (state) plus combinational logic (next-state and output functions).</li>
+      </ul>
+    </section>
+
+    <section class="section" id="standard-cells">
+      <h2>Standard Cell Design</h2>
+      <p>Standard cell methodology is the dominant approach for ASIC design. A library of pre-characterized logic cells (INV, NAND2, NOR2, DFF, etc.) with fixed heights and variable widths is provided by the foundry. The designer works at the gate level; place-and-route tools handle physical layout.</p>
+
+      <h3>What's in a Standard Cell Library</h3>
+      <ul>
+        <li><strong>Logic cells</strong> — inverters (various drive strengths: X1, X2, X4, X8), NAND2/3/4, NOR2/3/4, AND2/3, OR2/3, XOR2, XNOR2, MUX2, AOI (AND-OR-Invert), OAI (OR-AND-Invert)</li>
+        <li><strong>Sequential cells</strong> — D flip-flops (with/without reset, set, enable, scan), latches, ICG (Integrated Clock Gating) cells</li>
+        <li><strong>Drive strength variants</strong> — each cell type comes in multiple drive strengths. Stronger cells (bigger transistors) drive more load but use more area and power. The synthesis tool selects the appropriate strength.</li>
+        <li><strong>Special cells</strong> — clock buffers, level shifters, isolation cells, always-on cells, filler cells, tie-high/tie-low cells, antenna diodes, decoupling capacitors</li>
+      </ul>
+
+      <h3>Cell Characterization</h3>
+      <ul>
+        <li><strong>Timing</strong> — propagation delay, setup time, hold time, clock-to-Q delay. Characterized across PVT (Process, Voltage, Temperature) corners: fast (FF, high V, low T), slow (SS, low V, high T), typical (TT).</li>
+        <li><strong>Power</strong> — dynamic (switching + short-circuit) and static (leakage). Leakage is a major concern in sub-28nm nodes. Multi-Vt (threshold voltage) cells trade speed for leakage: HVT (slow, low leakage), SVT (standard), LVT (fast, high leakage).</li>
+        <li><strong>Liberty (.lib) files</strong> — industry-standard format for timing and power data. Non-linear delay models (NLDM) capture input-slew and output-load dependencies. CCS (Composite Current Source) models are more accurate for advanced nodes.</li>
+        <li><strong>LEF (Library Exchange Format)</strong> — describes the physical dimensions: cell height, width, pin locations, routing blockages. Used by the place-and-route tool.</li>
+      </ul>
+
+      <h3>From RTL to GDSII</h3>
+      <ul>
+        <li><strong>Synthesis</strong> — converts RTL (Verilog/VHDL) to a gate-level netlist of standard cells. Tools: Synopsys Design Compiler, Cadence Genus, open-source Yosys.</li>
+        <li><strong>Floorplanning</strong> — defines the chip area, places major blocks (memories, IPs), defines power grid, sets I/O pad ring.</li>
+        <li><strong>Placement</strong> — positions every standard cell to minimize wirelength and timing. Global placement then legalization (snapping to rows).</li>
+        <li><strong>Clock Tree Synthesis (CTS)</strong> — builds a balanced distribution network so the clock arrives at all flip-flops simultaneously (minimizing skew).</li>
+        <li><strong>Routing</strong> — connects all cell pins with metal wires. Global routing (channel assignment) then detailed routing (exact tracks). Must satisfy DRC (design rule checks) for the target process.</li>
+        <li><strong>Sign-off</strong> — final timing analysis (STA), power analysis, DRC, LVS (Layout vs Schematic), EM (electromigration), IR-drop analysis. Then GDSII tape-out to the foundry.</li>
+      </ul>
+    </section>
+
+    <section class="section" id="resources">
+      <h2>Resources</h2>
+      <div class="cards">
+        <div class="card">
+          <h4><a href="https://ocw.mit.edu/courses/6-004-computation-structures-spring-2017/">MIT 6.004: Computation Structures</a></h4>
+          <p>Full course covering digital logic, Boolean algebra, combinational and sequential circuits, FSMs, and computer architecture.</p>
+          <div class="meta">MIT OpenCourseWare | Free</div>
+        </div>
+        <div class="card">
+          <h4><a href="https://www.nand2tetris.org">Nand2Tetris</a></h4>
+          <p>Build a computer from NAND gates. Hands-on projects progress from gates to ALU to CPU to assembler. The best way to internalize digital logic.</p>
+          <div class="meta">Hebrew University | Free</div>
+        </div>
+        <div class="card">
+          <h4><a href="https://www.elsevier.com/books/digital-design-and-computer-architecture/harris/978-0-12-820064-3">Harris & Harris: Digital Design and Computer Architecture</a></h4>
+          <p>Gold-standard textbook covering combinational logic, sequential logic, Verilog, SystemVerilog, and processor design.</p>
+          <div class="meta">Textbook | Beginner to Intermediate</div>
+        </div>
+        <div class="card">
+          <h4><a href="https://github.com/YosysHQ/yosys">Yosys Open Synthesis Suite</a></h4>
+          <p>Open-source synthesis tool. Write Verilog, synthesize to gates, and see the actual standard cells your design maps to.</p>
+          <div class="meta">GitHub | ISC License</div>
+        </div>
+        <div class="card">
+          <h4><a href="https://hdlbits.01xz.net">HDLBits</a></h4>
+          <p>Interactive Verilog exercises. Practice combinational and sequential logic design in your browser with instant feedback.</p>
+          <div class="meta">Free | Browser-based</div>
+        </div>
+        <div class="card">
+          <h4><a href="https://www.falstad.com/circuit/">Falstad Circuit Simulator</a></h4>
+          <p>Interactive circuit simulator in the browser. Build and test logic gates, flip-flops, counters, and more with real-time visualization.</p>
+          <div class="meta">Free | Browser-based</div>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <footer>
+    <div class="container">
+      <a href="/">FreeChipStore</a> · <a href="/institute/">Institute</a> · Built with <a href="https://zensical.org">Zensical</a>
+    </div>
+  </footer>
+</body>
+</html>

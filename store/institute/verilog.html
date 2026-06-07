@@ -1,0 +1,456 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Verilog / HDL — Chip Design Institute</title>
+  <meta name="description" content="Verilog and SystemVerilog essentials. Syntax, modules, always blocks, testbenches, simulation, synthesis, common patterns, and gotchas.">
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,700&family=Manrope:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    *{margin:0;padding:0;box-sizing:border-box}
+    :root{--accent:#ef4444;--paper:#0a0a0a;--ink:#fafafa;--muted:#737373;--panel:#141414;--line:#262626}
+    body{font-family:'Manrope',system-ui,sans-serif;background:var(--paper);color:var(--ink);line-height:1.7;-webkit-font-smoothing:antialiased}
+    .container{max-width:900px;margin:0 auto;padding:0 1.5rem}
+    a{color:var(--accent);text-decoration:none}a:hover{text-decoration:underline}
+    header{border-bottom:1px solid var(--line);padding:.75rem 0}
+    header .container{display:flex;align-items:center;gap:1rem;flex-wrap:wrap}
+    .brand{display:flex;align-items:center;gap:.5rem;text-decoration:none;color:var(--ink)}
+    .brand-emoji{font-size:1.5rem}
+    .brand-text{font-family:'Fraunces',serif;font-size:1.05rem;font-weight:700}
+    .brand-tag{font-size:.68rem;color:var(--muted)}
+    nav{display:flex;gap:1rem;font-size:.82rem;font-weight:600;margin-left:auto}
+    nav a{color:var(--muted)}nav a:hover{color:var(--ink)}
+    .hero{text-align:center;padding:2.5rem 0 1.5rem;border-bottom:1px solid var(--line)}
+    .hero h1{font-family:'Fraunces',serif;font-size:1.8rem;font-weight:700;margin-bottom:.5rem}
+    .hero h1 em{color:var(--accent);font-style:normal}
+    .hero p{color:var(--muted);max-width:600px;margin:0 auto;font-size:.95rem}
+    .toc{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:1rem 1.25rem;margin:1.5rem 0}
+    .toc h3{font-size:.85rem;font-weight:700;margin-bottom:.5rem;color:var(--accent)}
+    .toc ul{list-style:none;padding:0;columns:2}
+    .toc li{margin:.2rem 0}.toc a{color:#a3a3a3;font-size:.82rem}.toc a:hover{color:var(--ink)}
+    .section{margin-bottom:2rem;padding-top:1rem}
+    .section h2{font-family:'Fraunces',serif;font-size:1.3rem;font-weight:700;margin-bottom:.5rem;padding-bottom:.35rem;border-bottom:1px solid var(--line)}
+    .section h3{font-size:.95rem;font-weight:700;margin:1rem 0 .35rem;color:#e5e5e5}
+    .section p,.section li{color:#a3a3a3;font-size:.88rem}
+    ul{padding-left:1.25rem;margin:.35rem 0}
+    li{margin-bottom:.3rem}
+    .cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:.6rem;margin:.5rem 0}
+    .card{background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:.85rem;transition:border-color .15s}
+    .card:hover{border-color:var(--accent)}
+    .card h4{font-size:.85rem;font-weight:700;margin-bottom:.2rem}
+    .card h4 a{color:var(--ink)}.card p{font-size:.75rem;color:var(--muted);margin:0;line-height:1.5}
+    .card .meta{font-size:.65rem;color:#525252;margin-top:.25rem}
+    code{background:#1a1a1a;padding:.15rem .35rem;border-radius:4px;font-size:.82rem;color:#e5e5e5}
+    pre{background:#1a1a1a;border:1px solid var(--line);border-radius:8px;padding:1rem;overflow-x:auto;margin:.5rem 0;font-size:.8rem;line-height:1.5;color:#e5e5e5}
+    footer{border-top:1px solid var(--line);padding:1.5rem 0;text-align:center;font-size:.75rem;color:#525252}
+  </style>
+</head>
+<body>
+  <header>
+    <div class="container">
+      <a href="/institute/" class="brand">
+        <span class="brand-emoji">🔲</span>
+        <span><span class="brand-text">Chip Design Institute</span><br><span class="brand-tag">Powered by <a href="https://zensical.org" style="color:#525252">Zensical</a></span></span>
+      </a>
+      <nav><a href="/institute/">Overview</a><a href="/institute/digital-logic">Logic</a><a href="/institute/cpu-architecture">CPU</a><a href="/institute/verilog">Verilog</a><a href="/institute/fpga">FPGA</a><a href="/institute/risc-v">RISC-V</a><a href="/">Simulations</a></nav>
+    </div>
+  </header>
+
+  <div class="container">
+    <section class="hero">
+      <h1>Verilog / <em>HDL</em></h1>
+      <p>Hardware description languages are how engineers turn ideas into silicon. Learn Verilog syntax, simulation, synthesis, and the patterns that produce correct, efficient hardware.</p>
+    </section>
+
+    <nav class="toc">
+      <h3>Contents</h3>
+      <ul>
+        <li><a href="#overview">HDL Overview</a></li>
+        <li><a href="#syntax">Syntax Basics</a></li>
+        <li><a href="#modules">Modules & Hierarchy</a></li>
+        <li><a href="#always">Always Blocks</a></li>
+        <li><a href="#testbenches">Testbenches</a></li>
+        <li><a href="#simulation">Simulation</a></li>
+        <li><a href="#synthesis">Synthesis</a></li>
+        <li><a href="#patterns">Common Patterns</a></li>
+        <li><a href="#gotchas">Gotchas</a></li>
+        <li><a href="#resources">Resources</a></li>
+      </ul>
+    </nav>
+
+    <section class="section" id="overview">
+      <h2>HDL Overview</h2>
+      <p>A Hardware Description Language (HDL) describes the structure and behavior of digital circuits. Unlike software programming languages, HDL statements execute concurrently, modeling the parallel nature of hardware. The two dominant HDLs are Verilog and VHDL.</p>
+
+      <h3>Verilog</h3>
+      <p>Created by Phil Moorby and Prabhu Goel at Gateway Design Automation in 1984. Acquired by Cadence, then donated to IEEE in 1995 (IEEE 1364). C-like syntax. Dominant in the US and Asia. Extended to SystemVerilog (IEEE 1800) in 2005, adding object-oriented verification features, assertions, and improved synthesis constructs.</p>
+
+      <h3>VHDL</h3>
+      <p>VHSIC Hardware Description Language. Created under a U.S. Department of Defense program in 1983. IEEE 1076. Ada-like syntax — strongly typed, verbose, explicit. Dominant in Europe and defense/aerospace. More verbose than Verilog but catches more errors at compile time.</p>
+
+      <h3>Modern Alternatives</h3>
+      <ul>
+        <li><strong>Chisel</strong> — Scala-embedded HDL from UC Berkeley. Generates Verilog. Used to build RISC-V cores (Rocket, BOOM). Powerful parameterization via Scala's type system.</li>
+        <li><strong>Amaranth (formerly nMigen)</strong> — Python-embedded HDL. Clean, Pythonic API. Generates Verilog for simulation and synthesis. Popular in the open-source FPGA community.</li>
+        <li><strong>SpinalHDL</strong> — Scala-based HDL (independent of Chisel). Strong type checking, good for complex designs. VexRiscv (RISC-V core) is written in SpinalHDL.</li>
+        <li><strong>Clash</strong> — Haskell-embedded HDL. Functional programming paradigm for hardware. Leverages Haskell's type system to prevent common errors at compile time.</li>
+      </ul>
+    </section>
+
+    <section class="section" id="syntax">
+      <h2>Syntax Basics</h2>
+
+      <h3>Data Types</h3>
+      <ul>
+        <li><strong><code>wire</code></strong> — continuous assignment. Represents a combinational connection. Cannot store state. Driven by <code>assign</code> statements or module outputs. Think of it as a physical wire.</li>
+        <li><strong><code>reg</code></strong> — can be assigned inside procedural blocks (<code>always</code>, <code>initial</code>). Despite the name, doesn't necessarily synthesize to a register — it can be combinational if assigned in a combinational always block. In SystemVerilog, use <code>logic</code> instead to avoid confusion.</li>
+        <li><strong>Bit widths</strong> — declared as <code>[MSB:LSB]</code>. Example: <code>wire [7:0] data;</code> is an 8-bit bus. Default is 1 bit. Bit select: <code>data[3]</code>. Range select: <code>data[7:4]</code>.</li>
+        <li><strong>Number literals</strong> — format: <code>&lt;width&gt;'&lt;base&gt;&lt;value&gt;</code>. Examples: <code>8'hFF</code> (8-bit hex), <code>4'b1010</code> (4-bit binary), <code>32'd100</code> (32-bit decimal). Underscore for readability: <code>32'hDEAD_BEEF</code>.</li>
+        <li><strong>4-value logic</strong> — Verilog uses four values: 0, 1, X (unknown/don't-care), Z (high-impedance/tri-state). X propagates through logic; Z models undriven wires and tri-state buffers.</li>
+      </ul>
+
+      <h3>Operators</h3>
+      <ul>
+        <li><strong>Bitwise</strong> — <code>&amp;</code> (AND), <code>|</code> (OR), <code>^</code> (XOR), <code>~</code> (NOT)</li>
+        <li><strong>Logical</strong> — <code>&amp;&amp;</code>, <code>||</code>, <code>!</code> (return 1-bit result)</li>
+        <li><strong>Reduction</strong> — <code>&amp;data</code> (AND all bits), <code>|data</code> (OR all bits), <code>^data</code> (XOR all bits / parity)</li>
+        <li><strong>Shift</strong> — <code>&lt;&lt;</code>, <code>&gt;&gt;</code> (logical), <code>&lt;&lt;&lt;</code>, <code>&gt;&gt;&gt;</code> (arithmetic, sign-extending)</li>
+        <li><strong>Concatenation</strong> — <code>{a, b, c}</code> joins signals. Replication: <code>{4{1'b0}}</code> = <code>4'b0000</code></li>
+        <li><strong>Conditional (ternary)</strong> — <code>sel ? a : b</code> synthesizes to a multiplexer</li>
+      </ul>
+    </section>
+
+    <section class="section" id="modules">
+      <h2>Modules & Hierarchy</h2>
+      <p>The module is the fundamental building block in Verilog. It encapsulates a piece of hardware with defined inputs and outputs. Designs are built hierarchically: a top-level module instantiates sub-modules, which instantiate smaller sub-modules, down to primitive gates.</p>
+
+      <h3>Module Declaration</h3>
+      <pre>module adder #(
+  parameter WIDTH = 8       // parameterized width
+)(
+  input  wire [WIDTH-1:0] a,
+  input  wire [WIDTH-1:0] b,
+  input  wire             cin,
+  output wire [WIDTH-1:0] sum,
+  output wire             cout
+);
+  assign {cout, sum} = a + b + cin;
+endmodule</pre>
+
+      <h3>Module Instantiation</h3>
+      <pre>// Named port connection (recommended)
+adder #(.WIDTH(16)) u_adder16 (
+  .a    (operand_a),
+  .b    (operand_b),
+  .cin  (carry_in),
+  .sum  (result),
+  .cout (carry_out)
+);</pre>
+
+      <h3>Parameters and Generate</h3>
+      <ul>
+        <li><strong><code>parameter</code></strong> — compile-time constants. Override with <code>#(.WIDTH(16))</code> at instantiation. Makes modules reusable.</li>
+        <li><strong><code>localparam</code></strong> — like parameter but cannot be overridden from outside. Use for derived constants.</li>
+        <li><strong><code>generate</code></strong> — create replicated or conditional hardware. <code>genvar i; generate for (i=0; i&lt;N; i=i+1) begin ... end endgenerate</code> creates N copies of a sub-circuit.</li>
+      </ul>
+    </section>
+
+    <section class="section" id="always">
+      <h2>Always Blocks</h2>
+      <p>Always blocks are procedural blocks that describe both combinational and sequential logic. The sensitivity list determines when the block executes.</p>
+
+      <h3>Combinational Always Block</h3>
+      <pre>// Verilog-2001: use @(*)
+always @(*) begin
+  case (sel)
+    2'b00: out = a;
+    2'b01: out = b;
+    2'b10: out = c;
+    2'b11: out = d;
+  endcase
+end
+
+// SystemVerilog: always_comb (preferred)
+always_comb begin
+  unique case (sel)
+    2'b00: out = a;
+    2'b01: out = b;
+    2'b10: out = c;
+    2'b11: out = d;
+  endcase
+end</pre>
+      <p>Use blocking assignments (<code>=</code>) in combinational blocks. The <code>always_comb</code> keyword in SystemVerilog enforces that the block describes combinational logic and triggers at time 0.</p>
+
+      <h3>Sequential Always Block</h3>
+      <pre>// Flip-flop with synchronous reset
+always @(posedge clk) begin
+  if (rst)
+    q &lt;= 0;
+  else
+    q &lt;= d;
+end
+
+// SystemVerilog: always_ff (preferred)
+always_ff @(posedge clk) begin
+  if (rst)
+    q &lt;= '0;
+  else
+    q &lt;= d;
+end</pre>
+      <p>Use non-blocking assignments (<code>&lt;=</code>) in sequential blocks. This ensures all flip-flops sample their inputs simultaneously at the clock edge, modeling the parallel nature of hardware correctly.</p>
+
+      <h3>Blocking vs Non-Blocking</h3>
+      <ul>
+        <li><strong>Blocking (<code>=</code>)</strong> — executes sequentially within the block. Use for combinational logic. Statement N+1 sees the result of statement N immediately.</li>
+        <li><strong>Non-blocking (<code>&lt;=</code>)</strong> — schedules the assignment for the end of the current time step. Use for sequential logic (flip-flops). All RHS values are read simultaneously (old values), then all LHS are updated together.</li>
+        <li><strong>The cardinal rule</strong> — never mix blocking and non-blocking assignments to the same signal. Never use blocking in sequential blocks or non-blocking in combinational blocks. Violating this causes simulation-synthesis mismatches.</li>
+      </ul>
+    </section>
+
+    <section class="section" id="testbenches">
+      <h2>Testbenches</h2>
+      <p>A testbench is a Verilog module with no ports that instantiates the design under test (DUT), drives stimuli, and checks outputs. Testbenches are not synthesizable — they use the full language including delays, file I/O, and system tasks.</p>
+
+      <h3>Basic Testbench Structure</h3>
+      <pre>module tb_adder;
+  reg  [7:0] a, b;
+  reg        cin;
+  wire [7:0] sum;
+  wire       cout;
+
+  // Instantiate the DUT
+  adder #(.WIDTH(8)) dut (
+    .a(a), .b(b), .cin(cin),
+    .sum(sum), .cout(cout)
+  );
+
+  initial begin
+    // Dump waveforms
+    $dumpfile("adder.vcd");
+    $dumpvars(0, tb_adder);
+
+    // Test case 1
+    a = 8'd100; b = 8'd50; cin = 0;
+    #10;
+    if (sum !== 8'd150 || cout !== 0)
+      $error("Test 1 FAILED");
+
+    // Test case 2: overflow
+    a = 8'd200; b = 8'd100; cin = 0;
+    #10;
+    if ({cout, sum} !== 9'd300)
+      $error("Test 2 FAILED");
+
+    $display("All tests passed");
+    $finish;
+  end
+endmodule</pre>
+
+      <h3>Clock Generation</h3>
+      <pre>reg clk = 0;
+always #5 clk = ~clk;  // 100 MHz clock (10ns period)</pre>
+
+      <h3>SystemVerilog Verification</h3>
+      <ul>
+        <li><strong>Assertions</strong> — <code>assert property (@(posedge clk) req |-> ##[1:3] ack);</code> — verify temporal properties. Immediate assertions for simple checks, concurrent assertions for protocol verification.</li>
+        <li><strong>Covergroups</strong> — track which values/transitions have been exercised. Functional coverage ensures the testbench has tested the interesting cases.</li>
+        <li><strong>Constrained random</strong> — <code>class transaction; rand bit [7:0] data; constraint c { data inside {[0:100]}; } endclass</code> — randomly generate stimuli within constraints. Much more thorough than directed testing.</li>
+        <li><strong>UVM (Universal Verification Methodology)</strong> — industry-standard framework for building reusable, modular testbenches. Agents, drivers, monitors, scoreboards. Overkill for small designs but essential for SoC verification.</li>
+      </ul>
+    </section>
+
+    <section class="section" id="simulation">
+      <h2>Simulation</h2>
+      <p>Simulation runs the Verilog design as a software model, checking functionality before committing to hardware. There are two main types: event-driven simulation and cycle-based simulation.</p>
+
+      <h3>Event-Driven Simulation</h3>
+      <ul>
+        <li>Processes events (signal changes) in timestamp order. Models exact timing including propagation delays.</li>
+        <li>Tools: <strong>Icarus Verilog</strong> (open-source, good for learning), <strong>ModelSim/Questa</strong> (industry standard from Siemens EDA), <strong>VCS</strong> (Synopsys, fastest commercial simulator), <strong>Xcelium</strong> (Cadence).</li>
+        <li>Verilog's simulation semantics define an event queue with regions: active (blocking assignments, continuous assignments), inactive (#0 delays), NBA (non-blocking assignment updates), monitor ($monitor), and future events.</li>
+      </ul>
+
+      <h3>Cycle-Based Simulation</h3>
+      <ul>
+        <li>Only evaluates at clock edges, ignoring intra-cycle timing. Much faster for synchronous designs (10-100x faster than event-driven).</li>
+        <li><strong>Verilator</strong> — open-source, compiles Verilog/SystemVerilog to optimized C++. The fastest open-source simulator. Lint mode catches many RTL issues. Supports multithreading. Used by Google, Western Digital, and many others for large designs.</li>
+        <li>Trade-off: doesn't model glitches, setup/hold violations, or asynchronous behavior. Great for functional verification; timing verification needs gate-level simulation with SDF back-annotation.</li>
+      </ul>
+
+      <h3>Waveform Viewing</h3>
+      <p>Simulations dump signal values to VCD (Value Change Dump) or FST (Fast Signal Trace) files. View with <strong>GTKWave</strong> (open-source, VCD/FST) or <strong>Surfer</strong> (modern, Rust-based). Waveform debugging is the primary way to diagnose hardware design bugs — you can see every signal at every point in time.</p>
+    </section>
+
+    <section class="section" id="synthesis">
+      <h2>Synthesis</h2>
+      <p>Synthesis converts RTL code into a gate-level netlist — a circuit composed of standard cells (NAND, NOR, DFF, etc.) from a target library. The synthesizer optimizes for area, timing, and power.</p>
+
+      <h3>Synthesizable vs Non-Synthesizable</h3>
+      <ul>
+        <li><strong>Synthesizable</strong> — <code>assign</code>, <code>always @(*)</code>, <code>always @(posedge clk)</code>, <code>if/else</code>, <code>case</code>, arithmetic operators, concatenation, generate blocks, instantiations.</li>
+        <li><strong>Not synthesizable</strong> — <code>#delay</code>, <code>initial</code> blocks, <code>$display</code>/<code>$finish</code>, file I/O, <code>fork/join</code>, <code>wait</code> statements, most real-number arithmetic. These are simulation-only constructs for testbenches.</li>
+      </ul>
+
+      <h3>Synthesis Tools</h3>
+      <ul>
+        <li><strong>Yosys</strong> — open-source synthesis. Supports Verilog-2005 and partial SystemVerilog. FPGA flows (iCE40, ECP5, Xilinx) and ASIC flows (with Liberty cell libraries). Foundation of the open-source EDA stack.</li>
+        <li><strong>Synopsys Design Compiler</strong> — the gold standard for ASIC synthesis. Used by virtually every chip company. Proprietary, expensive.</li>
+        <li><strong>Cadence Genus</strong> — Cadence's synthesis tool. Competitive with Design Compiler. Part of the Cadence digital flow.</li>
+        <li><strong>Vivado Synthesis</strong> — Xilinx/AMD's built-in synthesis for their FPGAs. Part of the Vivado Design Suite.</li>
+        <li><strong>Quartus Synthesis</strong> — Intel/Altera's synthesis for their FPGAs. Part of Quartus Prime.</li>
+      </ul>
+
+      <h3>Timing Constraints</h3>
+      <p>You must tell the synthesis tool the target clock frequency. Synopsys Design Constraints (SDC) format: <code>create_clock -period 10 [get_ports clk]</code> (100 MHz). The tool optimizes the circuit to meet this timing, reporting slack (positive = met, negative = violated). Input/output delays, multicycle paths, and false paths are also specified in SDC.</p>
+    </section>
+
+    <section class="section" id="patterns">
+      <h2>Common Patterns</h2>
+
+      <h3>Shift Register</h3>
+      <pre>always_ff @(posedge clk)
+  if (rst)  shift_reg &lt;= '0;
+  else      shift_reg &lt;= {shift_reg[N-2:0], data_in};</pre>
+
+      <h3>Counter with Enable and Load</h3>
+      <pre>always_ff @(posedge clk)
+  if (rst)        count &lt;= '0;
+  else if (load)  count &lt;= load_val;
+  else if (en)    count &lt;= count + 1;</pre>
+
+      <h3>FSM (Finite State Machine)</h3>
+      <pre>typedef enum logic [1:0] {
+  IDLE, ACTIVE, DONE
+} state_t;
+
+state_t state, next_state;
+
+// State register
+always_ff @(posedge clk)
+  if (rst) state &lt;= IDLE;
+  else     state &lt;= next_state;
+
+// Next-state logic (combinational)
+always_comb begin
+  next_state = state;  // default: hold
+  unique case (state)
+    IDLE:   if (start) next_state = ACTIVE;
+    ACTIVE: if (done)  next_state = DONE;
+    DONE:              next_state = IDLE;
+  endcase
+end
+
+// Output logic
+assign busy = (state == ACTIVE);</pre>
+
+      <h3>Synchronizer (Clock Domain Crossing)</h3>
+      <pre>// Two-flop synchronizer for single-bit signals
+reg [1:0] sync_reg;
+always_ff @(posedge clk_dst)
+  sync_reg &lt;= {sync_reg[0], async_signal};
+wire synced = sync_reg[1];</pre>
+
+      <h3>Edge Detector</h3>
+      <pre>reg signal_d;
+always_ff @(posedge clk) signal_d &lt;= signal;
+wire rising_edge  = signal &amp; ~signal_d;
+wire falling_edge = ~signal &amp; signal_d;</pre>
+
+      <h3>Parameterized Multiplexer</h3>
+      <pre>module mux #(
+  parameter INPUTS = 4,
+  parameter WIDTH  = 8
+)(
+  input  wire [$clog2(INPUTS)-1:0] sel,
+  input  wire [WIDTH-1:0]          in [INPUTS],
+  output wire [WIDTH-1:0]          out
+);
+  assign out = in[sel];
+endmodule</pre>
+    </section>
+
+    <section class="section" id="gotchas">
+      <h2>Gotchas</h2>
+      <p>Common mistakes that cause simulation-synthesis mismatches, silent bugs, or synthesis failures.</p>
+
+      <h3>Latches from Incomplete Assignments</h3>
+      <ul>
+        <li>If a combinational always block doesn't assign a signal in every path, the synthesizer infers a latch (the signal holds its old value). This is almost always a bug.</li>
+        <li>Fix: assign a default value at the top of the block, or cover all cases in case/if statements. In SystemVerilog, <code>unique case</code> and <code>always_comb</code> provide warnings.</li>
+      </ul>
+
+      <h3>Sensitivity List Errors</h3>
+      <ul>
+        <li>In Verilog-2001, forgetting a signal in <code>always @(...)</code> causes simulation to not trigger when that signal changes, but synthesis ignores the sensitivity list and infers the correct logic. Result: simulation and hardware behave differently.</li>
+        <li>Fix: always use <code>@(*)</code> for combinational logic, or better yet, <code>always_comb</code> in SystemVerilog.</li>
+      </ul>
+
+      <h3>Blocking in Sequential Blocks</h3>
+      <ul>
+        <li>Using <code>=</code> instead of <code>&lt;=</code> in <code>always @(posedge clk)</code> can cause race conditions. Two flip-flops that should both sample the same value at the clock edge may instead form a dependency chain.</li>
+        <li>Fix: always use <code>&lt;=</code> in clocked blocks. Lint tools (Verilator, Spyglass) will flag this.</li>
+      </ul>
+
+      <h3>Multi-Driven Signals</h3>
+      <ul>
+        <li>Assigning the same <code>reg</code> in two different always blocks is illegal (undefined behavior). The synthesizer may pick one, both, or error out. Simulation gives X.</li>
+        <li>Fix: each signal should be driven from exactly one always block or one assign statement.</li>
+      </ul>
+
+      <h3>Integer Overflow</h3>
+      <ul>
+        <li>Verilog silently truncates results to the width of the LHS. <code>wire [7:0] sum = 8'd200 + 8'd100;</code> gives <code>8'd44</code> (300 mod 256). No warning.</li>
+        <li>Fix: use explicit widths and carry bits: <code>wire [8:0] sum = a + b;</code> to capture the carry.</li>
+      </ul>
+
+      <h3>Signed vs Unsigned</h3>
+      <ul>
+        <li>By default, all Verilog signals are unsigned. Arithmetic right shift (<code>&gt;&gt;&gt;</code>) only sign-extends if the operand is declared <code>signed</code>. Mixing signed and unsigned operands in an expression makes the entire expression unsigned.</li>
+        <li>Fix: explicitly declare <code>signed</code> signals: <code>wire signed [7:0] temp;</code> or use <code>$signed()</code> casts.</li>
+      </ul>
+    </section>
+
+    <section class="section" id="resources">
+      <h2>Resources</h2>
+      <div class="cards">
+        <div class="card">
+          <h4><a href="https://hdlbits.01xz.net">HDLBits</a></h4>
+          <p>140+ interactive Verilog exercises with instant feedback. The best way to learn Verilog by doing. From simple wires to FSMs and serial protocols.</p>
+          <div class="meta">Free | Browser-based</div>
+        </div>
+        <div class="card">
+          <h4><a href="https://www.chipverify.com/verilog/verilog-tutorial">ChipVerify Verilog Tutorial</a></h4>
+          <p>Comprehensive Verilog and SystemVerilog tutorial. Data types, operators, procedural blocks, synthesis, testbenches. Well-organized reference.</p>
+          <div class="meta">Free | Reference</div>
+        </div>
+        <div class="card">
+          <h4><a href="https://github.com/verilator/verilator">Verilator</a></h4>
+          <p>Fastest open-source Verilog simulator. Compiles to C++. Excellent linting mode catches common RTL mistakes before simulation.</p>
+          <div class="meta">GitHub | Open-source</div>
+        </div>
+        <div class="card">
+          <h4><a href="https://github.com/steveicarus/iverilog">Icarus Verilog</a></h4>
+          <p>Open-source event-driven Verilog simulator. Lightweight, easy to install, good for learning. Supports Verilog-2005.</p>
+          <div class="meta">GitHub | Open-source</div>
+        </div>
+        <div class="card">
+          <h4><a href="https://zipcpu.com/tutorial/">ZipCPU Blog & Tutorials</a></h4>
+          <p>Practical Verilog and FPGA tutorials. Formal verification, AXI bus, DDR controllers. Real-world design wisdom from an experienced engineer.</p>
+          <div class="meta">Blog | Free</div>
+        </div>
+        <div class="card">
+          <h4><a href="https://www.asic-world.com/verilog/index">ASIC World: Verilog</a></h4>
+          <p>Classic Verilog tutorial covering synthesis, simulation, and system tasks. Comprehensive reference for Verilog constructs and coding styles.</p>
+          <div class="meta">Free | Reference</div>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <footer>
+    <div class="container">
+      <a href="/">FreeChipStore</a> · <a href="/institute/">Institute</a> · Built with <a href="https://zensical.org">Zensical</a>
+    </div>
+  </footer>
+</body>
+</html>

@@ -1,0 +1,298 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>CPU Architecture — Chip Design Institute</title>
+  <meta name="description" content="CPU architecture from von Neumann to superscalar. Pipeline stages, out-of-order execution, branch prediction, cache hierarchy, and the memory wall.">
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,700&family=Manrope:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    *{margin:0;padding:0;box-sizing:border-box}
+    :root{--accent:#ef4444;--paper:#0a0a0a;--ink:#fafafa;--muted:#737373;--panel:#141414;--line:#262626}
+    body{font-family:'Manrope',system-ui,sans-serif;background:var(--paper);color:var(--ink);line-height:1.7;-webkit-font-smoothing:antialiased}
+    .container{max-width:900px;margin:0 auto;padding:0 1.5rem}
+    a{color:var(--accent);text-decoration:none}a:hover{text-decoration:underline}
+    header{border-bottom:1px solid var(--line);padding:.75rem 0}
+    header .container{display:flex;align-items:center;gap:1rem;flex-wrap:wrap}
+    .brand{display:flex;align-items:center;gap:.5rem;text-decoration:none;color:var(--ink)}
+    .brand-emoji{font-size:1.5rem}
+    .brand-text{font-family:'Fraunces',serif;font-size:1.05rem;font-weight:700}
+    .brand-tag{font-size:.68rem;color:var(--muted)}
+    nav{display:flex;gap:1rem;font-size:.82rem;font-weight:600;margin-left:auto}
+    nav a{color:var(--muted)}nav a:hover{color:var(--ink)}
+    .hero{text-align:center;padding:2.5rem 0 1.5rem;border-bottom:1px solid var(--line)}
+    .hero h1{font-family:'Fraunces',serif;font-size:1.8rem;font-weight:700;margin-bottom:.5rem}
+    .hero h1 em{color:var(--accent);font-style:normal}
+    .hero p{color:var(--muted);max-width:600px;margin:0 auto;font-size:.95rem}
+    .toc{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:1rem 1.25rem;margin:1.5rem 0}
+    .toc h3{font-size:.85rem;font-weight:700;margin-bottom:.5rem;color:var(--accent)}
+    .toc ul{list-style:none;padding:0;columns:2}
+    .toc li{margin:.2rem 0}.toc a{color:#a3a3a3;font-size:.82rem}.toc a:hover{color:var(--ink)}
+    .section{margin-bottom:2rem;padding-top:1rem}
+    .section h2{font-family:'Fraunces',serif;font-size:1.3rem;font-weight:700;margin-bottom:.5rem;padding-bottom:.35rem;border-bottom:1px solid var(--line)}
+    .section h3{font-size:.95rem;font-weight:700;margin:1rem 0 .35rem;color:#e5e5e5}
+    .section p,.section li{color:#a3a3a3;font-size:.88rem}
+    ul{padding-left:1.25rem;margin:.35rem 0}
+    li{margin-bottom:.3rem}
+    .cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:.6rem;margin:.5rem 0}
+    .card{background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:.85rem;transition:border-color .15s}
+    .card:hover{border-color:var(--accent)}
+    .card h4{font-size:.85rem;font-weight:700;margin-bottom:.2rem}
+    .card h4 a{color:var(--ink)}.card p{font-size:.75rem;color:var(--muted);margin:0;line-height:1.5}
+    .card .meta{font-size:.65rem;color:#525252;margin-top:.25rem}
+    code{background:#1a1a1a;padding:.15rem .35rem;border-radius:4px;font-size:.82rem;color:#e5e5e5}
+    footer{border-top:1px solid var(--line);padding:1.5rem 0;text-align:center;font-size:.75rem;color:#525252}
+  </style>
+</head>
+<body>
+  <header>
+    <div class="container">
+      <a href="/institute/" class="brand">
+        <span class="brand-emoji">🔲</span>
+        <span><span class="brand-text">Chip Design Institute</span><br><span class="brand-tag">Powered by <a href="https://zensical.org" style="color:#525252">Zensical</a></span></span>
+      </a>
+      <nav><a href="/institute/">Overview</a><a href="/institute/digital-logic">Logic</a><a href="/institute/cpu-architecture">CPU</a><a href="/institute/verilog">Verilog</a><a href="/institute/fpga">FPGA</a><a href="/institute/risc-v">RISC-V</a><a href="/">Simulations</a></nav>
+    </div>
+  </header>
+
+  <div class="container">
+    <section class="hero">
+      <h1>CPU <em>Architecture</em></h1>
+      <p>How processors execute instructions. From the von Neumann model through pipelining, superscalar execution, and the memory hierarchy that makes it all practical.</p>
+    </section>
+
+    <nav class="toc">
+      <h3>Contents</h3>
+      <ul>
+        <li><a href="#models">Architecture Models</a></li>
+        <li><a href="#pipeline">Pipeline Stages</a></li>
+        <li><a href="#hazards">Pipeline Hazards</a></li>
+        <li><a href="#superscalar">Superscalar & OoO</a></li>
+        <li><a href="#branch">Branch Prediction</a></li>
+        <li><a href="#cache">Cache Hierarchy</a></li>
+        <li><a href="#memory-wall">The Memory Wall</a></li>
+        <li><a href="#resources">Resources</a></li>
+      </ul>
+    </nav>
+
+    <section class="section" id="models">
+      <h2>Architecture Models</h2>
+
+      <h3>Von Neumann Architecture</h3>
+      <p>Proposed by John von Neumann in 1945 (building on Eckert and Mauchly's ENIAC work). The key insight: store both program instructions and data in the same memory. A single bus connects CPU and memory. This means instructions and data compete for the same memory bandwidth — the "von Neumann bottleneck." Nearly all modern general-purpose processors are fundamentally von Neumann machines, though with modifications.</p>
+
+      <h3>Harvard Architecture</h3>
+      <p>Uses separate memories (and buses) for instructions and data. Named after the Harvard Mark I (1944). Eliminates the von Neumann bottleneck by allowing simultaneous instruction fetch and data access. Used in DSPs (digital signal processors) and microcontrollers (PIC, AVR). Most modern CPUs use a "modified Harvard" approach: separate L1 instruction and data caches (Harvard at L1), but unified main memory (von Neumann at DRAM).</p>
+
+      <h3>RISC vs CISC</h3>
+      <ul>
+        <li><strong>CISC (Complex Instruction Set Computer)</strong> — variable-length instructions, many addressing modes, instructions can directly operate on memory. x86 is the canonical example. Complex instructions are decoded into micro-ops internally.</li>
+        <li><strong>RISC (Reduced Instruction Set Computer)</strong> — fixed-length instructions, load/store architecture (only load/store touch memory, all computation on registers), simple addressing modes. ARM, RISC-V, MIPS. Easier to pipeline.</li>
+        <li><strong>Modern reality</strong> — the distinction has blurred. x86 processors internally decode CISC instructions into RISC-like micro-ops and execute them on a RISC-style pipeline. Performance comes from microarchitecture, not ISA complexity.</li>
+      </ul>
+
+      <h3>Key Components</h3>
+      <ul>
+        <li><strong>Control Unit</strong> — fetches instructions, decodes them, generates control signals. Hardwired (fast, inflexible) or microcoded (slower, programmable). Modern x86 uses microcode for complex instructions.</li>
+        <li><strong>Datapath</strong> — ALU, register file, multiplexers, buses. The "plumbing" that moves and transforms data. Width (32-bit, 64-bit) determines the native word size.</li>
+        <li><strong>Register File</strong> — small, fast storage inside the CPU. RISC-V has 32 integer registers (x0-x31, x0 hardwired to 0). x86-64 has 16 general-purpose registers (RAX-R15). Architectural registers are mapped to a larger physical register file in OoO processors.</li>
+        <li><strong>Program Counter (PC)</strong> — holds the address of the next instruction. Incremented after fetch, modified by branches and jumps.</li>
+      </ul>
+    </section>
+
+    <section class="section" id="pipeline">
+      <h2>Pipeline Stages</h2>
+      <p>Pipelining is the single most important technique in processor design. Like an assembly line in a factory, it overlaps the execution of multiple instructions. While instruction N is being executed, instruction N+1 is being decoded, and instruction N+2 is being fetched. Throughput increases proportionally to the number of stages (ideally).</p>
+
+      <h3>Classic 5-Stage RISC Pipeline</h3>
+      <ul>
+        <li><strong>IF (Instruction Fetch)</strong> — read the instruction from the instruction cache (I-cache) using the program counter (PC). Increment PC to point to the next instruction. Branch prediction happens here.</li>
+        <li><strong>ID (Instruction Decode)</strong> — decode the instruction opcode, read source registers from the register file. Generate control signals. Detect hazards. In RISC-V, decode is simple because all instructions are 32 bits with regular field positions.</li>
+        <li><strong>EX (Execute)</strong> — ALU performs the operation (add, subtract, compare, shift). For loads/stores, the ALU computes the effective memory address (base register + offset). Branch target address is calculated here.</li>
+        <li><strong>MEM (Memory Access)</strong> — loads read from data cache (D-cache); stores write to D-cache. Non-memory instructions pass through this stage without doing anything (pipeline stage still takes one cycle).</li>
+        <li><strong>WB (Write Back)</strong> — write the result back to the destination register in the register file. For loads, the data read from memory is written. For ALU instructions, the computation result is written.</li>
+      </ul>
+
+      <h3>Pipeline Performance</h3>
+      <ul>
+        <li><strong>Throughput</strong> — in the ideal case, one instruction completes per cycle (CPI = 1), regardless of how many stages. The pipeline doesn't make individual instructions faster; it makes the throughput higher.</li>
+        <li><strong>Latency</strong> — each instruction still takes 5 cycles from start to finish. More stages means higher latency per instruction but higher clock frequency (shorter critical path per stage).</li>
+        <li><strong>Deep pipelines</strong> — Intel Pentium 4 (Prescott) had 31 stages, targeting high clock speeds (3.8 GHz). But deep pipelines amplify branch misprediction penalties and hazard costs. Modern designs use 12-20 stages as a balanced compromise.</li>
+        <li><strong>CPI (Cycles Per Instruction)</strong> — ideal CPI is 1 for a scalar pipeline. Real CPI is higher due to hazards, cache misses, and branch mispredictions. Superscalar processors target CPI &lt; 1 (IPC &gt; 1).</li>
+      </ul>
+    </section>
+
+    <section class="section" id="hazards">
+      <h2>Pipeline Hazards</h2>
+      <p>Hazards are situations that prevent the next instruction from executing in its designated clock cycle. They are the main reason real pipelines don't achieve ideal CPI of 1.</p>
+
+      <h3>Data Hazards</h3>
+      <ul>
+        <li><strong>RAW (Read After Write)</strong> — instruction N writes a register that instruction N+1 reads. The most common hazard. Solution: forwarding (bypass) — route the result from the EX/MEM stage directly to the input of the next instruction's EX stage, bypassing the register file write.</li>
+        <li><strong>Load-use hazard</strong> — a special RAW case. A load instruction's result isn't available until end of MEM stage, but the next instruction needs it in EX. Cannot be fully solved by forwarding alone; requires a 1-cycle pipeline stall (bubble). Compilers reorder instructions to fill the "load delay slot."</li>
+        <li><strong>WAR and WAW</strong> — Write After Read and Write After Write. Not problems in simple in-order pipelines (writes happen in order). Become issues in out-of-order processors, solved by register renaming.</li>
+      </ul>
+
+      <h3>Control Hazards</h3>
+      <ul>
+        <li><strong>Branch hazards</strong> — when a branch is taken, the instructions fetched after the branch (from the fall-through path) are wrong and must be flushed. In a 5-stage pipeline, the branch outcome is known in EX (3rd stage), causing a 2-cycle penalty.</li>
+        <li><strong>Mitigation</strong> — branch prediction (guess the outcome), delayed branches (fill the slot with a useful instruction — used in MIPS, not RISC-V), branch target buffers (cache predicted target addresses).</li>
+      </ul>
+
+      <h3>Structural Hazards</h3>
+      <p>Two instructions need the same hardware resource simultaneously. Example: a single-ported memory accessed by both IF (instruction fetch) and MEM (data access) in the same cycle. Solution: separate instruction and data caches (modified Harvard), or multi-ported register files. Good hardware design eliminates most structural hazards.</p>
+    </section>
+
+    <section class="section" id="superscalar">
+      <h2>Superscalar & Out-of-Order Execution</h2>
+
+      <h3>Superscalar Processors</h3>
+      <p>A superscalar processor can issue multiple instructions per clock cycle. A 4-wide superscalar can fetch, decode, and issue up to 4 instructions per cycle, achieving IPC (Instructions Per Cycle) greater than 1. All modern high-performance CPUs are superscalar: Apple M-series (8-wide decode), AMD Zen 5 (6-wide), Intel Golden Cove (6-wide).</p>
+
+      <h3>Out-of-Order Execution</h3>
+      <p>Instructions are executed not in program order, but as soon as their operands are ready. This extracts Instruction-Level Parallelism (ILP) that in-order processors miss. Invented by Robert Tomasulo at IBM in 1967 for the System/360 Model 91.</p>
+      <ul>
+        <li><strong>Issue Queue / Reservation Stations</strong> — instructions wait here until their source operands are ready. When all operands are available, the instruction is dispatched to an execution unit.</li>
+        <li><strong>Register Renaming</strong> — maps architectural registers to a larger pool of physical registers. Eliminates WAR and WAW hazards by giving each write a unique physical register. Uses a RAT (Register Alias Table) to track the mapping.</li>
+        <li><strong>Reorder Buffer (ROB)</strong> — maintains program order for commits. Instructions execute out-of-order but retire (commit results to architectural state) in order. This ensures precise exceptions: if an interrupt occurs, the processor state reflects exactly the instructions that completed in program order.</li>
+        <li><strong>Execution Units</strong> — modern CPUs have multiple ALUs, FPUs, load/store units, branch units. AMD Zen 4 has 4 ALUs, 2 AGUs (Address Generation Units), 2 FP/SIMD pipes per core.</li>
+      </ul>
+
+      <h3>Limits of ILP</h3>
+      <p>In practice, IPC rarely exceeds 3-4 for general-purpose code. Limitations: true data dependencies (can't be renamed away), limited branch prediction accuracy, cache misses that stall the pipeline, and the instruction window size (how far ahead the processor can look). This "ILP wall" motivated the shift to multi-core processors around 2005.</p>
+    </section>
+
+    <section class="section" id="branch">
+      <h2>Branch Prediction</h2>
+      <p>Branches make up 15-25% of all instructions. Without prediction, a branch creates a pipeline bubble equal to the pipeline depth. Modern predictors achieve 95-99% accuracy, critical for deep pipelines where misprediction costs 15-20 cycles.</p>
+
+      <h3>Static Prediction</h3>
+      <ul>
+        <li><strong>Always not-taken</strong> — simplest. Assume fall-through. Correct ~40% of the time.</li>
+        <li><strong>Backward taken, forward not-taken (BTFN)</strong> — backward branches are usually loops (taken); forward branches are usually if-statements (often not-taken). Correct ~65% of the time.</li>
+        <li><strong>Compiler hints</strong> — the compiler can mark branches as likely/unlikely. GCC's <code>__builtin_expect()</code>, C++20's <code>[[likely]]</code>/<code>[[unlikely]]</code>.</li>
+      </ul>
+
+      <h3>Dynamic Prediction</h3>
+      <ul>
+        <li><strong>1-bit predictor</strong> — remember last outcome. Problem: mispredicts twice on every loop exit (at the end: taken to not-taken, at the start of next iteration: not-taken to taken).</li>
+        <li><strong>2-bit saturating counter</strong> — four states: strongly taken, weakly taken, weakly not-taken, strongly not-taken. Must mispredict twice to change prediction. Handles loop exits with only one misprediction. First used in Intel i486.</li>
+        <li><strong>Correlating (two-level) predictor</strong> — uses the outcome of recent branches (global history register, GHR) to predict the current branch. Captures patterns like "if (a) ... if (b) ..." where outcomes are correlated.</li>
+        <li><strong>Tournament predictor</strong> — combines a local predictor and a global predictor with a chooser that selects which one to trust based on past accuracy. Used in Alpha 21264, AMD processors.</li>
+        <li><strong>TAGE (TAgged GEometric)</strong> — state-of-the-art predictor. Multiple tables indexed with geometric history lengths (e.g., 8, 16, 32, 64, 128 bits of history). First described by Andre Seznec (2006). Used in AMD Zen, Intel since Haswell.</li>
+        <li><strong>Perceptron predictor</strong> — uses a linear perceptron (neural network with one layer) per branch. Weights are updated on mispredictions. AMD Zen (2017) was the first commercial perceptron predictor.</li>
+      </ul>
+
+      <h3>Branch Target Buffer (BTB)</h3>
+      <p>A cache that stores the target address of recently taken branches. Indexed by the PC of the branch instruction. Without a BTB, even a correct direction prediction is useless because the target address isn't known until decode. The BTB allows fetching from the predicted target in the very next cycle. Modern BTBs hold 4K-16K entries.</p>
+
+      <h3>Return Address Stack (RAS)</h3>
+      <p>A small hardware stack that predicts return addresses for function calls. On a CALL instruction, the return address is pushed; on a RET, it is popped. Very high accuracy (>99%) because call/return patterns are regular. Typical depth: 16-32 entries. Overflow wraps around.</p>
+    </section>
+
+    <section class="section" id="cache">
+      <h2>Cache Hierarchy</h2>
+      <p>Caches exploit locality of reference to bridge the speed gap between the CPU and main memory. Without caches, a modern 5 GHz processor would spend most of its time waiting for DRAM (100ns latency = 500 wasted cycles).</p>
+
+      <h3>Cache Levels</h3>
+      <ul>
+        <li><strong>L1 Cache</strong> — smallest (32-64 KB per core), fastest (4-5 cycle latency, ~1ns). Split into L1 instruction cache (L1i) and L1 data cache (L1d). Closest to the CPU pipeline.</li>
+        <li><strong>L2 Cache</strong> — larger (256 KB - 1 MB per core), slower (12-14 cycles, ~3-5ns). Unified (holds both instructions and data). Private per core in most modern designs.</li>
+        <li><strong>L3 Cache (LLC)</strong> — largest (8-96 MB), shared among all cores. 30-50 cycle latency (~10-15ns). Acts as a victim cache and reduces traffic to main memory. Intel uses inclusive L3; AMD Zen uses victim L3.</li>
+        <li><strong>Main Memory (DRAM)</strong> — gigabytes of capacity but ~70-100ns latency (200-300+ CPU cycles). DDR5 bandwidth: 50-60 GB/s per channel.</li>
+      </ul>
+
+      <h3>Cache Organization</h3>
+      <ul>
+        <li><strong>Direct-mapped</strong> — each memory address maps to exactly one cache line. Simple, fast, but suffers from conflict misses (two addresses mapping to the same line evict each other).</li>
+        <li><strong>Set-associative</strong> — each address maps to a set of N lines (N-way associative). Reduces conflicts. 8-way or 16-way is common for L1. Requires N comparators in parallel.</li>
+        <li><strong>Fully associative</strong> — any line can go anywhere. No conflict misses. Too expensive for large caches (requires comparing every tag). Used for TLBs and small special-purpose caches.</li>
+        <li><strong>Cache line size</strong> — typically 64 bytes. Exploits spatial locality. When a miss occurs, the entire line is fetched from the next level. Too large wastes bandwidth on unused data; too small misses spatial locality opportunities.</li>
+      </ul>
+
+      <h3>Write Policies</h3>
+      <ul>
+        <li><strong>Write-back</strong> — writes go only to the cache; the cache line is marked dirty. Written to the next level only on eviction. Reduces write traffic. Used in L1/L2.</li>
+        <li><strong>Write-through</strong> — every write goes to both cache and the next level. Simpler coherence but more write traffic. Sometimes used for L1 with a write buffer.</li>
+        <li><strong>Write-allocate</strong> — on a write miss, fetch the line into cache, then write. Paired with write-back.</li>
+        <li><strong>No-write-allocate</strong> — on a write miss, write directly to the next level without fetching into cache. Paired with write-through.</li>
+      </ul>
+
+      <h3>Cache Coherence</h3>
+      <p>In multi-core processors, each core has its own L1/L2 cache. If core A writes to an address cached by core B, B's copy becomes stale. Coherence protocols ensure all cores see a consistent view of memory.</p>
+      <ul>
+        <li><strong>MESI protocol</strong> — each cache line is in one of four states: Modified (dirty, exclusive), Exclusive (clean, only copy), Shared (clean, other copies exist), Invalid. Used by Intel. AMD uses MOESI (adds Owned state to reduce write-backs).</li>
+        <li><strong>Snooping</strong> — all caches monitor (snoop) a shared bus for writes by other cores. Simple but doesn't scale beyond ~8 cores due to bus bandwidth.</li>
+        <li><strong>Directory-based</strong> — a centralized directory tracks which caches hold each line. Scales to many cores. Used in NUMA (Non-Uniform Memory Access) systems and server processors.</li>
+      </ul>
+    </section>
+
+    <section class="section" id="memory-wall">
+      <h2>The Memory Wall</h2>
+      <p>First described by Wm. A. Wulf and Sally A. McKee in 1995. The core problem: CPU speed has improved ~1000x since 1980, but DRAM latency has improved only ~10x. This growing gap means memory access is increasingly the bottleneck, not computation.</p>
+
+      <h3>Impact</h3>
+      <ul>
+        <li>A modern CPU running at 5 GHz can execute 20+ billion operations per second, but a single DRAM access takes ~60-100ns (300-500 cycles of waiting).</li>
+        <li>On cache-unfriendly workloads (pointer chasing, random access, large working sets), the CPU spends 50-80% of its time waiting for memory.</li>
+        <li>Adding more cores doesn't help if they all compete for the same memory bandwidth.</li>
+      </ul>
+
+      <h3>Mitigations</h3>
+      <ul>
+        <li><strong>Cache hierarchy</strong> — L1/L2/L3 caches intercept 90-99% of memory accesses. 3D-stacked SRAM (e.g., AMD 3D V-Cache, adding 64MB of L3) further reduces misses.</li>
+        <li><strong>Prefetching</strong> — hardware detects access patterns (stride, stream) and fetches data before it's needed. Software prefetch instructions (<code>__builtin_prefetch()</code>) provide hints.</li>
+        <li><strong>Out-of-order execution</strong> — the processor continues executing independent instructions while waiting for a cache miss, hiding memory latency.</li>
+        <li><strong>Simultaneous Multithreading (SMT)</strong> — two hardware threads share one core. When one thread stalls on a cache miss, the other thread uses the execution units. Intel calls this Hyper-Threading.</li>
+        <li><strong>HBM (High Bandwidth Memory)</strong> — 3D-stacked DRAM on an interposer, providing 1-2 TB/s bandwidth. Used in GPUs and AI accelerators (NVIDIA H100: 3.35 TB/s).</li>
+        <li><strong>Processing-in-Memory (PIM)</strong> — move computation to where the data lives. Samsung PIM-DRAM and UPMEM's PIM chips embed small processors inside DRAM dies.</li>
+      </ul>
+
+      <h3>Software Implications</h3>
+      <p>Understanding the memory wall is essential for writing fast software. Data structure layout matters enormously: arrays of structs vs structs of arrays, cache-friendly access patterns, avoiding pointer chasing, minimizing TLB misses (huge pages), and aligning data to cache line boundaries. The fastest algorithm on paper can be the slowest in practice if it has poor cache behavior.</p>
+    </section>
+
+    <section class="section" id="resources">
+      <h2>Resources</h2>
+      <div class="cards">
+        <div class="card">
+          <h4><a href="https://www.elsevier.com/books/computer-architecture/hennessy/978-0-12-811905-1">Hennessy & Patterson: Computer Architecture (6th ed.)</a></h4>
+          <p>The definitive graduate textbook. ILP, memory hierarchy, multiprocessors, domain-specific architectures. Turing Award winners' masterwork.</p>
+          <div class="meta">Textbook | Advanced</div>
+        </div>
+        <div class="card">
+          <h4><a href="https://www.elsevier.com/books/computer-organization-and-design-risc-v-edition/patterson/978-0-12-820331-6">Patterson & Hennessy: Computer Organization and Design (RISC-V)</a></h4>
+          <p>The undergraduate classic. Pipeline design, cache hierarchy, virtual memory, multiprocessors. Now in RISC-V edition.</p>
+          <div class="meta">Textbook | Intermediate</div>
+        </div>
+        <div class="card">
+          <h4><a href="https://ocw.mit.edu/courses/6-004-computation-structures-spring-2017/">MIT 6.004: Computation Structures</a></h4>
+          <p>From digital logic to pipelined processors. Full lecture videos, labs, and problem sets. Outstanding free course.</p>
+          <div class="meta">MIT OCW | Free</div>
+        </div>
+        <div class="card">
+          <h4><a href="https://danluu.com/branch-prediction/">Dan Luu: Branch Prediction</a></h4>
+          <p>Practical deep-dive into branch prediction. History, mechanisms, performance implications. Excellent technical blog post.</p>
+          <div class="meta">Blog | Free</div>
+        </div>
+        <div class="card">
+          <h4><a href="https://www.uops.info">uops.info</a></h4>
+          <p>Detailed measurements of instruction latency, throughput, and port usage for Intel and AMD processors. Invaluable for micro-optimization.</p>
+          <div class="meta">Database | Free</div>
+        </div>
+        <div class="card">
+          <h4><a href="https://chipsandcheese.com">Chips and Cheese</a></h4>
+          <p>In-depth microarchitecture analysis. Cache measurements, branch predictor reverse-engineering, die shots. Community-driven hardware analysis.</p>
+          <div class="meta">Blog | Free</div>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <footer>
+    <div class="container">
+      <a href="/">FreeChipStore</a> · <a href="/institute/">Institute</a> · Built with <a href="https://zensical.org">Zensical</a>
+    </div>
+  </footer>
+</body>
+</html>

@@ -1,7 +1,7 @@
 {
   "name": "@freechipstore/sdk",
-  "version": "0.1.0",
-  "description": "Browser SDK for AI tools on freechipstore.online — model loading, Web Worker inference, Ollama bridge, auth, per-user KV, rooms, React hooks, and UI components.",
+  "version": "0.2.0",
+  "description": "FreeChipStore SDK — logic gate simulator, ALU, binary converter, AI model loading, auth, KV, rooms.",
   "license": "MIT",
   "type": "module",
   "main": "./dist/index.js",

@@ -65,3 +65,6 @@ export type {
   OllamaStatus,
 } from './types.js';
 export { WorkerBridge } from './worker-bridge.js';
+// Logic simulation — gates, ALU, binary conversion
+export { LogicGate, ALU, BinaryConverter } from './logic.js';
+export type { GateType } from './logic.js';

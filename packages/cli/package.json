@@ -1,0 +1,42 @@
+{
+  "name": "@freechipstore/cli",
+  "version": "0.1.0",
+  "description": "fags — CLI for publishing AI tools to freechipstore.online",
+  "license": "MIT",
+  "type": "module",
+  "bin": {
+    "fags": "./dist/index.js"
+  },
+  "homepage": "https://github.com/FreeChipStore/platform#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/FreeChipStore/platform.git",
+    "directory": "packages/cli"
+  },
+  "keywords": [
+    "freechipstore",
+    "cli",
+    "ai",
+    "agents",
+    "publish"
+  ],
+  "files": [
+    "dist",
+    "README.md"
+  ],
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "build": "tsc",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@freechipstore/compliance": "workspace:*",
+    "commander": "^12.1.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "typescript": "^5.7.0"
+  }
+}

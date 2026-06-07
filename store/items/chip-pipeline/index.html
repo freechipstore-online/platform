@@ -1,0 +1,359 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Chip to CPU Pipeline</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:#0f0a0a;color:#e2e8f0;font-family:'Segoe UI',system-ui,sans-serif;padding:20px;min-height:100vh}
+h1{text-align:center;color:#ef4444;font-size:1.8rem;margin-bottom:8px}
+.subtitle{text-align:center;color:#94a3b8;margin-bottom:24px;font-size:0.9rem}
+.pipeline-flow{display:flex;align-items:center;justify-content:center;gap:8px;margin-bottom:32px;flex-wrap:wrap}
+.pipeline-stage{background:#1f1414;border:2px solid #2f1e1e;border-radius:12px;padding:12px 20px;text-align:center;min-width:160px;transition:all .3s}
+.pipeline-stage.active{border-color:#ef4444;box-shadow:0 0 20px #ef444433}
+.pipeline-stage.done{border-color:#f87171;box-shadow:0 0 12px #f8717133}
+.pipeline-stage .label{font-size:0.75rem;color:#94a3b8;text-transform:uppercase;letter-spacing:1px}
+.pipeline-stage .name{font-size:1rem;color:#e2e8f0;font-weight:600;margin-top:4px}
+.arrow{color:#ef4444;font-size:1.5rem;font-weight:bold}
+.steps{display:flex;flex-direction:column;gap:24px;max-width:920px;margin:0 auto}
+.step{background:#110d0d;border:1px solid #2f1e1e;border-radius:16px;padding:24px;transition:all .3s}
+.step.active{border-color:#ef4444}
+.step.done{border-color:#f8717144}
+.step-header{display:flex;align-items:center;gap:12px;margin-bottom:16px}
+.step-num{width:32px;height:32px;border-radius:50%;background:#1f1414;color:#ef4444;display:flex;align-items:center;justify-content:center;font-weight:bold;font-size:0.9rem;border:2px solid #ef444444}
+.step.done .step-num{background:#f8717122;color:#f87171;border-color:#f87171}
+.step-title{font-size:1.1rem;font-weight:600}
+.step-desc{color:#94a3b8;font-size:0.85rem;margin-bottom:16px}
+button{background:#ef4444;color:#fff;border:none;padding:10px 20px;border-radius:8px;cursor:pointer;font-size:0.9rem;font-weight:500;transition:all .2s}
+button:hover{background:#dc2626}
+button:disabled{opacity:0.4;cursor:default}
+button.secondary{background:#1f1414;border:1px solid #2f1e1e;color:#94a3b8}
+button.secondary:hover{border-color:#ef4444;color:#fca5a5}
+button.run-all{background:linear-gradient(135deg,#ef4444,#f87171);padding:14px 32px;font-size:1rem;font-weight:600;display:block;margin:24px auto 0}
+.controls{display:flex;gap:12px;margin-top:16px;flex-wrap:wrap;align-items:center}
+.output-box{background:#0a0707;border:1px solid #2f1e1e;border-radius:8px;padding:12px 16px;margin-top:12px;font-family:'Courier New',monospace;font-size:0.82rem;line-height:1.6;max-height:260px;overflow-y:auto;white-space:pre-wrap}
+.feed-arrow{text-align:center;color:#ef4444;font-size:1.2rem;margin:4px 0;opacity:0;transition:opacity .3s}
+.feed-arrow.visible{opacity:1}
+.truth-table{border-collapse:collapse;margin:12px 0;font-size:0.85rem;font-family:'Courier New',monospace}
+.truth-table th,.truth-table td{padding:6px 12px;border:1px solid #2f1e1e;text-align:center}
+.truth-table th{background:#1a1111;color:#ef4444;font-weight:600}
+.truth-table td{color:#e2e8f0}
+.truth-table .highlight{background:#ef444422;color:#fca5a5}
+.gate-picker{display:flex;gap:8px;flex-wrap:wrap;margin:8px 0}
+.gate-btn{padding:8px 16px;border-radius:6px;background:#1f1414;border:2px solid #2f1e1e;color:#fca5a5;cursor:pointer;font-family:monospace;font-size:0.9rem;transition:all .2s}
+.gate-btn.selected{border-color:#ef4444;background:#ef444422}
+.gate-btn:hover{border-color:#ef4444}
+.adder-visual{display:flex;gap:24px;flex-wrap:wrap;margin:12px 0}
+.adder-box{background:#1a1111;border:1px solid #2f1e1e;border-radius:8px;padding:12px 16px;min-width:160px}
+.adder-box h4{color:#ef4444;font-size:0.85rem;margin-bottom:8px}
+.bit-row{display:flex;gap:4px;margin:4px 0;align-items:center}
+.bit-cell{width:32px;height:28px;display:flex;align-items:center;justify-content:center;border-radius:4px;font-family:monospace;font-weight:bold;font-size:0.85rem}
+.bit-0{background:#1f1414;color:#64748b}
+.bit-1{background:#ef444433;color:#fca5a5}
+.bit-label{color:#94a3b8;font-size:0.75rem;width:36px;text-align:right;margin-right:4px}
+.register-display{display:flex;gap:16px;flex-wrap:wrap;margin:12px 0}
+.reg{background:#1a1111;border:1px solid #2f1e1e;border-radius:8px;padding:10px 14px;text-align:center}
+.reg-name{color:#ef4444;font-size:0.75rem;font-weight:600;text-transform:uppercase}
+.reg-val{font-family:monospace;font-size:1.2rem;color:#fca5a5;margin-top:4px}
+.reg-bin{font-family:monospace;font-size:0.75rem;color:#64748b;margin-top:2px}
+select{background:#0a0707;border:1px solid #2f1e1e;border-radius:6px;padding:8px 12px;color:#e2e8f0;font-size:0.9rem}
+input[type=number]{background:#0a0707;border:1px solid #2f1e1e;border-radius:6px;padding:8px 12px;color:#e2e8f0;font-size:0.9rem;width:80px}
+</style>
+</head>
+<body>
+<h1>Chip to CPU Pipeline</h1>
+<p class="subtitle">Logic Gates &rarr; ALU &rarr; CPU Instruction Execution</p>
+
+<div class="pipeline-flow">
+  <div class="pipeline-stage" id="ps1"><div class="label">Step 1</div><div class="name">Logic Gates</div></div>
+  <div class="arrow">&rarr;</div>
+  <div class="pipeline-stage" id="ps2"><div class="label">Step 2</div><div class="name">4-bit ALU</div></div>
+  <div class="arrow">&rarr;</div>
+  <div class="pipeline-stage" id="ps3"><div class="label">Step 3</div><div class="name">CPU Execute</div></div>
+</div>
+
+<div class="steps">
+  <div class="step" id="step1">
+    <div class="step-header"><div class="step-num">1</div><div class="step-title">Logic Gates &rarr; Half Adder</div></div>
+    <p class="step-desc">Select a gate to see its truth table. Then see how XOR + AND combine into a half adder -- the fundamental building block of arithmetic.</p>
+    <div class="gate-picker">
+      <div class="gate-btn selected" id="gb-AND" onclick="selectGate('AND')">AND</div>
+      <div class="gate-btn" id="gb-OR" onclick="selectGate('OR')">OR</div>
+      <div class="gate-btn" id="gb-XOR" onclick="selectGate('XOR')">XOR</div>
+      <div class="gate-btn" id="gb-NAND" onclick="selectGate('NAND')">NAND</div>
+      <div class="gate-btn" id="gb-NOR" onclick="selectGate('NOR')">NOR</div>
+    </div>
+    <div id="truth-table-container"></div>
+    <div class="controls">
+      <button onclick="runStep1()">Build Half Adder</button>
+    </div>
+    <div class="output-box" id="step1-output" style="display:none"></div>
+  </div>
+
+  <div class="feed-arrow" id="feed1">&darr; Half adder feeds into ripple-carry ALU</div>
+
+  <div class="step" id="step2">
+    <div class="step-header"><div class="step-num">2</div><div class="step-title">4-bit Ripple-Carry ALU</div></div>
+    <p class="step-desc">Chain 4 full adders (each built from 2 half adders) into a 4-bit ripple-carry adder. Watch the carry propagate bit by bit.</p>
+    <div class="controls" style="margin-top:0;margin-bottom:12px">
+      <label style="color:#94a3b8;font-size:0.85rem">A:</label>
+      <input type="number" id="alu-a" value="5" min="0" max="15" />
+      <label style="color:#94a3b8;font-size:0.85rem">B:</label>
+      <input type="number" id="alu-b" value="3" min="0" max="15" />
+      <select id="alu-op">
+        <option value="ADD">ADD</option>
+        <option value="SUB">SUB</option>
+        <option value="AND">AND</option>
+        <option value="OR">OR</option>
+        <option value="XOR">XOR</option>
+      </select>
+      <button onclick="runStep2()" id="btn-step2" disabled>Compute</button>
+    </div>
+    <div id="alu-visual"></div>
+    <div class="output-box" id="step2-output" style="display:none"></div>
+  </div>
+
+  <div class="feed-arrow" id="feed2">&darr; ALU embedded in CPU executes instructions</div>
+
+  <div class="step" id="step3">
+    <div class="step-header"><div class="step-num">3</div><div class="step-title">CPU Instruction Execution</div></div>
+    <p class="step-desc">A minimal CPU with 4 registers (R0-R3), a program counter (PC), and the ALU from Step 2. Load values, execute an ADD, see the register file update.</p>
+    <div id="cpu-content"></div>
+    <div class="controls">
+      <button onclick="runStep3()" id="btn-step3" disabled>Execute Program</button>
+      <button class="secondary" onclick="resetCPU()">Reset CPU</button>
+    </div>
+    <div class="output-box" id="step3-output" style="display:none"></div>
+  </div>
+</div>
+
+<button class="run-all" onclick="runPipeline()">Run Full Pipeline</button>
+
+<script>
+const GATES = {
+  AND: (a,b) => a & b,
+  OR: (a,b) => a | b,
+  XOR: (a,b) => a ^ b,
+  NAND: (a,b) => (a & b) ^ 1,
+  NOR: (a,b) => (a | b) ^ 1
+};
+let selectedGate = 'AND';
+
+function selectGate(g) {
+  selectedGate = g;
+  document.querySelectorAll('.gate-btn').forEach(b => b.classList.remove('selected'));
+  document.getElementById('gb-' + g).classList.add('selected');
+  showTruthTable(g);
+}
+
+function showTruthTable(g) {
+  const fn = GATES[g];
+  let html = `<table class="truth-table"><tr><th>A</th><th>B</th><th>${g}</th></tr>`;
+  for (let a = 0; a <= 1; a++)
+    for (let b = 0; b <= 1; b++)
+      html += `<tr><td>${a}</td><td>${b}</td><td class="${fn(a,b)?'highlight':''}">${fn(a,b)}</td></tr>`;
+  html += '</table>';
+  document.getElementById('truth-table-container').innerHTML = html;
+}
+
+function halfAdder(a, b) { return { sum: a ^ b, carry: a & b }; }
+function fullAdder(a, b, cin) {
+  const h1 = halfAdder(a, b);
+  const h2 = halfAdder(h1.sum, cin);
+  return { sum: h2.sum, carry: h1.carry | h2.carry };
+}
+
+function runStep1() {
+  let html = '<div class="adder-visual">';
+  html += '<div class="adder-box"><h4>Half Adder = XOR + AND</h4>';
+  html += '<table class="truth-table"><tr><th>A</th><th>B</th><th>Sum (XOR)</th><th>Carry (AND)</th></tr>';
+  for (let a = 0; a <= 1; a++)
+    for (let b = 0; b <= 1; b++) {
+      const r = halfAdder(a, b);
+      html += `<tr><td>${a}</td><td>${b}</td><td class="${r.sum?'highlight':''}">${r.sum}</td><td class="${r.carry?'highlight':''}">${r.carry}</td></tr>`;
+    }
+  html += '</table></div>';
+  html += '<div class="adder-box"><h4>Full Adder = 2x Half Adder</h4>';
+  html += '<table class="truth-table"><tr><th>A</th><th>B</th><th>Cin</th><th>Sum</th><th>Cout</th></tr>';
+  for (let a = 0; a <= 1; a++)
+    for (let b = 0; b <= 1; b++)
+      for (let c = 0; c <= 1; c++) {
+        const r = fullAdder(a, b, c);
+        html += `<tr><td>${a}</td><td>${b}</td><td>${c}</td><td class="${r.sum?'highlight':''}">${r.sum}</td><td class="${r.carry?'highlight':''}">${r.carry}</td></tr>`;
+      }
+  html += '</table></div></div>';
+
+  const out = document.getElementById('step1-output');
+  out.style.display = 'block';
+  out.innerHTML = html;
+  document.getElementById('step1').classList.add('done');
+  document.getElementById('ps1').classList.add('done');
+  document.getElementById('feed1').classList.add('visible');
+  document.getElementById('btn-step2').disabled = false;
+}
+
+function toBin4(n) { return (n >>> 0).toString(2).padStart(4, '0'); }
+function bitCells(bin) { return bin.split('').map(b => `<div class="bit-cell bit-${b}">${b}</div>`).join(''); }
+
+function runStep2() {
+  let a = parseInt(document.getElementById('alu-a').value) & 0xF;
+  let b = parseInt(document.getElementById('alu-b').value) & 0xF;
+  const op = document.getElementById('alu-op').value;
+  let result, carries = [], details = '';
+  const aBits = toBin4(a).split('').map(Number).reverse();
+  const bBits = toBin4(b).split('').map(Number).reverse();
+
+  if (op === 'ADD' || op === 'SUB') {
+    let operandB = bBits;
+    let cin = 0;
+    if (op === 'SUB') {
+      operandB = bBits.map(x => x ^ 1);
+      cin = 1;
+      details = `SUB uses 2's complement: B' = NOT(B) + 1\n`;
+    }
+    let carry = cin;
+    const sumBits = [];
+    details += 'Ripple carry propagation:\n';
+    for (let i = 0; i < 4; i++) {
+      const fa = fullAdder(aBits[i], operandB[i], carry);
+      sumBits.push(fa.sum);
+      carries.push({ cin: carry, cout: fa.carry, a: aBits[i], b: operandB[i], sum: fa.sum });
+      details += `  Bit ${i}: A=${aBits[i]} ${op==='SUB'?'B\'':'B'}=${operandB[i]} Cin=${carry} -> Sum=${fa.sum} Cout=${fa.carry}\n`;
+      carry = fa.carry;
+    }
+    result = parseInt(sumBits.reverse().join(''), 2);
+    if (op === 'SUB' && result > 8) result = result - 16;
+    details += `Final carry out: ${carry}`;
+  } else {
+    const fn = GATES[op];
+    const resBits = [];
+    for (let i = 0; i < 4; i++) resBits.push(fn(aBits[i], bBits[i]));
+    result = parseInt(resBits.reverse().join(''), 2);
+    details = `Bitwise ${op}:\n  ${toBin4(a)}\n  ${toBin4(b)}\n  ----\n  ${toBin4(result)}`;
+  }
+
+  let html = '<div class="adder-visual">';
+  html += `<div class="adder-box"><h4>Input A</h4><div class="bit-row">${bitCells(toBin4(a))}</div><div style="color:#94a3b8;font-size:0.85rem;margin-top:4px">= ${a}</div></div>`;
+  html += `<div class="adder-box"><h4>Input B</h4><div class="bit-row">${bitCells(toBin4(b))}</div><div style="color:#94a3b8;font-size:0.85rem;margin-top:4px">= ${b}</div></div>`;
+  html += `<div class="adder-box"><h4>${op} Result</h4><div class="bit-row">${bitCells(toBin4(result & 0xF))}</div><div style="color:#fca5a5;font-size:0.85rem;margin-top:4px">= ${result}</div></div>`;
+  html += '</div>';
+  document.getElementById('alu-visual').innerHTML = html;
+
+  const out = document.getElementById('step2-output');
+  out.style.display = 'block';
+  out.innerHTML = `<span style="color:#ef4444">ALU Operation: ${a} ${op} ${b} = ${result}</span>\n\n${details}`;
+
+  document.getElementById('step2').classList.add('done');
+  document.getElementById('ps2').classList.add('done');
+  document.getElementById('feed2').classList.add('visible');
+  document.getElementById('btn-step3').disabled = false;
+}
+
+let cpuRegs = [0, 0, 0, 0];
+let cpuPC = 0;
+let cpuProgram = [];
+
+function resetCPU() {
+  cpuRegs = [0, 0, 0, 0];
+  cpuPC = 0;
+  renderCPU();
+  document.getElementById('step3-output').style.display = 'none';
+}
+
+function renderCPU() {
+  let html = '<div class="register-display">';
+  for (let i = 0; i < 4; i++) {
+    html += `<div class="reg"><div class="reg-name">R${i}</div><div class="reg-val">${cpuRegs[i]}</div><div class="reg-bin">${toBin4(cpuRegs[i] & 0xF)}</div></div>`;
+  }
+  html += `<div class="reg"><div class="reg-name">PC</div><div class="reg-val">${cpuPC}</div><div class="reg-bin">${toBin4(cpuPC & 0xF)}</div></div>`;
+  html += '</div>';
+  document.getElementById('cpu-content').innerHTML = html;
+}
+
+async function runStep3() {
+  const a = parseInt(document.getElementById('alu-a').value) & 0xF;
+  const b = parseInt(document.getElementById('alu-b').value) & 0xF;
+  const op = document.getElementById('alu-op').value;
+  cpuRegs = [0, 0, 0, 0];
+  cpuPC = 0;
+  cpuProgram = [
+    { op: 'LOAD', rd: 0, imm: a, desc: `LOAD R0, #${a}` },
+    { op: 'LOAD', rd: 1, imm: b, desc: `LOAD R1, #${b}` },
+    { op: op, rd: 2, rs1: 0, rs2: 1, desc: `${op} R2, R0, R1` },
+    { op: 'STORE', rd: 3, rs1: 2, desc: 'MOV R3, R2 (copy result)' }
+  ];
+
+  const out = document.getElementById('step3-output');
+  out.style.display = 'block';
+  let log = '<span style="color:#ef4444">CPU Execution Trace</span>\n' + '='.repeat(40) + '\n';
+
+  for (let i = 0; i < cpuProgram.length; i++) {
+    const inst = cpuProgram[i];
+    cpuPC = i;
+    log += `\n[PC=${cpuPC}] ${inst.desc}\n`;
+
+    if (inst.op === 'LOAD') {
+      cpuRegs[inst.rd] = inst.imm;
+      log += `  Fetch -> Decode -> Execute: R${inst.rd} <- ${inst.imm}\n`;
+    } else if (inst.op === 'STORE') {
+      cpuRegs[inst.rd] = cpuRegs[inst.rs1];
+      log += `  Fetch -> Decode -> Execute: R${inst.rd} <- R${inst.rs1} (${cpuRegs[inst.rs1]})\n`;
+    } else {
+      const va = cpuRegs[inst.rs1], vb = cpuRegs[inst.rs2];
+      let res;
+      if (inst.op === 'ADD') res = (va + vb) & 0xF;
+      else if (inst.op === 'SUB') res = (va - vb) & 0xF;
+      else if (inst.op === 'AND') res = va & vb;
+      else if (inst.op === 'OR') res = va | vb;
+      else if (inst.op === 'XOR') res = va ^ vb;
+      cpuRegs[inst.rd] = res;
+      log += `  Fetch -> Decode -> ALU(${va} ${inst.op} ${vb}) -> Writeback: R${inst.rd} <- ${res}\n`;
+    }
+    log += `  Registers: [R0=${cpuRegs[0]}, R1=${cpuRegs[1]}, R2=${cpuRegs[2]}, R3=${cpuRegs[3]}]\n`;
+    renderCPU();
+    out.innerHTML = log;
+    await sleep(500);
+  }
+  cpuPC = cpuProgram.length;
+  renderCPU();
+  log += `\n${'='.repeat(40)}\n<span style="color:#22c55e">Program complete. Result in R2 = ${cpuRegs[2]}, copied to R3 = ${cpuRegs[3]}</span>`;
+  out.innerHTML = log;
+
+  document.getElementById('step3').classList.add('done');
+  document.getElementById('ps3').classList.add('done');
+}
+
+async function runPipeline() {
+  document.querySelectorAll('.step').forEach(s => s.classList.remove('done', 'active'));
+  document.querySelectorAll('.pipeline-stage').forEach(s => s.classList.remove('done', 'active'));
+  document.querySelectorAll('.feed-arrow').forEach(a => a.classList.remove('visible'));
+  ['step1-output','step2-output','step3-output'].forEach(id => document.getElementById(id).style.display = 'none');
+
+  document.getElementById('ps1').classList.add('active');
+  document.getElementById('step1').classList.add('active');
+  await sleep(400);
+  runStep1();
+  document.getElementById('step1').classList.remove('active');
+  await sleep(600);
+  document.getElementById('ps2').classList.add('active');
+  document.getElementById('step2').classList.add('active');
+  await sleep(400);
+  runStep2();
+  document.getElementById('step2').classList.remove('active');
+  await sleep(600);
+  document.getElementById('ps3').classList.add('active');
+  document.getElementById('step3').classList.add('active');
+  await sleep(400);
+  await runStep3();
+  document.getElementById('step3').classList.remove('active');
+  document.getElementById('ps3').classList.remove('active');
+}
+
+function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
+
+showTruthTable('AND');
+renderCPU();
+</script>
+</body>
+</html>

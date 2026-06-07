@@ -1,0 +1,650 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CPU Builder - FreeChipStore</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { background: #0a0a0a; color: #e0e0e0; font-family: 'Courier New', monospace; overflow: hidden; }
+  #app { display: grid; grid-template-columns: 1fr 320px; grid-template-rows: 48px 1fr; height: 100vh; }
+  header { grid-column: 1 / -1; background: #111; border-bottom: 1px solid #222; display: flex; align-items: center; padding: 0 16px; gap: 12px; }
+  header h1 { font-size: 16px; color: #ef4444; }
+  header button { background: #1a1a1a; border: 1px solid #333; color: #ccc; padding: 4px 12px; cursor: pointer; font-family: inherit; font-size: 12px; border-radius: 3px; }
+  header button:hover { background: #222; border-color: #ef4444; }
+  header button.active { background: #ef4444; color: #fff; border-color: #ef4444; }
+  header select { background: #1a1a1a; border: 1px solid #333; color: #ccc; padding: 4px 8px; font-family: inherit; font-size: 12px; border-radius: 3px; }
+  header label { font-size: 11px; color: #888; }
+  header input[type=range] { width: 80px; accent-color: #ef4444; }
+  #cpu-canvas { background: #0a0a0a; display: block; }
+  #sidebar { background: #111; border-left: 1px solid #222; display: flex; flex-direction: column; overflow: hidden; }
+  .panel { padding: 8px; border-bottom: 1px solid #222; }
+  .panel h3 { font-size: 11px; color: #ef4444; text-transform: uppercase; margin-bottom: 6px; letter-spacing: 1px; }
+  .reg-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 2px; }
+  .reg { display: flex; justify-content: space-between; background: #1a1a1a; padding: 3px 6px; font-size: 11px; border-radius: 2px; }
+  .reg.active { background: #2a1a1a; border: 1px solid #ef4444; }
+  .reg .name { color: #888; }
+  .reg .val { color: #ef4444; font-weight: bold; }
+  .flags { display: flex; gap: 8px; margin-top: 4px; }
+  .flag { padding: 2px 8px; background: #1a1a1a; border-radius: 2px; font-size: 11px; }
+  .flag.set { background: #ef4444; color: #fff; }
+  #mem-view { flex: 1; overflow-y: auto; padding: 8px; font-size: 10px; line-height: 1.6; }
+  #mem-view .row { display: flex; gap: 4px; }
+  #mem-view .addr { color: #555; width: 28px; text-align: right; }
+  #mem-view .byte { width: 20px; text-align: center; color: #888; }
+  #mem-view .byte.nonzero { color: #ef4444; }
+  #mem-view .byte.pc { background: #ef4444; color: #fff; border-radius: 2px; }
+  #asm-panel { padding: 8px; border-top: 1px solid #222; }
+  #asm-editor { width: 100%; height: 100px; background: #0a0a0a; color: #ccc; border: 1px solid #333; font-family: inherit; font-size: 11px; padding: 4px; resize: none; border-radius: 3px; }
+  #asm-editor:focus { border-color: #ef4444; outline: none; }
+  #asm-btn { width: 100%; margin-top: 4px; background: #ef4444; color: #fff; border: none; padding: 5px; cursor: pointer; font-family: inherit; font-size: 11px; border-radius: 3px; }
+  .stats { font-size: 10px; color: #666; margin-top: 4px; }
+  .stats span { color: #ef4444; }
+</style>
+</head>
+<body>
+<div id="app">
+  <header>
+    <h1>CPU Builder</h1>
+    <button id="btn-step">Step</button>
+    <button id="btn-run">Run</button>
+    <button id="btn-reset">Reset</button>
+    <label>Speed</label>
+    <input type="range" id="speed" min="1" max="60" value="10">
+    <select id="programs">
+      <option value="">-- Load Program --</option>
+      <option value="counter">Counter (1..10)</option>
+      <option value="fibonacci">Fibonacci</option>
+      <option value="multiply">Multiply (3x4)</option>
+    </select>
+  </header>
+  <canvas id="cpu-canvas"></canvas>
+  <div id="sidebar">
+    <div class="panel">
+      <h3>Registers</h3>
+      <div class="reg-grid" id="reg-grid"></div>
+      <div class="flags" id="flags"></div>
+      <div class="stats">Cycle: <span id="cycle-count">0</span> | PC: <span id="pc-val">0x00</span> | Stage: <span id="stage-val">IDLE</span></div>
+    </div>
+    <div class="panel">
+      <h3>Memory (256 bytes)</h3>
+    </div>
+    <div id="mem-view"></div>
+    <div id="asm-panel">
+      <h3 style="font-size:11px;color:#ef4444;text-transform:uppercase;letter-spacing:1px;margin-bottom:4px;">Assembler</h3>
+      <textarea id="asm-editor" placeholder="LOAD R0, 0x80&#10;ADD R0, R1&#10;STORE R0, 0x90&#10;HALT"></textarea>
+      <button id="asm-btn">Assemble & Load</button>
+    </div>
+  </div>
+</div>
+<script>
+const canvas = document.getElementById('cpu-canvas');
+const ctx = canvas.getContext('2d');
+
+// --- CPU State ---
+const cpu = {
+  regs: new Uint8Array(8),
+  mem: new Uint8Array(256),
+  pc: 0,
+  ir: 0,
+  flagZ: false,
+  flagC: false,
+  flagN: false,
+  halted: false,
+  cycle: 0,
+  stage: 'IDLE', // FETCH, DECODE, EXECUTE, WRITEBACK
+  activeComponents: [],
+  dataFlows: [],
+  lastRd: -1,
+  lastRs: -1,
+  lastAddr: -1,
+  aluResult: 0,
+};
+
+// Opcodes
+const OP = {
+  LOAD: 0x10, STORE: 0x20, ADD: 0x30, SUB: 0x40,
+  AND: 0x50, OR: 0x60, XOR: 0x70, JMP: 0x80,
+  JZ: 0x90, HALT: 0xFF, MOVI: 0xA0,
+};
+
+// Programs
+const PROGRAMS = {
+  counter: {
+    asm: "MOVI R0, 0\nMOVI R1, 1\nMOVI R2, 10\nADD R0, R1\nSUB R2, R1\nSTORE R0, 0x80\nJZ 0x0E\nJMP 0x06\nHALT",
+    binary: [
+      0xA0, 0x00, // MOVI R0, 0
+      0xA1, 0x01, // MOVI R1, 1
+      0xA2, 0x0A, // MOVI R2, 10
+      0x30, 0x01, // ADD R0, R1
+      0x40, 0x21, // SUB R2, R1
+      0x20, 0x00, 0x80, // STORE R0, 0x80
+      0x90, 0x11, // JZ 0x11 (HALT)
+      0x80, 0x06, // JMP 0x06
+      0xFF,       // HALT
+    ]
+  },
+  fibonacci: {
+    asm: "MOVI R0, 1\nMOVI R1, 1\nMOVI R3, 8\nADD R0, R1\nSTORE R0, 0x80\nSUB R0, R1\nADD R1, R0\nADD R0, R1\nSUB R3, R4\nJZ HALT\nJMP loop",
+    binary: [
+      0xA0, 0x00, // R0 = 0
+      0xA1, 0x01, // R1 = 1
+      0xA3, 0x08, // R3 = 8 (iterations)
+      0xA4, 0x01, // R4 = 1
+      // loop:
+      0x30, 0x01, // ADD R0, R1 -> R0 = R0+R1
+      0x20, 0x00, 0x80, // STORE R0, 0x80
+      // swap: R2=R0, R0=R1, R1=R2
+      0xA2, 0x00, // R2 = 0
+      0x30, 0x20, // ADD R2, R0  -> R2 = R0
+      0xA0, 0x00, // R0 = 0
+      0x30, 0x01, // ADD R0, R1  -> R0 = R1
+      0xA1, 0x00, // R1 = 0
+      0x30, 0x12, // ADD R1, R2  -> R1 = R2
+      0x40, 0x34, // SUB R3, R4
+      0x90, 0x22, // JZ end
+      0x80, 0x08, // JMP loop
+      0xFF,       // HALT
+    ]
+  },
+  multiply: {
+    asm: "MOVI R0, 0\nMOVI R1, 3\nMOVI R2, 4\nMOVI R3, 1\nADD R0, R1\nSUB R2, R3\nJZ done\nJMP loop\nSTORE R0, 0x80\nHALT",
+    binary: [
+      0xA0, 0x00, // R0 = 0 (result)
+      0xA1, 0x03, // R1 = 3 (multiplicand)
+      0xA2, 0x04, // R2 = 4 (multiplier)
+      0xA3, 0x01, // R3 = 1
+      // loop (0x08):
+      0x30, 0x01, // ADD R0, R1
+      0x40, 0x23, // SUB R2, R3
+      0x90, 0x10, // JZ done
+      0x80, 0x08, // JMP loop
+      // done (0x10):
+      0x20, 0x00, 0x80, // STORE R0, 0x80
+      0xFF,       // HALT
+    ]
+  }
+};
+
+// --- CPU Execution ---
+function resetCPU() {
+  cpu.regs.fill(0);
+  cpu.mem.fill(0);
+  cpu.pc = 0; cpu.ir = 0;
+  cpu.flagZ = cpu.flagC = cpu.flagN = false;
+  cpu.halted = false; cpu.cycle = 0;
+  cpu.stage = 'IDLE';
+  cpu.activeComponents = [];
+  cpu.dataFlows = [];
+  cpu.lastRd = cpu.lastRs = cpu.lastAddr = -1;
+  running = false;
+  document.getElementById('btn-run').textContent = 'Run';
+  document.getElementById('btn-run').classList.remove('active');
+}
+
+function setFlags(val) {
+  cpu.flagZ = (val & 0xFF) === 0;
+  cpu.flagN = (val & 0x80) !== 0;
+  cpu.flagC = val > 255 || val < 0;
+}
+
+function stepCPU() {
+  if (cpu.halted) return;
+  cpu.activeComponents = [];
+  cpu.dataFlows = [];
+  cpu.lastRd = cpu.lastRs = cpu.lastAddr = -1;
+
+  // Fetch
+  cpu.stage = 'FETCH';
+  cpu.activeComponents.push('PC', 'MEM');
+  const opcode = cpu.mem[cpu.pc];
+  cpu.ir = opcode;
+  cpu.activeComponents.push('IR');
+
+  // Decode + Execute
+  cpu.stage = 'DECODE';
+  const op = opcode & 0xF0;
+  const rd = (opcode >> 0) & 0x07;
+
+  if (opcode === 0xFF) {
+    cpu.stage = 'EXECUTE';
+    cpu.halted = true;
+    cpu.activeComponents.push('CTRL');
+    cpu.pc++;
+    cpu.cycle++;
+    return;
+  }
+
+  cpu.stage = 'EXECUTE';
+
+  if (op === 0xA0) { // MOVI Rd, imm
+    const reg = opcode & 0x07;
+    const imm = cpu.mem[cpu.pc + 1];
+    cpu.regs[reg] = imm;
+    cpu.lastRd = reg;
+    cpu.activeComponents.push('ALU', 'REGS');
+    cpu.dataFlows.push({ from: 'MEM', to: 'REGS', label: '0x' + imm.toString(16) });
+    cpu.aluResult = imm;
+    cpu.pc += 2;
+  } else if (op === 0x10) { // LOAD Rd, addr
+    const reg = opcode & 0x07;
+    const addr = cpu.mem[cpu.pc + 1];
+    cpu.regs[reg] = cpu.mem[addr];
+    cpu.lastRd = reg;
+    cpu.lastAddr = addr;
+    cpu.activeComponents.push('MEM', 'REGS');
+    cpu.dataFlows.push({ from: 'MEM', to: 'REGS', label: '[0x' + addr.toString(16) + ']' });
+    cpu.aluResult = cpu.regs[reg];
+    cpu.pc += 2;
+  } else if (op === 0x20) { // STORE Rs, addr
+    const reg = opcode & 0x07;
+    const addr = cpu.mem[cpu.pc + 1];
+    cpu.mem[addr] = cpu.regs[reg];
+    cpu.lastRs = reg;
+    cpu.lastAddr = addr;
+    cpu.activeComponents.push('REGS', 'MEM');
+    cpu.dataFlows.push({ from: 'REGS', to: 'MEM', label: '0x' + cpu.regs[reg].toString(16) });
+    cpu.aluResult = cpu.regs[reg];
+    cpu.pc += 2;
+    if (addr < cpu.pc) cpu.pc++; // 3-byte instruction
+  } else if (op >= 0x30 && op <= 0x70) { // ALU ops
+    const regD = (cpu.mem[cpu.pc + 1] >> 4) & 0x07;
+    const regS = cpu.mem[cpu.pc + 1] & 0x07;
+    cpu.lastRd = regD;
+    cpu.lastRs = regS;
+    let result;
+    if (op === 0x30) result = cpu.regs[regD] + cpu.regs[regS];
+    else if (op === 0x40) result = cpu.regs[regD] - cpu.regs[regS];
+    else if (op === 0x50) result = cpu.regs[regD] & cpu.regs[regS];
+    else if (op === 0x60) result = cpu.regs[regD] | cpu.regs[regS];
+    else result = cpu.regs[regD] ^ cpu.regs[regS];
+    setFlags(result);
+    cpu.regs[regD] = result & 0xFF;
+    cpu.aluResult = cpu.regs[regD];
+    cpu.activeComponents.push('ALU', 'REGS');
+    cpu.dataFlows.push({ from: 'REGS', to: 'ALU', label: 'R' + regS });
+    cpu.dataFlows.push({ from: 'ALU', to: 'REGS', label: '=' + (result & 0xFF) });
+    cpu.pc += 2;
+  } else if (op === 0x80) { // JMP
+    const addr = cpu.mem[cpu.pc + 1];
+    cpu.activeComponents.push('CTRL', 'PC');
+    cpu.dataFlows.push({ from: 'CTRL', to: 'PC', label: '0x' + addr.toString(16) });
+    cpu.pc = addr;
+  } else if (op === 0x90) { // JZ
+    const addr = cpu.mem[cpu.pc + 1];
+    cpu.activeComponents.push('CTRL', 'PC');
+    if (cpu.flagZ) {
+      cpu.dataFlows.push({ from: 'CTRL', to: 'PC', label: 'JZ->0x' + addr.toString(16) });
+      cpu.pc = addr;
+    } else {
+      cpu.dataFlows.push({ from: 'CTRL', to: 'PC', label: 'NO JMP' });
+      cpu.pc += 2;
+    }
+  } else {
+    cpu.pc++; // unknown opcode, skip
+  }
+
+  cpu.stage = 'WRITEBACK';
+  cpu.cycle++;
+}
+
+// --- Drawing ---
+const COMP = {
+  PC:   { x: 80,  y: 60,  w: 100, h: 50, label: 'Program Counter' },
+  IR:   { x: 80,  y: 150, w: 100, h: 50, label: 'Instruction Reg' },
+  CTRL: { x: 80,  y: 240, w: 100, h: 50, label: 'Control Unit' },
+  REGS: { x: 300, y: 60,  w: 120, h: 120, label: 'Register File' },
+  ALU:  { x: 300, y: 220, w: 120, h: 80, label: 'ALU' },
+  MEM:  { x: 520, y: 60,  w: 100, h: 240, label: 'Memory' },
+};
+
+function resizeCanvas() {
+  const rect = canvas.parentElement.getBoundingClientRect();
+  const headerH = 48;
+  canvas.width = rect.width;
+  canvas.height = window.innerHeight - headerH;
+}
+
+function drawComponent(key, comp) {
+  const isActive = cpu.activeComponents.includes(key);
+  const scale = Math.min(canvas.width / 700, canvas.height / 400);
+  const ox = (canvas.width - 700 * scale) / 2;
+  const oy = (canvas.height - 380 * scale) / 2;
+  const x = ox + comp.x * scale;
+  const y = oy + comp.y * scale;
+  const w = comp.w * scale;
+  const h = comp.h * scale;
+
+  ctx.save();
+  ctx.strokeStyle = isActive ? '#ef4444' : '#333';
+  ctx.lineWidth = isActive ? 2 : 1;
+  ctx.fillStyle = isActive ? '#1a0a0a' : '#111';
+
+  // Glow effect
+  if (isActive) {
+    ctx.shadowColor = '#ef4444';
+    ctx.shadowBlur = 15;
+  }
+
+  ctx.beginPath();
+  if (key === 'ALU') {
+    // Trapezoid for ALU
+    ctx.moveTo(x + w * 0.2, y);
+    ctx.lineTo(x + w * 0.8, y);
+    ctx.lineTo(x + w, y + h);
+    ctx.lineTo(x, y + h);
+    ctx.closePath();
+  } else {
+    ctx.rect(x, y, w, h);
+  }
+  ctx.fill();
+  ctx.stroke();
+  ctx.shadowBlur = 0;
+
+  // Label
+  ctx.fillStyle = isActive ? '#ef4444' : '#666';
+  ctx.font = `${11 * scale}px Courier New`;
+  ctx.textAlign = 'center';
+  ctx.fillText(comp.label, x + w / 2, y + 14 * scale);
+
+  // Content
+  ctx.fillStyle = '#ccc';
+  ctx.font = `bold ${12 * scale}px Courier New`;
+  if (key === 'PC') {
+    ctx.fillText('0x' + cpu.pc.toString(16).padStart(2, '0').toUpperCase(), x + w / 2, y + h / 2 + 8 * scale);
+  } else if (key === 'IR') {
+    ctx.fillText('0x' + cpu.ir.toString(16).padStart(2, '0').toUpperCase(), x + w / 2, y + h / 2 + 8 * scale);
+  } else if (key === 'CTRL') {
+    ctx.font = `${10 * scale}px Courier New`;
+    ctx.fillText(cpu.stage, x + w / 2, y + h / 2 + 8 * scale);
+  } else if (key === 'ALU') {
+    ctx.fillText('= ' + cpu.aluResult, x + w / 2, y + h / 2 + 12 * scale);
+  } else if (key === 'REGS') {
+    ctx.font = `${9 * scale}px Courier New`;
+    ctx.textAlign = 'left';
+    for (let i = 0; i < 8; i++) {
+      const rx = x + 6 * scale + (i < 4 ? 0 : w / 2);
+      const ry = y + 22 * scale + (i % 4) * 22 * scale;
+      ctx.fillStyle = (i === cpu.lastRd) ? '#ef4444' : (i === cpu.lastRs) ? '#f97316' : '#888';
+      ctx.fillText('R' + i + ':' + cpu.regs[i].toString(16).padStart(2, '0'), rx, ry);
+    }
+  } else if (key === 'MEM') {
+    ctx.font = `${7 * scale}px Courier New`;
+    ctx.textAlign = 'left';
+    let lines = 0;
+    for (let a = 0; a < 256 && lines < 14; a += 8) {
+      let hasData = false;
+      for (let b = 0; b < 8; b++) if (cpu.mem[a + b]) hasData = true;
+      if (a < 32 || hasData || a === (cpu.lastAddr & ~7)) {
+        ctx.fillStyle = '#555';
+        ctx.fillText(a.toString(16).padStart(2, '0') + ':', x + 4 * scale, y + 22 * scale + lines * 14 * scale);
+        for (let b = 0; b < 8; b++) {
+          const addr = a + b;
+          ctx.fillStyle = addr === cpu.pc ? '#ef4444' : cpu.mem[addr] ? '#aaa' : '#333';
+          ctx.fillText(cpu.mem[addr].toString(16).padStart(2, '0'), x + 22 * scale + b * 10 * scale, y + 22 * scale + lines * 14 * scale);
+        }
+        lines++;
+      }
+    }
+  }
+  ctx.restore();
+}
+
+function drawDataFlows() {
+  const scale = Math.min(canvas.width / 700, canvas.height / 400);
+  const ox = (canvas.width - 700 * scale) / 2;
+  const oy = (canvas.height - 380 * scale) / 2;
+
+  const t = (performance.now() % 2000) / 2000;
+
+  cpu.dataFlows.forEach(flow => {
+    const from = COMP[flow.from];
+    const to = COMP[flow.to];
+    if (!from || !to) return;
+
+    const x1 = ox + (from.x + from.w / 2) * scale;
+    const y1 = oy + (from.y + from.h / 2) * scale;
+    const x2 = ox + (to.x + to.w / 2) * scale;
+    const y2 = oy + (to.y + to.h / 2) * scale;
+
+    // Animated line
+    ctx.save();
+    ctx.strokeStyle = '#ef4444';
+    ctx.lineWidth = 2;
+    ctx.setLineDash([6, 4]);
+    ctx.lineDashOffset = -t * 20;
+    ctx.globalAlpha = 0.7;
+    ctx.beginPath();
+    ctx.moveTo(x1, y1);
+    ctx.lineTo(x2, y2);
+    ctx.stroke();
+
+    // Arrow
+    const angle = Math.atan2(y2 - y1, x2 - x1);
+    const ax = x2 - 15 * scale * Math.cos(angle);
+    const ay = y2 - 15 * scale * Math.sin(angle);
+    ctx.setLineDash([]);
+    ctx.globalAlpha = 1;
+    ctx.beginPath();
+    ctx.moveTo(x2, y2);
+    ctx.lineTo(ax - 6 * scale * Math.cos(angle - 0.5), ay - 6 * scale * Math.sin(angle - 0.5));
+    ctx.lineTo(ax - 6 * scale * Math.cos(angle + 0.5), ay - 6 * scale * Math.sin(angle + 0.5));
+    ctx.closePath();
+    ctx.fillStyle = '#ef4444';
+    ctx.fill();
+
+    // Moving dot
+    const dx = x1 + (x2 - x1) * t;
+    const dy = y1 + (y2 - y1) * t;
+    ctx.beginPath();
+    ctx.arc(dx, dy, 4 * scale, 0, Math.PI * 2);
+    ctx.fillStyle = '#fff';
+    ctx.fill();
+
+    // Label
+    const mx = (x1 + x2) / 2;
+    const my = (y1 + y2) / 2 - 8 * scale;
+    ctx.font = `${9 * scale}px Courier New`;
+    ctx.fillStyle = '#ef4444';
+    ctx.textAlign = 'center';
+    ctx.fillText(flow.label, mx, my);
+    ctx.restore();
+  });
+}
+
+function drawBusLines() {
+  const scale = Math.min(canvas.width / 700, canvas.height / 400);
+  const ox = (canvas.width - 700 * scale) / 2;
+  const oy = (canvas.height - 380 * scale) / 2;
+
+  ctx.save();
+  ctx.strokeStyle = '#1a1a1a';
+  ctx.lineWidth = 1;
+  ctx.setLineDash([2, 4]);
+
+  const connections = [
+    ['PC', 'IR'], ['IR', 'CTRL'], ['CTRL', 'ALU'],
+    ['REGS', 'ALU'], ['MEM', 'REGS'], ['PC', 'MEM'],
+  ];
+
+  connections.forEach(([a, b]) => {
+    const ca = COMP[a], cb = COMP[b];
+    const x1 = ox + (ca.x + ca.w / 2) * scale;
+    const y1 = oy + (ca.y + ca.h / 2) * scale;
+    const x2 = ox + (cb.x + cb.w / 2) * scale;
+    const y2 = oy + (cb.y + cb.h / 2) * scale;
+    ctx.beginPath();
+    ctx.moveTo(x1, y1);
+    ctx.lineTo(x2, y2);
+    ctx.stroke();
+  });
+  ctx.restore();
+}
+
+function draw() {
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+  // Title
+  ctx.fillStyle = '#222';
+  ctx.font = '10px Courier New';
+  ctx.textAlign = 'left';
+  ctx.fillText('CPU ARCHITECTURE DIAGRAM', 10, 16);
+
+  drawBusLines();
+  for (const [key, comp] of Object.entries(COMP)) {
+    drawComponent(key, comp);
+  }
+  drawDataFlows();
+}
+
+// --- Sidebar ---
+function updateSidebar() {
+  const regGrid = document.getElementById('reg-grid');
+  regGrid.innerHTML = '';
+  for (let i = 0; i < 8; i++) {
+    const div = document.createElement('div');
+    div.className = 'reg' + (i === cpu.lastRd || i === cpu.lastRs ? ' active' : '');
+    div.innerHTML = `<span class="name">R${i}</span><span class="val">0x${cpu.regs[i].toString(16).padStart(2, '0').toUpperCase()}</span>`;
+    regGrid.appendChild(div);
+  }
+
+  const flagsDiv = document.getElementById('flags');
+  flagsDiv.innerHTML = `
+    <span class="flag ${cpu.flagZ ? 'set' : ''}">Z</span>
+    <span class="flag ${cpu.flagC ? 'set' : ''}">C</span>
+    <span class="flag ${cpu.flagN ? 'set' : ''}">N</span>
+  `;
+
+  document.getElementById('cycle-count').textContent = cpu.cycle;
+  document.getElementById('pc-val').textContent = '0x' + cpu.pc.toString(16).padStart(2, '0').toUpperCase();
+  document.getElementById('stage-val').textContent = cpu.stage;
+
+  const memView = document.getElementById('mem-view');
+  memView.innerHTML = '';
+  for (let a = 0; a < 256; a += 16) {
+    const row = document.createElement('div');
+    row.className = 'row';
+    let html = `<span class="addr">${a.toString(16).padStart(2, '0')}</span>`;
+    for (let b = 0; b < 16; b++) {
+      const addr = a + b;
+      const val = cpu.mem[addr];
+      const cls = addr === cpu.pc ? 'byte pc' : val ? 'byte nonzero' : 'byte';
+      html += `<span class="${cls}">${val.toString(16).padStart(2, '0')}</span>`;
+    }
+    row.innerHTML = html;
+    memView.appendChild(row);
+  }
+}
+
+// --- Assembler ---
+function assemble(src) {
+  const lines = src.trim().split('\n');
+  const bytes = [];
+  const regNum = s => parseInt(s.replace(/^R/i, ''));
+  const parseVal = s => {
+    s = s.trim();
+    if (s.startsWith('0x') || s.startsWith('0X')) return parseInt(s, 16);
+    return parseInt(s, 10);
+  };
+
+  for (const line of lines) {
+    const trimmed = line.trim().replace(/;.*/, '').replace(/,/g, ' ');
+    if (!trimmed) continue;
+    const parts = trimmed.split(/\s+/);
+    const op = parts[0].toUpperCase();
+    if (op === 'HALT') { bytes.push(0xFF); }
+    else if (op === 'MOVI') { bytes.push(0xA0 | regNum(parts[1])); bytes.push(parseVal(parts[2])); }
+    else if (op === 'LOAD') { bytes.push(0x10 | regNum(parts[1])); bytes.push(parseVal(parts[2])); }
+    else if (op === 'STORE') { bytes.push(0x20 | regNum(parts[1])); bytes.push(parseVal(parts[2])); }
+    else if (op === 'ADD') { bytes.push(0x30); bytes.push((regNum(parts[1]) << 4) | regNum(parts[2])); }
+    else if (op === 'SUB') { bytes.push(0x40); bytes.push((regNum(parts[1]) << 4) | regNum(parts[2])); }
+    else if (op === 'AND') { bytes.push(0x50); bytes.push((regNum(parts[1]) << 4) | regNum(parts[2])); }
+    else if (op === 'OR')  { bytes.push(0x60); bytes.push((regNum(parts[1]) << 4) | regNum(parts[2])); }
+    else if (op === 'XOR') { bytes.push(0x70); bytes.push((regNum(parts[1]) << 4) | regNum(parts[2])); }
+    else if (op === 'JMP') { bytes.push(0x80); bytes.push(parseVal(parts[1])); }
+    else if (op === 'JZ')  { bytes.push(0x90); bytes.push(parseVal(parts[1])); }
+  }
+  return bytes;
+}
+
+// --- Events ---
+let running = false;
+let speed = 10;
+
+document.getElementById('btn-step').addEventListener('click', () => {
+  stepCPU();
+  updateSidebar();
+});
+
+document.getElementById('btn-run').addEventListener('click', () => {
+  running = !running;
+  const btn = document.getElementById('btn-run');
+  btn.textContent = running ? 'Pause' : 'Run';
+  btn.classList.toggle('active', running);
+});
+
+document.getElementById('btn-reset').addEventListener('click', () => {
+  resetCPU();
+  updateSidebar();
+});
+
+document.getElementById('speed').addEventListener('input', e => {
+  speed = parseInt(e.target.value);
+});
+
+document.getElementById('programs').addEventListener('change', e => {
+  const prog = PROGRAMS[e.target.value];
+  if (!prog) return;
+  resetCPU();
+  prog.binary.forEach((b, i) => cpu.mem[i] = b);
+  document.getElementById('asm-editor').value = prog.asm;
+  updateSidebar();
+});
+
+document.getElementById('asm-btn').addEventListener('click', () => {
+  const src = document.getElementById('asm-editor').value;
+  try {
+    const bytes = assemble(src);
+    resetCPU();
+    bytes.forEach((b, i) => cpu.mem[i] = b);
+    updateSidebar();
+  } catch (err) {
+    alert('Assembly error: ' + err.message);
+  }
+});
+
+window.addEventListener('resize', resizeCanvas);
+
+// --- Main loop ---
+let lastStep = 0;
+function loop(ts) {
+  if (running && !cpu.halted) {
+    const interval = 1000 / speed;
+    if (ts - lastStep >= interval) {
+      stepCPU();
+      updateSidebar();
+      lastStep = ts;
+    }
+  }
+  if (cpu.halted && running) {
+    running = false;
+    document.getElementById('btn-run').textContent = 'Run';
+    document.getElementById('btn-run').classList.remove('active');
+  }
+  draw();
+  requestAnimationFrame(loop);
+}
+
+resizeCanvas();
+updateSidebar();
+
+// Load default program
+document.getElementById('programs').value = 'counter';
+PROGRAMS.counter.binary.forEach((b, i) => cpu.mem[i] = b);
+document.getElementById('asm-editor').value = PROGRAMS.counter.asm;
+updateSidebar();
+
+requestAnimationFrame(loop);
+</script>
+</body>
+</html>

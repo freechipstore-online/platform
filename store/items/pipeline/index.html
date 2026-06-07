@@ -1,0 +1,537 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Pipeline Processor - FreeChipStore</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { background: #0a0a0a; color: #e0e0e0; font-family: 'Courier New', monospace; overflow-x: hidden; }
+  #app { display: grid; grid-template-rows: 44px auto 1fr; height: 100vh; }
+  header { background: #111; border-bottom: 1px solid #222; display: flex; align-items: center; padding: 0 16px; gap: 10px; }
+  header h1 { font-size: 15px; color: #ef4444; white-space: nowrap; }
+  header button { background: #1a1a1a; border: 1px solid #333; color: #ccc; padding: 4px 12px; cursor: pointer; font-family: inherit; font-size: 12px; border-radius: 3px; }
+  header button:hover { border-color: #ef4444; }
+  header button.active { background: #ef4444; color: #fff; border-color: #ef4444; }
+  header select { background: #1a1a1a; border: 1px solid #333; color: #ccc; padding: 4px 8px; font-family: inherit; font-size: 12px; border-radius: 3px; }
+  #controls { background: #0e0e0e; border-bottom: 1px solid #1a1a1a; padding: 8px 16px; display: flex; gap: 16px; align-items: flex-start; flex-wrap: wrap; }
+  .ctrl-group { display: flex; flex-direction: column; gap: 4px; }
+  .ctrl-group label { font-size: 10px; color: #666; text-transform: uppercase; letter-spacing: 0.5px; }
+  .ctrl-group .value { font-size: 13px; color: #ef4444; font-weight: bold; }
+  #main { display: grid; grid-template-rows: 1fr 1fr; overflow: hidden; }
+  #pipeline-view { overflow-x: auto; padding: 16px; }
+  #timeline-view { border-top: 1px solid #222; overflow: auto; padding: 16px; }
+  table.pipeline { border-collapse: collapse; min-width: 100%; }
+  table.pipeline th, table.pipeline td { padding: 6px 10px; text-align: center; font-size: 11px; border: 1px solid #1a1a1a; min-width: 70px; }
+  table.pipeline th { background: #111; color: #888; font-weight: normal; text-transform: uppercase; letter-spacing: 0.5px; position: sticky; top: 0; }
+  table.pipeline th.stage { color: #ef4444; }
+  .cell-fetch { background: #1a1a2a; color: #6688cc; }
+  .cell-decode { background: #1a2a1a; color: #66aa66; }
+  .cell-execute { background: #2a2a1a; color: #ccaa44; }
+  .cell-memory { background: #2a1a2a; color: #aa66aa; }
+  .cell-writeback { background: #2a1a1a; color: #cc6644; }
+  .cell-bubble { background: #0e0e0e; color: #333; font-style: italic; }
+  .cell-flush { background: #1a0a0a; color: #ef444480; text-decoration: line-through; }
+  .cell-hazard { border: 2px solid #ef4444 !important; }
+  .cell-forward { border: 2px solid #22cc44 !important; }
+  .cell-current { box-shadow: inset 0 0 8px #ef444440; }
+  .inst-list { display: flex; flex-direction: column; gap: 2px; }
+  .inst-item { font-size: 11px; padding: 3px 6px; background: #111; border-radius: 2px; display: flex; justify-content: space-between; }
+  .inst-item .idx { color: #555; width: 24px; }
+  .inst-item .op { color: #ccc; }
+  .inst-item.hazard { border-left: 3px solid #ef4444; }
+  .inst-item.forward { border-left: 3px solid #22cc44; }
+  .legend { display: flex; gap: 12px; flex-wrap: wrap; }
+  .legend-item { display: flex; align-items: center; gap: 4px; font-size: 10px; }
+  .legend-box { width: 14px; height: 10px; border-radius: 2px; }
+  #stage-diagram { padding: 16px; }
+  canvas { display: block; width: 100%; }
+</style>
+</head>
+<body>
+<div id="app">
+  <header>
+    <h1>Pipeline Processor</h1>
+    <button id="btn-clock">Clock +1</button>
+    <button id="btn-run">Auto Run</button>
+    <button id="btn-reset">Reset</button>
+    <select id="presets">
+      <option value="clean">No Hazards</option>
+      <option value="data">Data Hazard</option>
+      <option value="branch">Branch Hazard</option>
+      <option value="both">Both Hazards</option>
+    </select>
+    <span style="flex:1"></span>
+    <div class="legend">
+      <div class="legend-item"><div class="legend-box" style="background:#1a1a2a"></div>IF</div>
+      <div class="legend-item"><div class="legend-box" style="background:#1a2a1a"></div>ID</div>
+      <div class="legend-item"><div class="legend-box" style="background:#2a2a1a"></div>EX</div>
+      <div class="legend-item"><div class="legend-box" style="background:#2a1a2a"></div>MEM</div>
+      <div class="legend-item"><div class="legend-box" style="background:#2a1a1a"></div>WB</div>
+      <div class="legend-item"><div class="legend-box" style="background:#0e0e0e;border:1px solid #333"></div>Bubble</div>
+      <div class="legend-item"><div class="legend-box" style="background:#1a0a0a;border:1px solid #ef444444"></div>Flush</div>
+    </div>
+  </header>
+  <div id="controls">
+    <div class="ctrl-group"><label>Cycle</label><div class="value" id="cycle-num">0</div></div>
+    <div class="ctrl-group"><label>Instructions Completed</label><div class="value" id="inst-done">0</div></div>
+    <div class="ctrl-group"><label>CPI</label><div class="value" id="cpi-val">-</div></div>
+    <div class="ctrl-group"><label>Throughput</label><div class="value" id="throughput-val">-</div></div>
+    <div class="ctrl-group"><label>Stalls</label><div class="value" id="stall-count">0</div></div>
+    <div class="ctrl-group"><label>Flushes</label><div class="value" id="flush-count">0</div></div>
+    <div class="ctrl-group"><label>Forwards</label><div class="value" id="fwd-count">0</div></div>
+    <div class="ctrl-group"><label>Without Pipeline</label><div class="value" id="no-pipe">-</div></div>
+  </div>
+  <div id="main">
+    <div id="pipeline-view"><canvas id="stage-canvas"></canvas></div>
+    <div id="timeline-view"></div>
+  </div>
+</div>
+<script>
+const STAGES = ['IF', 'ID', 'EX', 'MEM', 'WB'];
+const STAGE_COLORS = ['#1a1a2a', '#1a2a1a', '#2a2a1a', '#2a1a2a', '#2a1a1a'];
+const STAGE_TEXT = ['#6688cc', '#66aa66', '#ccaa44', '#aa66aa', '#cc6644'];
+
+const PRESETS = {
+  clean: [
+    { op: 'ADD', rd: 'R1', rs1: 'R2', rs2: 'R3' },
+    { op: 'SUB', rd: 'R4', rs1: 'R5', rs2: 'R6' },
+    { op: 'AND', rd: 'R7', rs1: 'R1', rs2: 'R4' },
+    { op: 'OR',  rd: 'R2', rs1: 'R3', rs2: 'R5' },
+    { op: 'XOR', rd: 'R6', rs1: 'R7', rs2: 'R2' },
+    { op: 'ADD', rd: 'R3', rs1: 'R4', rs2: 'R1' },
+  ],
+  data: [
+    { op: 'ADD', rd: 'R1', rs1: 'R2', rs2: 'R3' },
+    { op: 'SUB', rd: 'R4', rs1: 'R1', rs2: 'R5' }, // R1 data hazard
+    { op: 'AND', rd: 'R6', rs1: 'R4', rs2: 'R7' }, // R4 data hazard
+    { op: 'OR',  rd: 'R2', rs1: 'R3', rs2: 'R5' },
+    { op: 'ADD', rd: 'R7', rs1: 'R6', rs2: 'R1' }, // R6 data hazard
+  ],
+  branch: [
+    { op: 'ADD', rd: 'R1', rs1: 'R2', rs2: 'R3' },
+    { op: 'BEQ', rd: null, rs1: 'R1', rs2: 'R0', target: 4 }, // branch
+    { op: 'SUB', rd: 'R4', rs1: 'R5', rs2: 'R6' }, // flushed
+    { op: 'AND', rd: 'R7', rs1: 'R1', rs2: 'R2' }, // flushed
+    { op: 'OR',  rd: 'R3', rs1: 'R4', rs2: 'R5' }, // branch target
+    { op: 'XOR', rd: 'R6', rs1: 'R7', rs2: 'R3' },
+  ],
+  both: [
+    { op: 'LOAD', rd: 'R1', rs1: 'R0', rs2: null, addr: '0x10' },
+    { op: 'ADD',  rd: 'R2', rs1: 'R1', rs2: 'R3' }, // load-use hazard (must stall)
+    { op: 'BEQ',  rd: null, rs1: 'R2', rs2: 'R0', target: 5 }, // branch hazard
+    { op: 'SUB',  rd: 'R4', rs1: 'R5', rs2: 'R6' }, // flushed
+    { op: 'AND',  rd: 'R7', rs1: 'R1', rs2: 'R2' }, // flushed
+    { op: 'OR',   rd: 'R3', rs1: 'R2', rs2: 'R5' }, // branch target, data forward
+    { op: 'XOR',  rd: 'R6', rs1: 'R3', rs2: 'R7' },
+  ],
+};
+
+function instrText(inst) {
+  if (!inst) return '';
+  if (inst.op === 'LOAD') return `LOAD ${inst.rd}, [${inst.addr}]`;
+  if (inst.op === 'BEQ') return `BEQ ${inst.rs1}, ${inst.rs2}, ${inst.target}`;
+  return `${inst.op} ${inst.rd}, ${inst.rs1}, ${inst.rs2}`;
+}
+
+// Pipeline state
+let instructions = [];
+let cycle = 0;
+let pipelineSlots = [null, null, null, null, null]; // what's in each stage
+let history = []; // [{cycle, slots: [...], annotations: [...]}]
+let stalls = 0, flushes = 0, forwards = 0, completed = 0;
+let running = false;
+let runInterval = null;
+
+function loadPreset(name) {
+  instructions = PRESETS[name].map((inst, i) => ({ ...inst, idx: i, fetched: false }));
+  resetPipeline();
+}
+
+function resetPipeline() {
+  cycle = 0;
+  pipelineSlots = [null, null, null, null, null];
+  history = [];
+  stalls = 0; flushes = 0; forwards = 0; completed = 0;
+  instructions.forEach(i => i.fetched = false);
+  running = false;
+  if (runInterval) { clearInterval(runInterval); runInterval = null; }
+  document.getElementById('btn-run').classList.remove('active');
+  document.getElementById('btn-run').textContent = 'Auto Run';
+  updateUI();
+}
+
+function getNextUnfetched() {
+  return instructions.find(i => !i.fetched) || null;
+}
+
+function detectDataHazard(newInst, exInst, memInst) {
+  if (!newInst) return { hazard: false, canForward: false };
+  const reads = [newInst.rs1, newInst.rs2].filter(Boolean);
+
+  // Check EX stage (1 cycle ahead)
+  if (exInst && exInst.rd && reads.includes(exInst.rd)) {
+    if (exInst.op === 'LOAD') {
+      return { hazard: true, canForward: false, src: exInst, reg: exInst.rd };
+    }
+    return { hazard: true, canForward: true, src: exInst, reg: exInst.rd };
+  }
+  // Check MEM stage (2 cycles ahead)
+  if (memInst && memInst.rd && reads.includes(memInst.rd)) {
+    return { hazard: true, canForward: true, src: memInst, reg: memInst.rd };
+  }
+  return { hazard: false, canForward: false };
+}
+
+function clockTick() {
+  if (pipelineSlots.every(s => s === null) && !getNextUnfetched()) return;
+
+  const annotations = [];
+
+  // Writeback (retire)
+  if (pipelineSlots[4]) {
+    completed++;
+    annotations.push({ stage: 4, type: 'complete', inst: pipelineSlots[4] });
+  }
+
+  // Shift pipeline: WB <- MEM <- EX <- ID <- IF
+  let stallThisCycle = false;
+  let flushThisCycle = false;
+
+  // Check for branch in EX (simplified: branch resolved at EX)
+  if (pipelineSlots[2] && pipelineSlots[2].op === 'BEQ') {
+    // Assume branch taken for demo
+    flushThisCycle = true;
+    flushes++;
+    annotations.push({ stage: 2, type: 'branch', inst: pipelineSlots[2] });
+  }
+
+  // Check for data hazard: instruction in ID reads register written by instruction in EX
+  const hazard = detectDataHazard(pipelineSlots[1], pipelineSlots[2], pipelineSlots[3]);
+  if (hazard.hazard) {
+    if (hazard.canForward) {
+      forwards++;
+      annotations.push({ stage: 1, type: 'forward', inst: pipelineSlots[1], reg: hazard.reg });
+    } else {
+      // Load-use: must stall
+      stallThisCycle = true;
+      stalls++;
+      annotations.push({ stage: 1, type: 'stall', inst: pipelineSlots[1], reg: hazard.reg });
+    }
+  }
+
+  // Advance pipeline
+  const newSlots = [null, null, null, null, null];
+
+  // WB always gets MEM
+  newSlots[4] = pipelineSlots[3];
+  // MEM always gets EX
+  newSlots[3] = pipelineSlots[2];
+
+  if (stallThisCycle) {
+    // Insert bubble in EX, keep ID and IF
+    newSlots[2] = null; // bubble
+    newSlots[1] = pipelineSlots[1]; // stall: ID stays
+    newSlots[0] = pipelineSlots[0]; // stall: IF stays
+    annotations.push({ stage: 2, type: 'bubble' });
+  } else if (flushThisCycle) {
+    // Flush IF and ID (they were wrong-path)
+    if (pipelineSlots[0]) annotations.push({ stage: 0, type: 'flush', inst: pipelineSlots[0] });
+    if (pipelineSlots[1]) annotations.push({ stage: 1, type: 'flush', inst: pipelineSlots[1] });
+    newSlots[2] = null;
+    newSlots[1] = null;
+    newSlots[0] = null;
+    // Re-fetch from branch target
+    const branchInst = pipelineSlots[2];
+    if (branchInst && branchInst.target !== undefined) {
+      // Mark flushed instructions as not fetched if they weren't the target
+      instructions.forEach(i => {
+        if (i.idx >= branchInst.idx + 1 && i.idx < branchInst.target) {
+          i.fetched = false; // These were speculative
+        }
+      });
+      // Skip to target
+      instructions.forEach(i => {
+        if (i.idx < branchInst.target) i.fetched = true;
+      });
+    }
+  } else {
+    // Normal advance
+    newSlots[2] = pipelineSlots[1];
+    newSlots[1] = pipelineSlots[0];
+    // Fetch next
+    const next = getNextUnfetched();
+    if (next) {
+      next.fetched = true;
+      newSlots[0] = next;
+    } else {
+      newSlots[0] = null;
+    }
+  }
+
+  pipelineSlots = newSlots;
+  cycle++;
+
+  history.push({
+    cycle,
+    slots: [...pipelineSlots],
+    annotations: [...annotations],
+  });
+
+  updateUI();
+}
+
+// --- Canvas diagram ---
+const stageCanvas = document.getElementById('stage-canvas');
+const sctx = stageCanvas.getContext('2d');
+
+function drawPipelineDiagram() {
+  const parent = stageCanvas.parentElement;
+  stageCanvas.width = parent.clientWidth - 32;
+  stageCanvas.height = 250;
+  const W = stageCanvas.width, H = stageCanvas.height;
+
+  sctx.clearRect(0, 0, W, H);
+
+  const stageW = (W - 60) / 5;
+  const stageH = 140;
+  const topY = 30;
+
+  // Stage boxes
+  for (let i = 0; i < 5; i++) {
+    const x = 30 + i * stageW;
+    const y = topY;
+    const inst = pipelineSlots[i];
+
+    sctx.fillStyle = STAGE_COLORS[i];
+    sctx.strokeStyle = inst ? STAGE_TEXT[i] : '#222';
+    sctx.lineWidth = inst ? 2 : 1;
+    sctx.fillRect(x + 2, y, stageW - 4, stageH);
+    sctx.strokeRect(x + 2, y, stageW - 4, stageH);
+
+    // Stage label
+    sctx.fillStyle = '#666';
+    sctx.font = '10px Courier New';
+    sctx.textAlign = 'center';
+    sctx.fillText(STAGES[i], x + stageW / 2, y - 8);
+
+    // Full stage name
+    const fullNames = ['Instruction Fetch', 'Instruction Decode', 'Execute', 'Memory Access', 'Write Back'];
+    sctx.fillStyle = '#333';
+    sctx.font = '8px Courier New';
+    sctx.fillText(fullNames[i], x + stageW / 2, y + stageH + 14);
+
+    // Instruction in stage
+    if (inst) {
+      sctx.fillStyle = STAGE_TEXT[i];
+      sctx.font = 'bold 12px Courier New';
+      sctx.fillText(instrText(inst), x + stageW / 2, y + 35);
+
+      sctx.fillStyle = '#555';
+      sctx.font = '10px Courier New';
+      sctx.fillText(`I${inst.idx}`, x + stageW / 2, y + 55);
+
+      // Stage-specific detail
+      sctx.font = '9px Courier New';
+      sctx.fillStyle = '#444';
+      if (i === 0) sctx.fillText('PC -> Memory', x + stageW / 2, y + 80);
+      if (i === 1) sctx.fillText(`Read: ${inst.rs1 || '-'}, ${inst.rs2 || '-'}`, x + stageW / 2, y + 80);
+      if (i === 2) sctx.fillText(`Compute result`, x + stageW / 2, y + 80);
+      if (i === 3) sctx.fillText(inst.op === 'LOAD' ? 'Read memory' : 'Pass through', x + stageW / 2, y + 80);
+      if (i === 4) sctx.fillText(`Write: ${inst.rd || '-'}`, x + stageW / 2, y + 80);
+    } else {
+      sctx.fillStyle = '#222';
+      sctx.font = '11px Courier New';
+      sctx.fillText('---', x + stageW / 2, y + 40);
+    }
+
+    // Arrows between stages
+    if (i < 4) {
+      sctx.strokeStyle = '#333';
+      sctx.lineWidth = 1;
+      sctx.beginPath();
+      const ax = x + stageW - 1;
+      sctx.moveTo(ax, y + stageH / 2 - 6);
+      sctx.lineTo(ax + 5, y + stageH / 2);
+      sctx.lineTo(ax, y + stageH / 2 + 6);
+      sctx.stroke();
+    }
+  }
+
+  // Draw hazard annotations for current state
+  if (history.length > 0) {
+    const last = history[history.length - 1];
+    last.annotations.forEach(ann => {
+      const x = 30 + ann.stage * stageW;
+      const y = topY;
+
+      if (ann.type === 'forward') {
+        sctx.strokeStyle = '#22cc44';
+        sctx.lineWidth = 2;
+        sctx.setLineDash([4, 2]);
+        sctx.beginPath();
+        sctx.moveTo(x + stageW + 2, y + stageH / 2);
+        sctx.lineTo(x + stageW / 2, y + stageH + 24);
+        sctx.lineTo(x + 2, y + stageH / 2);
+        sctx.stroke();
+        sctx.setLineDash([]);
+        sctx.fillStyle = '#22cc44';
+        sctx.font = '9px Courier New';
+        sctx.textAlign = 'center';
+        sctx.fillText(`FWD ${ann.reg}`, x + stageW / 2, y + stageH + 36);
+      } else if (ann.type === 'stall') {
+        sctx.fillStyle = '#ef4444';
+        sctx.font = '9px Courier New';
+        sctx.textAlign = 'center';
+        sctx.fillText(`STALL (${ann.reg})`, x + stageW / 2, y + stageH + 28);
+      } else if (ann.type === 'bubble') {
+        sctx.fillStyle = '#ef444440';
+        sctx.fillRect(x + 2, y, stageW - 4, stageH);
+        sctx.fillStyle = '#ef4444';
+        sctx.font = '10px Courier New';
+        sctx.textAlign = 'center';
+        sctx.fillText('BUBBLE', x + stageW / 2, y + stageH / 2);
+      } else if (ann.type === 'flush') {
+        sctx.fillStyle = '#ef444420';
+        sctx.fillRect(x + 2, y, stageW - 4, stageH);
+        sctx.strokeStyle = '#ef4444';
+        sctx.lineWidth = 2;
+        sctx.beginPath();
+        sctx.moveTo(x + 8, y + 8);
+        sctx.lineTo(x + stageW - 8, y + stageH - 8);
+        sctx.moveTo(x + stageW - 8, y + 8);
+        sctx.lineTo(x + 8, y + stageH - 8);
+        sctx.stroke();
+        sctx.fillStyle = '#ef4444';
+        sctx.font = '9px Courier New';
+        sctx.fillText('FLUSHED', x + stageW / 2, y + stageH + 28);
+      } else if (ann.type === 'branch') {
+        sctx.fillStyle = '#f97316';
+        sctx.font = '9px Courier New';
+        sctx.textAlign = 'center';
+        sctx.fillText('BRANCH TAKEN', x + stageW / 2, y + stageH + 28);
+      }
+    });
+  }
+}
+
+// --- Timeline table ---
+function drawTimeline() {
+  const container = document.getElementById('timeline-view');
+  if (history.length === 0) {
+    container.innerHTML = '<div style="color:#333;font-size:12px;padding:8px;">Click "Clock +1" to begin pipeline execution.</div>';
+    return;
+  }
+
+  let html = '<table class="pipeline"><thead><tr><th>Inst</th>';
+  for (let c = 1; c <= cycle; c++) {
+    html += `<th>C${c}</th>`;
+  }
+  html += '</tr></thead><tbody>';
+
+  // For each instruction, show what stage it was in at each cycle
+  const allInsts = instructions;
+  allInsts.forEach((inst, iIdx) => {
+    html += `<tr><td style="text-align:left;white-space:nowrap;font-size:10px;color:#888;">I${iIdx}: ${instrText(inst)}</td>`;
+    for (let c = 1; c <= cycle; c++) {
+      const h = history[c - 1];
+      if (!h) { html += '<td></td>'; continue; }
+
+      let stageIdx = -1;
+      for (let s = 0; s < 5; s++) {
+        if (h.slots[s] && h.slots[s].idx === iIdx) stageIdx = s;
+      }
+
+      // Check annotations
+      const ann = h.annotations.find(a => a.inst && a.inst.idx === iIdx);
+      let cellClass = '';
+      let cellText = '';
+
+      if (stageIdx >= 0) {
+        cellClass = ['cell-fetch', 'cell-decode', 'cell-execute', 'cell-memory', 'cell-writeback'][stageIdx];
+        cellText = STAGES[stageIdx];
+        if (ann && ann.type === 'forward') cellClass += ' cell-forward';
+        if (ann && ann.type === 'stall') cellClass += ' cell-hazard';
+        if (c === cycle) cellClass += ' cell-current';
+      } else if (ann && ann.type === 'flush') {
+        cellClass = 'cell-flush';
+        cellText = 'X';
+      } else if (ann && ann.type === 'bubble') {
+        cellClass = 'cell-bubble';
+        cellText = '--';
+      } else {
+        cellText = '';
+      }
+
+      html += `<td class="${cellClass}">${cellText}</td>`;
+    }
+    html += '</tr>';
+  });
+
+  html += '</tbody></table>';
+  container.innerHTML = html;
+
+  // Auto-scroll to right
+  container.scrollLeft = container.scrollWidth;
+}
+
+// --- UI Update ---
+function updateUI() {
+  document.getElementById('cycle-num').textContent = cycle;
+  document.getElementById('inst-done').textContent = completed;
+  document.getElementById('stall-count').textContent = stalls;
+  document.getElementById('flush-count').textContent = flushes;
+  document.getElementById('fwd-count').textContent = forwards;
+  document.getElementById('cpi-val').textContent = completed > 0 ? (cycle / completed).toFixed(2) : '-';
+  document.getElementById('throughput-val').textContent = completed > 0 ? (completed / cycle).toFixed(2) + ' IPC' : '-';
+  document.getElementById('no-pipe').textContent = completed > 0 ? `${completed * 5} cycles (5x slower)` : '-';
+
+  drawPipelineDiagram();
+  drawTimeline();
+}
+
+// --- Events ---
+document.getElementById('btn-clock').addEventListener('click', clockTick);
+
+document.getElementById('btn-run').addEventListener('click', () => {
+  running = !running;
+  const btn = document.getElementById('btn-run');
+  if (running) {
+    btn.classList.add('active');
+    btn.textContent = 'Pause';
+    runInterval = setInterval(() => {
+      const allDone = pipelineSlots.every(s => s === null) && !getNextUnfetched();
+      if (allDone) {
+        running = false;
+        btn.classList.remove('active');
+        btn.textContent = 'Auto Run';
+        clearInterval(runInterval);
+        return;
+      }
+      clockTick();
+    }, 600);
+  } else {
+    btn.classList.remove('active');
+    btn.textContent = 'Auto Run';
+    if (runInterval) clearInterval(runInterval);
+  }
+});
+
+document.getElementById('btn-reset').addEventListener('click', () => {
+  const preset = document.getElementById('presets').value;
+  loadPreset(preset);
+});
+
+document.getElementById('presets').addEventListener('change', e => {
+  loadPreset(e.target.value);
+});
+
+window.addEventListener('resize', () => {
+  drawPipelineDiagram();
+});
+
+// Init
+loadPreset('clean');
+</script>
+</body>
+</html>

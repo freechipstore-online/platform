@@ -1,6 +1,42 @@
 {
   "robots": [
     {
+      "id": "pipeline",
+      "name": "Pipeline Processor",
+      "description": "5-stage instruction pipeline with hazard detection. Data forwarding, stalls, branch flush visualized. CPI comparison.",
+      "storeType": "behavior",
+      "category": "architecture",
+      "icon": "\u26a1",
+      "iconBg": "#ef4444",
+      "creator": "serge-ivo",
+      "creatorName": "Serge",
+      "creatorAvatar": "https://github.com/serge-ivo.png?size=96"
+    },
+    {
+      "id": "wafer-viewer",
+      "name": "Wafer/Die Viewer",
+      "description": "Zoom from 300mm silicon wafer \u2192 die \u2192 standard cells \u2192 transistor cross-section. Yield simulation. Electron microscope feel.",
+      "storeType": "behavior",
+      "category": "fabrication",
+      "icon": "\ud83d\udd2c",
+      "iconBg": "#ef4444",
+      "creator": "serge-ivo",
+      "creatorName": "Serge",
+      "creatorAvatar": "https://github.com/serge-ivo.png?size=96"
+    },
+    {
+      "id": "cpu-builder",
+      "name": "CPU Builder",
+      "description": "Working 8-bit CPU \u2014 write assembly, watch fetch/decode/execute with animated data flow. 3 programs",
+      "storeType": " counter, Fibonacci, multiply.",
+      "category": "behavior",
+      "icon": "architecture",
+      "iconBg": "\ud83d\udda5\ufe0f:#ef4444",
+      "creator": "serge-ivo",
+      "creatorName": "Serge",
+      "creatorAvatar": "https://github.com/serge-ivo.png?size=96"
+    },
+    {
       "id": "waveform-ai",
       "name": "Waveform Analyzer",
       "description": "Neural net trained in-browser classifies digital signals",

@@ -104,6 +104,40 @@
       <h2>FPGA Architecture</h2>
       <p>An FPGA consists of an array of configurable logic blocks (CLBs) connected by a programmable routing network, surrounded by I/O blocks (IOBs) and embedded hard IP blocks.</p>
 
+      <!-- Diagram: FPGA architecture blocks -->
+      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:.4rem;margin:1.5rem 0;text-align:center">
+        <div style="background:#141414;border:1px solid #262626;border-radius:8px;padding:.6rem .3rem">
+          <div style="font-size:.78rem;font-weight:700;color:#fafafa">CLBs</div>
+          <div style="font-size:.62rem;color:#ef4444;margin-top:.2rem">LUTs + Flip-flops</div>
+          <div style="font-size:.62rem;color:#737373">Logic fabric</div>
+        </div>
+        <div style="background:#141414;border:1px solid #262626;border-radius:8px;padding:.6rem .3rem">
+          <div style="font-size:.78rem;font-weight:700;color:#fafafa">BRAM</div>
+          <div style="font-size:.62rem;color:#ef4444;margin-top:.2rem">18/36 Kbit blocks</div>
+          <div style="font-size:.62rem;color:#737373">On-chip SRAM</div>
+        </div>
+        <div style="background:#141414;border:1px solid #262626;border-radius:8px;padding:.6rem .3rem">
+          <div style="font-size:.78rem;font-weight:700;color:#fafafa">DSP Slices</div>
+          <div style="font-size:.62rem;color:#ef4444;margin-top:.2rem">27x18 multiply-accum</div>
+          <div style="font-size:.62rem;color:#737373">Math acceleration</div>
+        </div>
+        <div style="background:#141414;border:1px solid #262626;border-radius:8px;padding:.6rem .3rem">
+          <div style="font-size:.78rem;font-weight:700;color:#fafafa">I/O Blocks</div>
+          <div style="font-size:.62rem;color:#ef4444;margin-top:.2rem">Multi-standard</div>
+          <div style="font-size:.62rem;color:#737373">LVDS, LVCMOS</div>
+        </div>
+        <div style="background:#141414;border:1px solid #262626;border-radius:8px;padding:.6rem .3rem">
+          <div style="font-size:.78rem;font-weight:700;color:#fafafa">Transceivers</div>
+          <div style="font-size:.62rem;color:#ef4444;margin-top:.2rem">32-58 Gbps</div>
+          <div style="font-size:.62rem;color:#737373">PCIe, Ethernet</div>
+        </div>
+        <div style="background:#141414;border:1px solid #262626;border-radius:8px;padding:.6rem .3rem">
+          <div style="font-size:.78rem;font-weight:700;color:#fafafa">Hard IP</div>
+          <div style="font-size:.62rem;color:#ef4444;margin-top:.2rem">ARM cores, DDR ctrl</div>
+          <div style="font-size:.62rem;color:#737373">Fixed silicon</div>
+        </div>
+      </div>
+
       <h3>Major Components</h3>
       <ul>
         <li><strong>Configurable Logic Blocks (CLBs)</strong> — the computing fabric. Each CLB contains lookup tables (LUTs), flip-flops, carry chains, and multiplexers. The LUTs implement arbitrary Boolean functions; the flip-flops store state.</li>
@@ -119,6 +153,19 @@
     <section class="section" id="luts">
       <h2>LUTs & CLBs</h2>
       <p>The Lookup Table (LUT) is the fundamental logic element of an FPGA. It can implement any Boolean function of its inputs by storing the truth table in SRAM cells.</p>
+
+      <!-- Diagram: FPGA design flow -->
+      <div style="display:flex;align-items:center;justify-content:center;gap:.4rem;margin:1.5rem 0;flex-wrap:wrap">
+        <div style="background:#1c0b0b;border:1px solid #ef4444;border-radius:8px;padding:.4rem .6rem;color:#fca5a5;font-size:.72rem;font-weight:600">HDL Design</div>
+        <span style="color:#404040;font-size:1rem">&rarr;</span>
+        <div style="background:#1c0b0b;border:1px solid #ef4444;border-radius:8px;padding:.4rem .6rem;color:#fca5a5;font-size:.72rem;font-weight:600">Synthesis</div>
+        <span style="color:#404040;font-size:1rem">&rarr;</span>
+        <div style="background:#1c0b0b;border:1px solid #ef4444;border-radius:8px;padding:.4rem .6rem;color:#fca5a5;font-size:.72rem;font-weight:600">Place & Route</div>
+        <span style="color:#404040;font-size:1rem">&rarr;</span>
+        <div style="background:#1c0b0b;border:1px solid #ef4444;border-radius:8px;padding:.4rem .6rem;color:#fca5a5;font-size:.72rem;font-weight:600">Timing Analysis</div>
+        <span style="color:#404040;font-size:1rem">&rarr;</span>
+        <div style="background:#0f3d0f;border:1px solid #4ade80;border-radius:8px;padding:.4rem .6rem;color:#4ade80;font-size:.72rem;font-weight:600">Bitstream</div>
+      </div>
 
       <h3>How a LUT Works</h3>
       <ul>

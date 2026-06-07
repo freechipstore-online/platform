@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Cache Simulator - FreeChipStore</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:#0a0a0a;color:#e0e0e0;font-family:system-ui,sans-serif;display:flex;flex-direction:column;align-items:center;min-height:100vh}
+h1{color:#ef4444;margin:18px 0 6px;font-size:1.4rem}
+.desc{color:#999;font-size:.85rem;margin-bottom:12px}
+canvas{background:#111;border:1px solid #333;border-radius:6px}
+.controls{display:flex;gap:8px;margin:12px 0;flex-wrap:wrap;justify-content:center}
+.controls label{font-size:.8rem;color:#aaa}
+.controls select,.controls button,.controls input{background:#222;color:#e0e0e0;border:1px solid #444;padding:4px 8px;border-radius:4px;font-size:.8rem}
+.controls button{background:#ef4444;color:#fff;border:none;font-weight:600;cursor:pointer}
+.stats{display:flex;gap:16px;font-size:.8rem;color:#aaa;margin:6px}
+footer{margin-top:auto;padding:12px;font-size:.7rem;color:#555}
+footer a{color:#ef4444;text-decoration:none}
+</style>
+</head>
+<body>
+<h1>Cache Simulator</h1>
+<p class="desc">Memory access simulation with hit/miss tracking and replacement policies</p>
+<canvas id="c" width="740" height="360"></canvas>
+<div class="controls">
+<label>Cache Lines: <select id="lines"><option value="4">4</option><option value="8" selected>8</option><option value="16">16</option></select></label>
+<label>Associativity: <select id="assoc"><option value="1">Direct-Mapped</option><option value="2">2-Way</option><option value="4">4-Way</option><option value="0">Fully Assoc.</option></select></label>
+<label>Replacement: <select id="repl"><option value="lru">LRU</option><option value="fifo">FIFO</option><option value="random">Random</option></select></label>
+<label>Address: <input type="number" id="addr" value="0" min="0" max="63" style="width:50px"></label>
+<button id="access">Access</button>
+<button id="seq">Sequential</button>
+<button id="rand">Random 20</button>
+<button id="reset">Reset</button>
+</div>
+<div class="stats">
+<span>Hits: <b id="hits" style="color:#22c55e">0</b></span>
+<span>Misses: <b id="misses" style="color:#ef4444">0</b></span>
+<span>Hit Rate: <b id="hitrate">0%</b></span>
+<span>Total: <b id="total">0</b></span>
+</div>
+<footer><a href="/items/">FreeChipStore</a></footer>
+<script>
+const C=document.getElementById('c'),ctx=C.getContext('2d');
+const W=740,H=360;
+let nLines=8,assoc=1,repl='lru';
+let cache=[],hits=0,misses=0,accessLog=[],lastResult='';
+let hitRateHistory=[];
+
+function initCache(){
+  cache=[];
+  const sets=assoc===0?1:nLines/(assoc||1);
+  for(let s=0;s<(assoc===0?1:sets);s++){
+    const ways=assoc===0?nLines:assoc;
+    const set=[];
+    for(let w=0;w<ways;w++) set.push({valid:false,tag:-1,age:0,order:0});
+    cache.push(set);
+  }
+  hits=0;misses=0;accessLog=[];hitRateHistory=[];
+}
+
+function accessAddr(addr){
+  const sets=cache.length;
+  const setIdx=assoc===0?0:addr%sets;
+  const tag=assoc===0?addr:Math.floor(addr/sets);
+  const set=cache[setIdx];
+  // check hit
+  let hit=false;
+  for(const line of set){
+    if(line.valid&&line.tag===tag){hit=true;line.age=0;break;}
+    line.age++;
+  }
+  if(hit){hits++;}
+  else{
+    misses++;
+    // find victim
+    let victim=-1;
+    for(let i=0;i<set.length;i++){
+      if(!set[i].valid){victim=i;break;}
+    }
+    if(victim===-1){
+      if(repl==='lru'){let maxAge=-1;for(let i=0;i<set.length;i++) if(set[i].age>maxAge){maxAge=set[i].age;victim=i;}}
+      else if(repl==='fifo'){let maxOrd=-1;for(let i=0;i<set.length;i++) if(set[i].order>maxOrd){maxOrd=set[i].order;victim=i;}}
+      else victim=Math.floor(Math.random()*set.length);
+    }
+    set[victim]={valid:true,tag,age:0,order:hits+misses};
+    for(const line of set) if(line!==set[victim]) line.age++;
+  }
+  lastResult=hit?'HIT':'MISS';
+  accessLog.push({addr,hit,setIdx,tag});
+  if(accessLog.length>40) accessLog.shift();
+  hitRateHistory.push(hits/(hits+misses));
+  if(hitRateHistory.length>200) hitRateHistory.shift();
+  document.getElementById('hits').textContent=hits;
+  document.getElementById('misses').textContent=misses;
+  document.getElementById('hitrate').textContent=((hits/(hits+misses))*100).toFixed(1)+'%';
+  document.getElementById('total').textContent=hits+misses;
+}
+
+document.getElementById('lines').addEventListener('change',e=>{nLines=+e.value;initCache();});
+document.getElementById('assoc').addEventListener('change',e=>{assoc=+e.value;initCache();});
+document.getElementById('repl').addEventListener('change',e=>{repl=e.value;initCache();});
+document.getElementById('access').addEventListener('click',()=>accessAddr(+document.getElementById('addr').value));
+document.getElementById('seq').addEventListener('click',()=>{for(let i=0;i<16;i++) accessAddr(i);});
+document.getElementById('rand').addEventListener('click',()=>{for(let i=0;i<20;i++) accessAddr(Math.floor(Math.random()*32));});
+document.getElementById('reset').addEventListener('click',initCache);
+
+function draw(){
+  ctx.fillStyle='#111';ctx.fillRect(0,0,W,H);
+  // cache state
+  ctx.fillStyle='#ef4444';ctx.font='bold 12px system-ui';ctx.fillText('Cache State',20,20);
+  const cx=20,cy=35;
+  for(let s=0;s<cache.length;s++){
+    const set=cache[s];
+    ctx.fillStyle='#666';ctx.font='9px monospace';ctx.fillText(`Set${s}`,cx,cy+s*22+12);
+    for(let w=0;w<set.length;w++){
+      const x=cx+35+w*50,y=cy+s*22;
+      ctx.fillStyle=set[w].valid?'#ef444444':'#1a1a1a';
+      ctx.fillRect(x,y,45,18);
+      ctx.strokeStyle=set[w].valid?'#ef4444':'#333';ctx.lineWidth=1;ctx.strokeRect(x,y,45,18);
+      ctx.fillStyle=set[w].valid?'#fff':'#444';ctx.font='9px monospace';
+      ctx.fillText(set[w].valid?`T:${set[w].tag} A:${set[w].age}`:'empty',x+2,y+13);
+    }
+  }
+  // access log
+  const lx=380,ly=20;
+  ctx.fillStyle='#ef4444';ctx.font='bold 12px system-ui';ctx.fillText('Access Log',lx,ly);
+  const maxShow=Math.min(accessLog.length,16);
+  for(let i=0;i<maxShow;i++){
+    const a=accessLog[accessLog.length-1-i];
+    ctx.fillStyle=a.hit?'#22c55e':'#ef4444';ctx.font='10px monospace';
+    ctx.fillText(`Addr ${a.addr.toString().padStart(2)} -> Set${a.setIdx} Tag${a.tag} ${a.hit?'HIT':'MISS'}`,lx,ly+18+i*14);
+  }
+  // last result flash
+  if(lastResult){
+    ctx.fillStyle=lastResult==='HIT'?'#22c55e':'#ef4444';
+    ctx.font='bold 24px system-ui';
+    ctx.fillText(lastResult,lx+250,ly+20);
+  }
+  // hit rate graph
+  const gx=380,gy=260,gw=340,gh=80;
+  ctx.strokeStyle='#333';ctx.lineWidth=1;
+  ctx.strokeRect(gx,gy,gw,gh);
+  ctx.fillStyle='#888';ctx.font='9px system-ui';ctx.fillText('Hit Rate Over Time',gx,gy-5);
+  ctx.fillText('100%',gx-30,gy+8);ctx.fillText('0%',gx-20,gy+gh+3);
+  if(hitRateHistory.length>1){
+    ctx.strokeStyle='#ef4444';ctx.lineWidth=2;ctx.beginPath();
+    for(let i=0;i<hitRateHistory.length;i++){
+      const x=gx+i/hitRateHistory.length*gw;
+      const y=gy+gh-hitRateHistory[i]*gh;
+      i===0?ctx.moveTo(x,y):ctx.lineTo(x,y);
+    }
+    ctx.stroke();
+  }
+  // memory grid (bottom left)
+  ctx.fillStyle='#888';ctx.font='10px system-ui';ctx.fillText('Memory (0-63)',20,250);
+  for(let a=0;a<64;a++){
+    const row=Math.floor(a/16),col=a%16;
+    const x=20+col*22,y=264+row*22;
+    // check if in cache
+    let inCache=false;
+    for(const set of cache) for(const line of set){
+      if(line.valid){
+        const sets=cache.length;
+        const reconstructed=assoc===0?line.tag:line.tag*sets+(cache.indexOf(set));
+        if(reconstructed===a) inCache=true;
+      }
+    }
+    ctx.fillStyle=inCache?'#ef444466':'#1a1a1a';
+    ctx.fillRect(x,y,20,18);
+    ctx.strokeStyle='#333';ctx.strokeRect(x,y,20,18);
+    ctx.fillStyle=inCache?'#fff':'#555';ctx.font='8px monospace';
+    ctx.fillText(a.toString(),x+3,y+13);
+  }
+  requestAnimationFrame(draw);
+}
+initCache();draw();
+</script>
+</body>
+</html>

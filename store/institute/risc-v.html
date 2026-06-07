@@ -91,6 +91,31 @@
         <li><strong>Growing ecosystem</strong> — Linux, FreeBSD, Zephyr RTOS, FreeRTOS. GCC, LLVM, Rust compiler. QEMU, Spike simulator. Android support. Billions of RISC-V cores shipped (mostly in microcontrollers).</li>
       </ul>
 
+      <!-- Diagram: ISA comparison -->
+      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:.4rem;margin:1.5rem 0;text-align:center">
+        <div style="background:#141414;border:1px solid #262626;border-radius:8px;padding:.6rem .3rem">
+          <div style="font-size:.78rem;font-weight:700;color:#fafafa">x86-64</div>
+          <div style="font-size:.62rem;color:#ef4444;margin-top:.2rem">CISC</div>
+          <div style="font-size:.62rem;color:#737373">Variable-length</div>
+          <div style="font-size:.62rem;color:#737373">400+ instructions</div>
+          <div style="font-size:.62rem;color:#737373">Intel/AMD only</div>
+        </div>
+        <div style="background:#141414;border:1px solid #262626;border-radius:8px;padding:.6rem .3rem">
+          <div style="font-size:.78rem;font-weight:700;color:#fafafa">ARM</div>
+          <div style="font-size:.62rem;color:#ef4444;margin-top:.2rem">RISC-ish</div>
+          <div style="font-size:.62rem;color:#737373">Fixed 32-bit</div>
+          <div style="font-size:.62rem;color:#737373">~1000 instructions</div>
+          <div style="font-size:.62rem;color:#737373">License required</div>
+        </div>
+        <div style="background:#141414;border:1px solid #ef4444;border-radius:8px;padding:.6rem .3rem">
+          <div style="font-size:.78rem;font-weight:700;color:#fafafa">RISC-V</div>
+          <div style="font-size:.62rem;color:#ef4444;margin-top:.2rem">Pure RISC</div>
+          <div style="font-size:.62rem;color:#737373">Fixed 32-bit</div>
+          <div style="font-size:.62rem;color:#737373">47 base instructions</div>
+          <div style="font-size:.62rem;color:#4ade80">Open & free</div>
+        </div>
+      </div>
+
       <h3>RISC-V vs ARM vs x86</h3>
       <ul>
         <li><strong>x86-64</strong> — CISC, variable-length instructions (1-15 bytes), 400+ instructions, enormous backward compatibility surface. Dominant in desktops/servers. Intel and AMD only.</li>
@@ -102,6 +127,21 @@
     <section class="section" id="base">
       <h2>Base Integer Instructions (RV32I)</h2>
       <p>RV32I is the base 32-bit integer instruction set. It defines 47 instructions, 32 integer registers (x0-x31, each 32 bits wide), and a 32-bit program counter. Register x0 is hardwired to zero — reads always return 0, writes are discarded. This simplifies instruction encoding and eliminates the need for a separate "move" instruction (use <code>add rd, rs, x0</code>).</p>
+
+      <!-- Diagram: RISC-V modular extensions -->
+      <div style="max-width:420px;margin:1.5rem auto">
+        <div style="background:#ef4444;color:white;padding:.4rem;text-align:center;border-radius:8px 8px 0 0;font-size:.78rem;font-weight:600">RV32I / RV64I &mdash; Base Integer (47 instructions)</div>
+        <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:2px">
+          <div style="background:#dc2626;color:white;padding:.3rem;text-align:center;font-size:.68rem;font-weight:600">M &mdash; Mul/Div</div>
+          <div style="background:#dc2626;color:white;padding:.3rem;text-align:center;font-size:.68rem;font-weight:600">A &mdash; Atomics</div>
+          <div style="background:#dc2626;color:white;padding:.3rem;text-align:center;font-size:.68rem;font-weight:600">F/D &mdash; Float</div>
+        </div>
+        <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:2px">
+          <div style="background:#b91c1c;color:white;padding:.3rem;text-align:center;font-size:.68rem;font-weight:600">C &mdash; Compressed</div>
+          <div style="background:#b91c1c;color:white;padding:.3rem;text-align:center;font-size:.68rem;font-weight:600">V &mdash; Vector</div>
+          <div style="background:#b91c1c;color:white;padding:.3rem;text-align:center;border-radius:0 0 8px 8px;font-size:.68rem;font-weight:600">Custom ext.</div>
+        </div>
+      </div>
 
       <h3>Instruction Categories</h3>
       <ul>

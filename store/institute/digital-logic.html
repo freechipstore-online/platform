@@ -84,6 +84,36 @@
       <h2>Boolean Algebra</h2>
       <p>Boolean algebra, formalized by George Boole in 1854, is the mathematics of binary logic. Every digital circuit is ultimately an implementation of Boolean functions in silicon. Variables take only two values: 0 (false) and 1 (true).</p>
 
+      <!-- Diagram: Logic gate symbols -->
+      <div style="display:flex;align-items:center;justify-content:center;gap:1.5rem;margin:1.5rem 0;flex-wrap:wrap">
+        <div style="text-align:center">
+          <div style="width:48px;height:32px;border:2px solid #ef4444;border-radius:0 16px 16px 0;display:flex;align-items:center;justify-content:center;font-size:.7rem;font-weight:700;color:#fca5a5;margin:0 auto">AND</div>
+          <div style="font-size:.65rem;color:#525252;margin-top:.3rem">A &middot; B</div>
+        </div>
+        <div style="text-align:center">
+          <div style="width:48px;height:32px;border:2px solid #ef4444;border-radius:0 50% 50% 0;display:flex;align-items:center;justify-content:center;font-size:.7rem;font-weight:700;color:#fca5a5;margin:0 auto">OR</div>
+          <div style="font-size:.65rem;color:#525252;margin-top:.3rem">A + B</div>
+        </div>
+        <div style="text-align:center">
+          <div style="display:flex;align-items:center;justify-content:center;margin:0 auto">
+            <div style="width:36px;height:32px;border:2px solid #ef4444;display:flex;align-items:center;justify-content:center;font-size:.7rem;font-weight:700;color:#fca5a5">NOT</div>
+            <div style="width:8px;height:8px;border:2px solid #ef4444;border-radius:50%"></div>
+          </div>
+          <div style="font-size:.65rem;color:#525252;margin-top:.3rem">~A</div>
+        </div>
+        <div style="text-align:center">
+          <div style="width:48px;height:32px;border:2px solid #ef4444;border-radius:0 16px 16px 0;display:flex;align-items:center;justify-content:center;font-size:.65rem;font-weight:700;color:#fca5a5;margin:0 auto">XOR</div>
+          <div style="font-size:.65rem;color:#525252;margin-top:.3rem">A &oplus; B</div>
+        </div>
+        <div style="text-align:center">
+          <div style="display:flex;align-items:center;justify-content:center;margin:0 auto">
+            <div style="width:42px;height:32px;border:2px solid #ef4444;border-radius:0 16px 16px 0;display:flex;align-items:center;justify-content:center;font-size:.6rem;font-weight:700;color:#fca5a5">NAND</div>
+            <div style="width:7px;height:7px;border:2px solid #ef4444;border-radius:50%"></div>
+          </div>
+          <div style="font-size:.65rem;color:#525252;margin-top:.3rem">Universal</div>
+        </div>
+      </div>
+
       <h3>Fundamental Operations</h3>
       <ul>
         <li><strong>AND (conjunction)</strong> — written as A&middot;B or AB. Output is 1 only when both inputs are 1. In hardware: series transistors.</li>
@@ -104,6 +134,17 @@
         <li><strong>Consensus</strong> — AB + A'C + BC = AB + A'C (the BC term is redundant)</li>
         <li><strong>Shannon's Expansion</strong> — f(A,B,...) = A&middot;f(1,B,...) + A'&middot;f(0,B,...). Basis for multiplexer-based implementations and BDDs.</li>
       </ul>
+
+      <!-- Diagram: Boolean minimization flow -->
+      <div style="display:flex;align-items:center;justify-content:center;gap:.4rem;margin:1.5rem 0;flex-wrap:wrap">
+        <div style="background:#1c0b0b;border:1px solid #ef4444;border-radius:8px;padding:.4rem .7rem;color:#fca5a5;font-size:.72rem;font-weight:600">Truth Table</div>
+        <span style="color:#404040;font-size:1rem">&rarr;</span>
+        <div style="background:#1c0b0b;border:1px solid #ef4444;border-radius:8px;padding:.4rem .7rem;color:#fca5a5;font-size:.72rem;font-weight:600">K-Map / Quine-McCluskey</div>
+        <span style="color:#404040;font-size:1rem">&rarr;</span>
+        <div style="background:#1c0b0b;border:1px solid #ef4444;border-radius:8px;padding:.4rem .7rem;color:#fca5a5;font-size:.72rem;font-weight:600">Minimized SOP/POS</div>
+        <span style="color:#404040;font-size:1rem">&rarr;</span>
+        <div style="background:#0f3d0f;border:1px solid #4ade80;border-radius:8px;padding:.4rem .7rem;color:#4ade80;font-size:.72rem;font-weight:600">Gate-level circuit</div>
+      </div>
 
       <h3>Canonical Forms</h3>
       <ul>

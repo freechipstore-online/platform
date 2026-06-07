@@ -88,6 +88,28 @@
       <h3>VHDL</h3>
       <p>VHSIC Hardware Description Language. Created under a U.S. Department of Defense program in 1983. IEEE 1076. Ada-like syntax — strongly typed, verbose, explicit. Dominant in Europe and defense/aerospace. More verbose than Verilog but catches more errors at compile time.</p>
 
+      <!-- Diagram: HDL landscape -->
+      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:.4rem;margin:1.5rem 0;text-align:center">
+        <div style="background:#141414;border:1px solid #ef4444;border-radius:8px;padding:.6rem .3rem">
+          <div style="font-size:.78rem;font-weight:700;color:#fafafa">Verilog / SV</div>
+          <div style="font-size:.62rem;color:#ef4444;margin-top:.2rem">IEEE 1364 / 1800</div>
+          <div style="font-size:.62rem;color:#737373">C-like syntax</div>
+          <div style="font-size:.62rem;color:#737373">Industry standard</div>
+        </div>
+        <div style="background:#141414;border:1px solid #262626;border-radius:8px;padding:.6rem .3rem">
+          <div style="font-size:.78rem;font-weight:700;color:#fafafa">VHDL</div>
+          <div style="font-size:.62rem;color:#ef4444;margin-top:.2rem">IEEE 1076</div>
+          <div style="font-size:.62rem;color:#737373">Ada-like syntax</div>
+          <div style="font-size:.62rem;color:#737373">Europe/defense</div>
+        </div>
+        <div style="background:#141414;border:1px solid #262626;border-radius:8px;padding:.6rem .3rem">
+          <div style="font-size:.78rem;font-weight:700;color:#fafafa">Chisel / Amaranth</div>
+          <div style="font-size:.62rem;color:#ef4444;margin-top:.2rem">Scala / Python</div>
+          <div style="font-size:.62rem;color:#737373">Meta-HDL</div>
+          <div style="font-size:.62rem;color:#737373">Generates Verilog</div>
+        </div>
+      </div>
+
       <h3>Modern Alternatives</h3>
       <ul>
         <li><strong>Chisel</strong> — Scala-embedded HDL from UC Berkeley. Generates Verilog. Used to build RISC-V cores (Rocket, BOOM). Powerful parameterization via Scala's type system.</li>
@@ -99,6 +121,14 @@
 
     <section class="section" id="syntax">
       <h2>Syntax Basics</h2>
+
+      <!-- Diagram: Verilog abstraction levels -->
+      <div style="max-width:400px;margin:1.5rem auto">
+        <div style="background:#ef4444;color:white;padding:.4rem;text-align:center;border-radius:8px 8px 0 0;font-size:.78rem;font-weight:600">Behavioral &mdash; algorithm (always, if/else)</div>
+        <div style="background:#dc2626;color:white;padding:.4rem;text-align:center;font-size:.78rem;font-weight:600">RTL &mdash; register transfers (assign, always @)</div>
+        <div style="background:#b91c1c;color:white;padding:.4rem;text-align:center;font-size:.78rem;font-weight:600">Gate-level &mdash; and, or, not primitives</div>
+        <div style="background:#7f1d1d;color:white;padding:.4rem;text-align:center;border-radius:0 0 8px 8px;font-size:.78rem;font-weight:600">Transistor-level &mdash; nmos, pmos, cmos</div>
+      </div>
 
       <h3>Data Types</h3>
       <ul>

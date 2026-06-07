@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Memory Hierarchy - FreeChipStore</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:#0a0a0a;color:#e0e0e0;font-family:system-ui,sans-serif;display:flex;flex-direction:column;align-items:center;min-height:100vh}
+h1{color:#ef4444;margin:18px 0 6px;font-size:1.4rem}
+.desc{color:#999;font-size:.85rem;margin-bottom:12px}
+canvas{background:#111;border:1px solid #333;border-radius:6px;cursor:pointer}
+.controls{display:flex;gap:10px;margin:12px 0;flex-wrap:wrap;justify-content:center}
+.controls button{background:#ef4444;color:#fff;border:none;padding:5px 14px;border-radius:4px;font-size:.8rem;cursor:pointer;font-weight:600}
+.controls label{font-size:.8rem;color:#aaa}
+.controls input[type=range]{width:80px;accent-color:#ef4444}
+.stats{font-size:.8rem;color:#aaa;margin:6px}
+footer{margin-top:auto;padding:12px;font-size:.7rem;color:#555}
+footer a{color:#ef4444;text-decoration:none}
+</style>
+</head>
+<body>
+<h1>Memory Hierarchy Visualizer</h1>
+<p class="desc">L1 - L2 - L3 - RAM - Disk. Click a level to initiate access. Watch data flow.</p>
+<canvas id="c" width="740" height="400"></canvas>
+<div class="controls">
+<button id="accessL1">Access L1</button>
+<button id="accessL2">Access (L1 miss)</button>
+<button id="accessL3">Access (L2 miss)</button>
+<button id="accessRAM">Access (L3 miss)</button>
+<button id="accessDisk">Access (RAM miss)</button>
+<button id="random">Random Access</button>
+</div>
+<div class="stats" id="stats">Click a level to see access latency</div>
+<footer><a href="/items/">FreeChipStore</a></footer>
+<script>
+const C=document.getElementById('c'),ctx=C.getContext('2d');
+const W=740,H=400;
+
+const levels=[
+  {name:'Registers',size:'1 KB',time:'0.25 ns',cycles:1,color:'#ef4444',w:80,y:30},
+  {name:'L1 Cache',size:'64 KB',time:'1 ns',cycles:4,color:'#f97316',w:140,y:90},
+  {name:'L2 Cache',size:'256 KB',time:'3 ns',cycles:12,color:'#f59e0b',w:220,y:150},
+  {name:'L3 Cache',size:'8 MB',time:'10 ns',cycles:40,color:'#22c55e',w:320,y:210},
+  {name:'RAM',size:'16 GB',time:'100 ns',cycles:400,color:'#3b82f6',w:440,y:270},
+  {name:'SSD/Disk',size:'1 TB',time:'100 us',cycles:400000,color:'#8b5cf6',w:560,y:330}
+];
+
+let animation=null,animT=0,animLevel=0,animPhase='down';
+let accessHistory=[];
+
+function startAccess(targetLevel){
+  animation={target:targetLevel,phase:'down',level:0,t:0,totalT:0};
+  animT=0;
+}
+
+document.getElementById('accessL1').addEventListener('click',()=>startAccess(1));
+document.getElementById('accessL2').addEventListener('click',()=>startAccess(2));
+document.getElementById('accessL3').addEventListener('click',()=>startAccess(3));
+document.getElementById('accessRAM').addEventListener('click',()=>startAccess(4));
+document.getElementById('accessDisk').addEventListener('click',()=>startAccess(5));
+document.getElementById('random').addEventListener('click',()=>{
+  // simulate realistic access pattern (90% L1, 5% L2, etc.)
+  const r=Math.random();
+  if(r<0.90) startAccess(1);
+  else if(r<0.95) startAccess(2);
+  else if(r<0.98) startAccess(3);
+  else if(r<0.999) startAccess(4);
+  else startAccess(5);
+});
+
+C.addEventListener('click',e=>{
+  const rect=C.getBoundingClientRect();
+  const my=e.clientY-rect.top;
+  for(let i=0;i<levels.length;i++){
+    if(Math.abs(my-levels[i].y-15)<20){
+      startAccess(i);break;
+    }
+  }
+});
+
+function draw(){
+  ctx.fillStyle='#111';ctx.fillRect(0,0,W,H);
+  const cx=W/2;
+  // draw pyramid
+  for(let i=0;i<levels.length;i++){
+    const lv=levels[i];
+    const x=cx-lv.w/2;
+    const h=50;
+    const isActive=animation&&((animation.phase==='down'&&i<=animation.level)||(animation.phase==='up'&&i>=animation.level&&i<=animation.target));
+    const isTarget=animation&&i===animation.target;
+    // trapezoid
+    const nextW=i<levels.length-1?levels[i+1].w:lv.w+80;
+    ctx.fillStyle=isTarget?lv.color+'88':isActive?lv.color+'44':'#1a1a1a';
+    ctx.beginPath();
+    ctx.moveTo(cx-lv.w/2,lv.y);
+    ctx.lineTo(cx+lv.w/2,lv.y);
+    ctx.lineTo(cx+nextW/2,lv.y+50);
+    ctx.lineTo(cx-nextW/2,lv.y+50);
+    ctx.closePath();
+    ctx.fill();
+    ctx.strokeStyle=lv.color;ctx.lineWidth=isTarget?3:1;ctx.stroke();
+    // labels
+    ctx.fillStyle='#fff';ctx.font='bold 11px system-ui';
+    ctx.fillText(lv.name,cx-lv.w/2+8,lv.y+18);
+    ctx.fillStyle='#ccc';ctx.font='10px system-ui';
+    ctx.fillText(lv.size,cx-lv.w/2+8,lv.y+34);
+    // right side: speed
+    ctx.fillStyle='#888';ctx.font='10px monospace';
+    ctx.fillText(lv.time,cx+lv.w/2+10,lv.y+18);
+    ctx.fillText(`${lv.cycles} cyc`,cx+lv.w/2+10,lv.y+34);
+  }
+  // speed comparison bars (right side)
+  const bx=600,by=40,bw=120,bh=H-80;
+  ctx.fillStyle='#888';ctx.font='bold 10px system-ui';ctx.fillText('Relative Speed',bx,by-5);
+  const maxCyc=Math.log10(levels[5].cycles);
+  for(let i=0;i<levels.length;i++){
+    const lv=levels[i];
+    const logCyc=Math.log10(lv.cycles);
+    const barH=(logCyc/maxCyc)*bh;
+    const y=by+bh-barH;
+    ctx.fillStyle=lv.color+'66';
+    ctx.fillRect(bx,y,30,barH);
+    ctx.fillStyle=lv.color;ctx.font='8px system-ui';
+    ctx.fillText(lv.name.split(' ')[0],bx+34,y+10);
+  }
+  // animation - data packet moving
+  if(animation){
+    animation.t+=2;
+    const totalDown=animation.target*20;
+    const totalUp=animation.target*20;
+    if(animation.phase==='down'){
+      const progress=Math.min(animation.t/totalDown,1);
+      const currentLevel=Math.floor(progress*animation.target);
+      animation.level=currentLevel;
+      // moving dot
+      const fromY=levels[Math.min(currentLevel,levels.length-1)].y+25;
+      const toY=levels[Math.min(currentLevel+1,levels.length-1)].y+25;
+      const subP=(progress*animation.target-currentLevel);
+      const dotY=fromY+(toY-fromY)*subP;
+      ctx.fillStyle='#fff';ctx.beginPath();ctx.arc(cx,dotY,6,0,Math.PI*2);ctx.fill();
+      ctx.fillStyle='#ef4444';ctx.font='bold 10px system-ui';ctx.fillText('MISS',cx+12,dotY+4);
+      if(progress>=1){animation.phase='up';animation.t=0;animation.level=animation.target;}
+    } else {
+      const progress=Math.min(animation.t/totalUp,1);
+      const currentLevel=animation.target-Math.floor(progress*animation.target);
+      animation.level=currentLevel;
+      const fromY=levels[Math.max(currentLevel+1,0)].y+25;
+      const toY=levels[Math.max(currentLevel,0)].y+25;
+      const subP=(progress*animation.target-(animation.target-currentLevel-1));
+      const dotY=fromY+(toY-fromY)*Math.min(subP,1);
+      ctx.fillStyle='#22c55e';ctx.beginPath();ctx.arc(cx,dotY,6,0,Math.PI*2);ctx.fill();
+      ctx.fillStyle='#22c55e';ctx.font='bold 10px system-ui';ctx.fillText('DATA',cx+12,dotY+4);
+      if(progress>=1){
+        const latency=levels[animation.target].time;
+        const penalty=levels[animation.target].cycles;
+        document.getElementById('stats').innerHTML=
+          `Access found at <b style="color:${levels[animation.target].color}">${levels[animation.target].name}</b> | `+
+          `Latency: <b>${latency}</b> | Miss penalty: <b>${penalty} cycles</b>`;
+        accessHistory.push(animation.target);
+        animation=null;
+      }
+    }
+  }
+  // size comparison
+  ctx.fillStyle='#555';ctx.font='9px system-ui';
+  ctx.fillText('Size increases down, speed decreases',20,H-10);
+  ctx.fillText(`1 L3 miss = ${levels[3].cycles/levels[0].cycles}x register access`,20,H-24);
+  ctx.fillText(`1 RAM miss = ${levels[4].cycles/levels[0].cycles}x register access`,20,H-38);
+  requestAnimationFrame(draw);
+}
+draw();
+</script>
+</body>
+</html>

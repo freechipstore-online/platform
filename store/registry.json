@@ -119,6 +119,66 @@
       "creator": "serge-ivo",
       "creatorName": "Serge",
       "creatorAvatar": "https://github.com/serge-ivo.png?size=96"
+    },
+    {
+      "id": "cache-sim",
+      "name": "Cache Simulator",
+      "description": "L1/L2 cache sim. Direct-mapped, set-associative. LRU/FIFO. Hit rate tracking.",
+      "storeType": "behavior",
+      "category": "architecture",
+      "icon": "\ud83d\udcbe",
+      "iconBg": "#ef4444",
+      "creator": "serge-ivo",
+      "creatorName": "Serge",
+      "creatorAvatar": "https://github.com/serge-ivo.png?size=96"
+    },
+    {
+      "id": "fsm-builder",
+      "name": "FSM Builder",
+      "description": "Visual state machine editor. Add states, transitions. Simulate. Generate Verilog.",
+      "storeType": "behavior",
+      "category": "sequential",
+      "icon": "\ud83d\udd04",
+      "iconBg": "#ef4444",
+      "creator": "serge-ivo",
+      "creatorName": "Serge",
+      "creatorAvatar": "https://github.com/serge-ivo.png?size=96"
+    },
+    {
+      "id": "multiplier",
+      "name": "Binary Multiplier",
+      "description": "Shift-and-add multiplication visualized. Step through partial products bit by bit.",
+      "storeType": "behavior",
+      "category": "fundamentals",
+      "icon": "\u2716\ufe0f",
+      "iconBg": "#ef4444",
+      "creator": "serge-ivo",
+      "creatorName": "Serge",
+      "creatorAvatar": "https://github.com/serge-ivo.png?size=96"
+    },
+    {
+      "id": "karnaugh",
+      "name": "Karnaugh Map",
+      "description": "2/3/4 variable K-maps. Click cells, auto-group, minimize Boolean expression.",
+      "storeType": "behavior",
+      "category": "fundamentals",
+      "icon": "\ud83d\uddfa\ufe0f",
+      "iconBg": "#ef4444",
+      "creator": "serge-ivo",
+      "creatorName": "Serge",
+      "creatorAvatar": "https://github.com/serge-ivo.png?size=96"
+    },
+    {
+      "id": "memory-map",
+      "name": "Memory Hierarchy",
+      "description": "Registers \u2192 L1 \u2192 L2 \u2192 L3 \u2192 RAM \u2192 Disk. Access latency animation. Miss penalty calc.",
+      "storeType": "behavior",
+      "category": "architecture",
+      "icon": "\ud83d\udcca",
+      "iconBg": "#ef4444",
+      "creator": "serge-ivo",
+      "creatorName": "Serge",
+      "creatorAvatar": "https://github.com/serge-ivo.png?size=96"
     }
   ]
 }

@@ -1,0 +1,245 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Karnaugh Map Solver - FreeChipStore</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:#0a0a0a;color:#e0e0e0;font-family:system-ui,sans-serif;display:flex;flex-direction:column;align-items:center;min-height:100vh}
+h1{color:#ef4444;margin:18px 0 6px;font-size:1.4rem}
+.desc{color:#999;font-size:.85rem;margin-bottom:12px}
+canvas{background:#111;border:1px solid #333;border-radius:6px;cursor:pointer}
+.controls{display:flex;gap:10px;margin:12px 0;flex-wrap:wrap;justify-content:center}
+.controls select,.controls button{background:#222;color:#e0e0e0;border:1px solid #444;padding:4px 10px;border-radius:4px;font-size:.8rem;cursor:pointer}
+.controls button{background:#ef4444;color:#fff;border:none;font-weight:600}
+.result{font-family:monospace;font-size:1rem;color:#22c55e;margin:8px;min-height:24px}
+footer{margin-top:auto;padding:12px;font-size:.7rem;color:#555}
+footer a{color:#ef4444;text-decoration:none}
+</style>
+</head>
+<body>
+<h1>Karnaugh Map Solver</h1>
+<p class="desc">Click cells to set 1/0/X. Auto-groups and minimizes Boolean expressions.</p>
+<canvas id="c" width="600" height="340"></canvas>
+<div class="controls">
+<label style="font-size:.8rem;color:#aaa">Variables: <select id="vars"><option value="2">2</option><option value="3">3</option><option value="4" selected>4</option></select></label>
+<button id="solve">Minimize</button>
+<button id="clear">Clear</button>
+<button id="fill">Random</button>
+</div>
+<div class="result" id="result">F = ...</div>
+<footer><a href="/items/">FreeChipStore</a></footer>
+<script>
+const C=document.getElementById('c'),ctx=C.getContext('2d');
+const W=600,H=340;
+let nVars=4,cells=[];
+let groups=[];
+const grayOrder2=[0,1,3,2];
+const grayOrder=[0,1,3,2]; // for each axis
+const varNames='ABCD';
+
+function initCells(){
+  const n=1<<nVars;
+  cells=new Array(n).fill(0);
+  groups=[];
+}
+
+function getRC(){
+  if(nVars===2) return{rows:2,cols:2,rBits:1,cBits:1};
+  if(nVars===3) return{rows:2,cols:4,rBits:1,cBits:2};
+  return{rows:4,cols:4,rBits:2,cBits:2};
+}
+
+function cellIndex(r,c){
+  const{rBits,cBits}=getRC();
+  const rGray=grayOrder[r];
+  const cGray=grayOrder[c];
+  return(rGray<<cBits)|cGray;
+}
+
+document.getElementById('vars').addEventListener('change',e=>{nVars=+e.value;initCells();});
+document.getElementById('clear').addEventListener('click',()=>{initCells();document.getElementById('result').textContent='F = ...';});
+document.getElementById('fill').addEventListener('click',()=>{
+  for(let i=0;i<cells.length;i++) cells[i]=Math.random()>0.5?1:Math.random()>0.8?2:0;
+});
+
+C.addEventListener('click',e=>{
+  const rect=C.getBoundingClientRect();
+  const mx=e.clientX-rect.left,my=e.clientY-rect.top;
+  const{rows,cols}=getRC();
+  const cellW=60,cellH=50;
+  const ox=120,oy=60;
+  for(let r=0;r<rows;r++){
+    for(let c=0;c<cols;c++){
+      const x=ox+c*cellW,y=oy+r*cellH;
+      if(mx>=x&&mx<x+cellW&&my>=y&&my<y+cellH){
+        const idx=cellIndex(r,c);
+        cells[idx]=(cells[idx]+1)%3; // 0,1,X(2)
+      }
+    }
+  }
+});
+
+document.getElementById('solve').addEventListener('click',minimize);
+
+function minimize(){
+  groups=[];
+  const n=1<<nVars;
+  const minterms=[];
+  const dontcares=[];
+  for(let i=0;i<n;i++){
+    if(cells[i]===1) minterms.push(i);
+    else if(cells[i]===2) dontcares.push(i);
+  }
+  if(minterms.length===0){document.getElementById('result').textContent='F = 0';return;}
+  if(minterms.length+dontcares.length===n){document.getElementById('result').textContent='F = 1';return;}
+  // simple Quine-McCluskey-ish grouping
+  const all=[...minterms,...dontcares];
+  const primes=[];
+  // find all prime implicants by checking groups of 1,2,4,8
+  for(let size=1<<(nVars-1);size>=1;size>>=1){
+    for(let mask=0;mask<n;mask+=size){
+      // check if all cells in group are 1 or X
+      const groupCells=[];
+      let valid=true;
+      for(let i=0;i<size;i++){
+        const idx=mask|i;
+        if(idx>=n){valid=false;break;}
+        groupCells.push(idx);
+        if(cells[idx]===0) valid=false;
+      }
+      if(valid&&groupCells.length===size){
+        primes.push(groupCells);
+      }
+    }
+  }
+  // also check rectangular K-map groups
+  const{rows,cols}=getRC();
+  const sizes=[[1,1],[1,2],[2,1],[2,2],[1,4],[4,1],[2,4],[4,2],[4,4]];
+  const foundGroups=[];
+  for(const[gh,gw] of sizes){
+    if(gh>rows||gw>cols) continue;
+    for(let r=0;r<rows;r++){
+      for(let c=0;c<cols;c++){
+        let valid=true;
+        const gcells=[];
+        for(let dr=0;dr<gh;dr++){
+          for(let dc=0;dc<gw;dc++){
+            const rr=(r+dr)%rows,cc=(c+dc)%cols;
+            const idx=cellIndex(rr,cc);
+            if(cells[idx]===0) valid=false;
+            gcells.push({r:rr,c:cc,idx});
+          }
+        }
+        if(valid){
+          foundGroups.push({cells:gcells,size:gh*gw,r,c,h:gh,w:gw});
+        }
+      }
+    }
+  }
+  // greedy cover
+  foundGroups.sort((a,b)=>b.size-a.size);
+  const covered=new Set();
+  groups=[];
+  for(const g of foundGroups){
+    const uncovered=g.cells.filter(c=>cells[c.idx]===1&&!covered.has(c.idx));
+    if(uncovered.length>0){
+      groups.push(g);
+      for(const c of g.cells) if(cells[c.idx]===1) covered.add(c.idx);
+    }
+    let allCovered=true;
+    for(let i=0;i<cells.length;i++) if(cells[i]===1&&!covered.has(i)) allCovered=false;
+    if(allCovered) break;
+  }
+  // build expression
+  const terms=groups.map(g=>{
+    const{rBits,cBits}=getRC();
+    const rVals=new Set(g.cells.map(c=>c.r));
+    const cVals=new Set(g.cells.map(c=>c.c));
+    let term='';
+    // check which variables are constant
+    for(let b=0;b<nVars;b++){
+      const bitVals=new Set(g.cells.map(c=>(c.idx>>b)&1));
+      if(bitVals.size===1){
+        const v=[...bitVals][0];
+        term+=(v?'':varNames[nVars-1-b]+"'")+( v?varNames[nVars-1-b]:'');
+      }
+    }
+    return term||'1';
+  });
+  document.getElementById('result').textContent='F = '+terms.join(' + ');
+}
+
+function draw(){
+  ctx.fillStyle='#111';ctx.fillRect(0,0,W,H);
+  const{rows,cols,rBits,cBits}=getRC();
+  const cellW=60,cellH=50;
+  const ox=120,oy=60;
+  // header labels
+  ctx.fillStyle='#ef4444';ctx.font='bold 12px system-ui';
+  const cVars=varNames.slice(0,cBits);
+  const rVars=varNames.slice(cBits,cBits+rBits);
+  ctx.fillText(cVars,ox+cols*cellW/2-8,oy-30);
+  ctx.save();ctx.translate(ox-40,oy+rows*cellH/2);ctx.rotate(-Math.PI/2);
+  ctx.fillText(rVars,0,0);ctx.restore();
+  // gray code headers
+  ctx.fillStyle='#888';ctx.font='11px monospace';
+  for(let c=0;c<cols;c++){
+    ctx.fillText(grayOrder[c].toString(2).padStart(cBits,'0'),ox+c*cellW+cellW/2-8,oy-8);
+  }
+  for(let r=0;r<rows;r++){
+    ctx.fillText(grayOrder[r].toString(2).padStart(rBits,'0'),ox-30,oy+r*cellH+cellH/2+4);
+  }
+  // cells
+  for(let r=0;r<rows;r++){
+    for(let c=0;c<cols;c++){
+      const x=ox+c*cellW,y=oy+r*cellH;
+      const idx=cellIndex(r,c);
+      const val=cells[idx];
+      ctx.fillStyle=val===1?'#ef444433':val===2?'#f59e0b22':'#181818';
+      ctx.fillRect(x,y,cellW,cellH);
+      ctx.strokeStyle='#333';ctx.lineWidth=1;ctx.strokeRect(x,y,cellW,cellH);
+      ctx.fillStyle=val===1?'#ef4444':val===2?'#f59e0b':'#444';
+      ctx.font='bold 16px monospace';
+      ctx.fillText(val===2?'X':val.toString(),x+cellW/2-5,y+cellH/2+6);
+      // minterm number
+      ctx.fillStyle='#444';ctx.font='8px monospace';
+      ctx.fillText(idx.toString(),x+2,y+12);
+    }
+  }
+  // draw groups
+  const groupColors=['#ef4444','#3b82f6','#22c55e','#f59e0b','#a855f7','#06b6d4'];
+  for(let g=0;g<groups.length;g++){
+    const group=groups[g];
+    const color=groupColors[g%groupColors.length];
+    ctx.strokeStyle=color;ctx.lineWidth=3;
+    const minR=Math.min(...group.cells.map(c=>c.r));
+    const maxR=Math.max(...group.cells.map(c=>c.r));
+    const minC=Math.min(...group.cells.map(c=>c.c));
+    const maxC=Math.max(...group.cells.map(c=>c.c));
+    const x=ox+minC*cellW-2,y=oy+minR*cellH-2;
+    const w=(maxC-minC+1)*cellW+4,h=(maxR-minR+1)*cellH+4;
+    ctx.beginPath();
+    ctx.roundRect(x,y,w,h,8);
+    ctx.stroke();
+  }
+  // truth table
+  const tx=ox+cols*cellW+40,ty=oy;
+  ctx.fillStyle='#888';ctx.font='bold 10px system-ui';
+  ctx.fillText('Truth Table',tx,ty-8);
+  ctx.font='9px monospace';
+  const header=varNames.slice(0,nVars).split('').join(' ')+' | F';
+  ctx.fillText(header,tx,ty+8);
+  const n=1<<nVars;
+  for(let i=0;i<n&&i<16;i++){
+    const bits=i.toString(2).padStart(nVars,'0').split('').join(' ');
+    const val=cells[i];
+    ctx.fillStyle=val===1?'#ef4444':val===2?'#f59e0b':'#555';
+    ctx.fillText(`${bits} | ${val===2?'X':val}`,tx,ty+22+i*13);
+  }
+  requestAnimationFrame(draw);
+}
+initCells();draw();
+</script>
+</body>
+</html>

@@ -91,6 +91,23 @@
         <li><strong>Modern reality</strong> — the distinction has blurred. x86 processors internally decode CISC instructions into RISC-like micro-ops and execute them on a RISC-style pipeline. Performance comes from microarchitecture, not ISA complexity.</li>
       </ul>
 
+      <!-- Diagram: Von Neumann architecture -->
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:.5rem;margin:1.5rem 0;text-align:center">
+        <div style="background:#141414;border:1px solid #ef4444;border-radius:8px;padding:.75rem .5rem;grid-column:1/2">
+          <div style="font-size:.78rem;font-weight:700;color:#fafafa">Control Unit</div>
+          <div style="font-size:.65rem;color:#737373">Fetch, decode, sequence</div>
+        </div>
+        <div style="background:#141414;border:1px solid #ef4444;border-radius:8px;padding:.75rem .5rem;grid-column:2/3">
+          <div style="font-size:.78rem;font-weight:700;color:#fafafa">ALU + Registers</div>
+          <div style="font-size:.65rem;color:#737373">Compute + fast storage</div>
+        </div>
+        <div style="background:#141414;border:1px solid #ef4444;border-radius:8px;padding:.75rem .5rem;grid-column:3/4">
+          <div style="font-size:.78rem;font-weight:700;color:#fafafa">Memory</div>
+          <div style="font-size:.65rem;color:#737373">Instructions + Data</div>
+        </div>
+        <div style="grid-column:1/4;text-align:center;font-size:.7rem;color:#ef4444;font-weight:600;padding:.3rem;background:#1c0b0b;border:1px solid #ef4444;border-radius:6px">System Bus (Address + Data + Control)</div>
+      </div>
+
       <h3>Key Components</h3>
       <ul>
         <li><strong>Control Unit</strong> — fetches instructions, decodes them, generates control signals. Hardwired (fast, inflexible) or microcoded (slower, programmable). Modern x86 uses microcode for complex instructions.</li>
@@ -103,6 +120,20 @@
     <section class="section" id="pipeline">
       <h2>Pipeline Stages</h2>
       <p>Pipelining is the single most important technique in processor design. Like an assembly line in a factory, it overlaps the execution of multiple instructions. While instruction N is being executed, instruction N+1 is being decoded, and instruction N+2 is being fetched. Throughput increases proportionally to the number of stages (ideally).</p>
+
+      <!-- Diagram: 5-stage pipeline -->
+      <div style="display:flex;align-items:center;justify-content:center;gap:.3rem;margin:1.5rem 0;flex-wrap:wrap">
+        <div style="background:#ef4444;color:white;border-radius:8px;padding:.5rem .6rem;font-size:.72rem;font-weight:700;text-align:center;min-width:55px">IF<div style="font-size:.55rem;font-weight:400">Fetch</div></div>
+        <span style="color:#404040;font-size:1rem">&rarr;</span>
+        <div style="background:#dc2626;color:white;border-radius:8px;padding:.5rem .6rem;font-size:.72rem;font-weight:700;text-align:center;min-width:55px">ID<div style="font-size:.55rem;font-weight:400">Decode</div></div>
+        <span style="color:#404040;font-size:1rem">&rarr;</span>
+        <div style="background:#b91c1c;color:white;border-radius:8px;padding:.5rem .6rem;font-size:.72rem;font-weight:700;text-align:center;min-width:55px">EX<div style="font-size:.55rem;font-weight:400">Execute</div></div>
+        <span style="color:#404040;font-size:1rem">&rarr;</span>
+        <div style="background:#991b1b;color:white;border-radius:8px;padding:.5rem .6rem;font-size:.72rem;font-weight:700;text-align:center;min-width:55px">MEM<div style="font-size:.55rem;font-weight:400">Memory</div></div>
+        <span style="color:#404040;font-size:1rem">&rarr;</span>
+        <div style="background:#7f1d1d;color:white;border-radius:8px;padding:.5rem .6rem;font-size:.72rem;font-weight:700;text-align:center;min-width:55px">WB<div style="font-size:.55rem;font-weight:400">Write Back</div></div>
+      </div>
+      <div style="text-align:center;font-size:.68rem;color:#525252">Each stage executes in 1 clock cycle; instructions overlap in different stages</div>
 
       <h3>Classic 5-Stage RISC Pipeline</h3>
       <ul>

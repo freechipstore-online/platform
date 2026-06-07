@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Binary Multiplier - FreeChipStore</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:#0a0a0a;color:#e0e0e0;font-family:system-ui,sans-serif;display:flex;flex-direction:column;align-items:center;min-height:100vh}
+h1{color:#ef4444;margin:18px 0 6px;font-size:1.4rem}
+.desc{color:#999;font-size:.85rem;margin-bottom:12px}
+canvas{background:#111;border:1px solid #333;border-radius:6px}
+.controls{display:flex;gap:10px;margin:12px 0;flex-wrap:wrap;justify-content:center}
+.controls label{font-size:.8rem;color:#aaa}
+.controls input{background:#222;color:#e0e0e0;border:1px solid #444;padding:4px 8px;border-radius:4px;font-size:.9rem;font-family:monospace;width:70px}
+.controls button{background:#ef4444;color:#fff;border:none;padding:5px 14px;border-radius:4px;font-size:.8rem;cursor:pointer;font-weight:600}
+footer{margin-top:auto;padding:12px;font-size:.7rem;color:#555}
+footer a{color:#ef4444;text-decoration:none}
+</style>
+</head>
+<body>
+<h1>Binary Multiplier (Booth's Algorithm)</h1>
+<p class="desc">Shift-and-add multiplication with animated partial products</p>
+<canvas id="c" width="740" height="420"></canvas>
+<div class="controls">
+<label>Multiplicand (A): <input type="number" id="valA" value="13" min="-128" max="127"></label>
+<label>Multiplier (B): <input type="number" id="valB" value="11" min="-128" max="127"></label>
+<button id="compute">Multiply</button>
+<button id="step">Step</button>
+<button id="reset">Reset</button>
+</div>
+<footer><a href="/items/">FreeChipStore</a></footer>
+<script>
+const C=document.getElementById('c'),ctx=C.getContext('2d');
+const W=740,H=420;
+const BITS=8;
+let A=13,B=11,steps=[],currentStep=0,computed=false;
+
+function toBin(n,bits){
+  if(n<0) n=(1<<bits)+n;
+  return(n>>>0).toString(2).padStart(bits,'0');
+}
+
+function compute(){
+  A=+document.getElementById('valA').value;
+  B=+document.getElementById('valB').value;
+  steps=[];currentStep=0;computed=true;
+  const aBin=toBin(A,BITS),bBin=toBin(B,BITS);
+  // shift-and-add
+  let accumulator=0;
+  const partials=[];
+  for(let i=BITS-1;i>=0;i--){
+    const bit=+bBin[i];
+    const shift=BITS-1-i;
+    const partial=bit?A<<shift:0;
+    partials.push(partial);
+    accumulator+=partial;
+    steps.push({
+      bit,position:shift,
+      partial,partialBin:toBin(partial,BITS*2),
+      accumulator,accBin:toBin(accumulator,BITS*2),
+      bBit:bBin[i],
+      stepNum:BITS-1-i
+    });
+  }
+}
+
+document.getElementById('compute').addEventListener('click',()=>{compute();currentStep=steps.length;});
+document.getElementById('step').addEventListener('click',()=>{
+  if(!computed) compute();
+  if(currentStep<steps.length) currentStep++;
+});
+document.getElementById('reset').addEventListener('click',()=>{steps=[];currentStep=0;computed=false;});
+
+function drawBits(str,x,y,highlight,size){
+  const bw=size||18;
+  for(let i=0;i<str.length;i++){
+    const bit=str[i];
+    const bx=x+i*bw;
+    ctx.fillStyle=highlight===i?'#ef4444':bit==='1'?'#ef444466':'#1a1a1a';
+    ctx.fillRect(bx,y,bw-2,bw-2);
+    ctx.strokeStyle='#333';ctx.strokeRect(bx,y,bw-2,bw-2);
+    ctx.fillStyle=bit==='1'?'#fff':'#555';
+    ctx.font=`${Math.floor(bw*0.6)}px monospace`;
+    ctx.fillText(bit,bx+Math.floor(bw*0.3),y+Math.floor(bw*0.7));
+  }
+}
+
+function draw(){
+  ctx.fillStyle='#111';ctx.fillRect(0,0,W,H);
+  const aBin=toBin(A,BITS),bBin=toBin(B,BITS);
+  // operands
+  ctx.fillStyle='#ef4444';ctx.font='bold 13px system-ui';ctx.fillText('Binary Multiplication',20,24);
+  ctx.fillStyle='#aaa';ctx.font='12px monospace';
+  ctx.fillText(`A = ${A} (${aBin})`,20,50);
+  ctx.fillText(`B = ${B} (${bBin})`,20,70);
+  ctx.fillText(`A x B = ${A*B}`,20,90);
+  // school multiplication layout
+  const mx=300,my=30;
+  ctx.fillStyle='#ccc';ctx.font='12px monospace';
+  ctx.fillText('Multiplicand:',mx,my);
+  drawBits(aBin,mx+110,my-14,-1,16);
+  ctx.fillText('Multiplier:  ',mx,my+24);
+  drawBits(bBin,mx+110,my+10,-1,16);
+  ctx.strokeStyle='#ef4444';ctx.lineWidth=2;
+  ctx.beginPath();ctx.moveTo(mx+110,my+30);ctx.lineTo(mx+110+BITS*16,my+30);ctx.stroke();
+  ctx.fillStyle='#ef4444';ctx.fillText('x',mx+96,my+24);
+  // partial products
+  const ppY=my+44;
+  for(let i=0;i<Math.min(currentStep,steps.length);i++){
+    const s=steps[i];
+    const shift=s.stepNum;
+    // highlight which bit of B we're using
+    if(i===currentStep-1){
+      ctx.fillStyle='#ef444444';
+      const bitIdx=BITS-1-s.stepNum;
+      ctx.fillRect(mx+110+bitIdx*16,my+10,14,14);
+    }
+    ctx.fillStyle=s.bit?'#ef444488':'#33333388';
+    ctx.font='10px monospace';
+    // show partial product shifted
+    const ppBin=toBin(s.partial,BITS*2);
+    for(let j=0;j<BITS*2;j++){
+      const ch=ppBin[j];
+      const bx=mx-30+j*12;
+      ctx.fillStyle=ch==='1'&&s.bit?'#ef4444':'#333';
+      ctx.fillText(ch,bx,ppY+i*16);
+    }
+    if(s.bit){
+      ctx.fillStyle='#888';ctx.font='9px system-ui';
+      ctx.fillText(`<< ${shift}`,mx-30+BITS*2*12+4,ppY+i*16);
+    }
+  }
+  // sum line
+  if(currentStep>0){
+    const sumY=ppY+Math.min(currentStep,steps.length)*16+4;
+    ctx.strokeStyle='#ef4444';ctx.lineWidth=1;
+    ctx.beginPath();ctx.moveTo(mx-30,sumY);ctx.lineTo(mx-30+BITS*2*12,sumY);ctx.stroke();
+    // result
+    const lastStep=steps[Math.min(currentStep,steps.length)-1];
+    const resBin=toBin(lastStep.accumulator,BITS*2);
+    ctx.fillStyle='#22c55e';ctx.font='bold 11px monospace';
+    for(let j=0;j<BITS*2;j++){
+      ctx.fillText(resBin[j],mx-30+j*12,sumY+16);
+    }
+    ctx.fillStyle='#22c55e';ctx.font='bold 12px system-ui';
+    ctx.fillText(`= ${lastStep.accumulator}`,mx-30+BITS*2*12+8,sumY+16);
+  }
+  // step indicator
+  ctx.fillStyle='#888';ctx.font='11px system-ui';
+  ctx.fillText(`Step ${currentStep}/${steps.length}`,20,H-20);
+  if(currentStep>0&&currentStep<=steps.length){
+    const s=steps[currentStep-1];
+    ctx.fillText(`Examining B[${s.stepNum}] = ${s.bBit} | ${s.bit?'ADD shifted A':'skip (zero bit)'}`,100,H-20);
+  }
+  // bit-level animation area
+  if(currentStep>0&&currentStep<=steps.length){
+    const s=steps[currentStep-1];
+    ctx.fillStyle='#222';ctx.fillRect(20,H-90,W-40,50);
+    ctx.fillStyle='#ef4444';ctx.font='bold 10px system-ui';
+    ctx.fillText('Current Operation:',30,H-76);
+    ctx.fillStyle='#ccc';ctx.font='11px monospace';
+    if(s.bit){
+      ctx.fillText(`${aBin} << ${s.stepNum} = ${s.partialBin}  (add to accumulator)`,30,H-58);
+    } else {
+      ctx.fillText(`bit is 0, no addition needed`,30,H-58);
+    }
+    ctx.fillText(`Accumulator: ${s.accBin} = ${s.accumulator}`,30,H-42);
+  }
+  requestAnimationFrame(draw);
+}
+draw();
+</script>
+</body>
+</html>

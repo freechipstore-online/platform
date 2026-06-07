@@ -1,1 +1,52 @@
-{"robots": [{"id": "logic-gates", "name": "Logic Gates", "description": "AND, OR, NOT, NAND, XOR, XNOR, NOR \u2014 click inputs to toggle, see truth tables, watch signals propagate through gates.", "storeType": "behavior", "category": "fundamentals", "icon": "\ud83d\udd32", "iconBg": "#ef4444"}, {"id": "alu-sim", "name": "ALU Simulator", "description": "8-bit ALU \u2014 click individual bits, choose ADD/SUB/AND/OR/XOR/NOT/SHL/SHR. See binary math + CPU flags (Z/N/C/V).", "storeType": "behavior", "category": "fundamentals", "icon": "\u2795", "iconBg": "#3b82f6"}, {"id": "flip-flop", "name": "Flip-Flops & Counters", "description": "SR Latch, D Flip-Flop, JK Flip-Flop, 4-bit Counter. Clock pulse, timing diagram, sequential logic explained.", "storeType": "behavior", "category": "sequential", "icon": "\u23f1\ufe0f", "iconBg": "#ef4444"}, {"id": "circuit-analyzer", "name": "Circuit Diagram Tool", "description": "Draw circuits with wire/resistor/capacitor/op-amp tools. Auto-analyze: detect nodes, generate SPICE netlist.", "storeType": "behavior", "category": "design", "icon": "\ud83d\udd27", "iconBg": "#3b82f6"}]}
+{
+  "robots": [
+    {
+      "id": "logic-gates",
+      "name": "Logic Gates",
+      "description": "AND, OR, NOT, NAND, XOR, XNOR, NOR \u2014 click inputs to toggle, see truth tables, watch signals propagate through gates.",
+      "storeType": "behavior",
+      "category": "fundamentals",
+      "icon": "\ud83d\udd32",
+      "iconBg": "#ef4444",
+      "creator": "serge-ivo",
+      "creatorName": "Serge",
+      "creatorAvatar": "https://github.com/serge-ivo.png?size=96"
+    },
+    {
+      "id": "alu-sim",
+      "name": "ALU Simulator",
+      "description": "8-bit ALU \u2014 click individual bits, choose ADD/SUB/AND/OR/XOR/NOT/SHL/SHR. See binary math + CPU flags (Z/N/C/V).",
+      "storeType": "behavior",
+      "category": "fundamentals",
+      "icon": "\u2795",
+      "iconBg": "#3b82f6",
+      "creator": "serge-ivo",
+      "creatorName": "Serge",
+      "creatorAvatar": "https://github.com/serge-ivo.png?size=96"
+    },
+    {
+      "id": "flip-flop",
+      "name": "Flip-Flops & Counters",
+      "description": "SR Latch, D Flip-Flop, JK Flip-Flop, 4-bit Counter. Clock pulse, timing diagram, sequential logic explained.",
+      "storeType": "behavior",
+      "category": "sequential",
+      "icon": "\u23f1\ufe0f",
+      "iconBg": "#ef4444",
+      "creator": "serge-ivo",
+      "creatorName": "Serge",
+      "creatorAvatar": "https://github.com/serge-ivo.png?size=96"
+    },
+    {
+      "id": "circuit-analyzer",
+      "name": "Circuit Diagram Tool",
+      "description": "Draw circuits with wire/resistor/capacitor/op-amp tools. Auto-analyze: detect nodes, generate SPICE netlist.",
+      "storeType": "behavior",
+      "category": "design",
+      "icon": "\ud83d\udd27",
+      "iconBg": "#3b82f6",
+      "creator": "serge-ivo",
+      "creatorName": "Serge",
+      "creatorAvatar": "https://github.com/serge-ivo.png?size=96"
+    }
+  ]
+}

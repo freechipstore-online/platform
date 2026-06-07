@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Serge — FreeChipStore Creator</title>
+  <meta name="description" content="Serge has built 4 simulations on FreeChipStore.">
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,700&family=Manrope:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    *{margin:0;padding:0;box-sizing:border-box}
+    body{background:#0a0a0a;color:#fafafa;font-family:'Manrope',system-ui,sans-serif;min-height:100vh}
+    .container{max-width:900px;margin:0 auto;padding:2rem 1.5rem}
+    a{color:#ef4444;text-decoration:none}a:hover{text-decoration:underline}
+    header{border-bottom:1px solid #1a1a1a;padding:.75rem 1.5rem;display:flex;align-items:center;gap:1rem}
+    .brand{font-family:'Fraunces',serif;font-size:1.05rem;font-weight:700;color:#fafafa;text-decoration:none}
+    nav{display:flex;gap:1rem;font-size:.82rem;font-weight:600;margin-left:auto}
+    nav a{color:#737373}nav a:hover{color:#fafafa}
+    .profile{display:flex;align-items:center;gap:1.25rem;margin-bottom:2rem;flex-wrap:wrap}
+    .profile h1{font-family:'Fraunces',serif;font-size:1.5rem;font-weight:700}
+    .profile .stats{font-size:.85rem;color:#737373;margin-top:.25rem}
+    .profile .stats b{color:#ef4444}
+    .badge{display:inline-block;font-size:.68rem;padding:.15rem .5rem;border-radius:4px;background:rgba(124,58,237,.1);color:#ef4444;font-weight:600;margin-right:.25rem;margin-bottom:.25rem}
+    .github{display:inline-flex;align-items:center;gap:.35rem;padding:.3rem .7rem;border-radius:6px;border:1px solid #262626;color:#a3a3a3;font-size:.78rem;font-weight:600;margin-top:.5rem}
+    .github:hover{border-color:#ef4444;color:#ef4444;text-decoration:none}
+    h2{font-family:'Fraunces',serif;font-size:1.2rem;font-weight:700;margin-bottom:1rem}
+    h2 span{color:#ef4444}
+    .items-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:.75rem}
+    .item-card{background:#141414;border:1px solid #1a1a1a;border-radius:10px;padding:1rem;display:flex;gap:.75rem;align-items:flex-start;transition:border-color .15s}
+    .item-card:hover{border-color:#ef4444}
+    .item-icon{width:40px;height:40px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:1.3rem;flex-shrink:0}
+    .item-name{font-size:.9rem;font-weight:700;margin-bottom:.15rem}
+    .item-desc{font-size:.72rem;color:#737373;line-height:1.4;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+    .contribution-bar{margin:1.5rem 0}
+    .bar-label{font-size:.78rem;color:#525252;margin-bottom:.35rem}
+    .bar{height:8px;background:#1a1a1a;border-radius:4px;overflow:hidden;display:flex}
+    .bar-fill{height:100%;border-radius:4px}
+    footer{margin-top:3rem;padding-top:1.5rem;border-top:1px solid #1a1a1a;text-align:center;font-size:.72rem;color:#404040}
+  </style>
+</head>
+<body>
+  <header>
+    <a href="/" class="brand">🔲 FreeChipStore</a>
+    <nav>
+      <a href="/">Simulations</a>
+      <a href="/creators/">Creators</a>
+      <a href="/institute/">Institute</a>
+    </nav>
+  </header>
+  <div class="container">
+    <div class="profile">
+      <img style="width:80px;height:80px;border-radius:20px;border:2px solid #262626" src="https://github.com/serge-ivo.png?size=96" alt="Serge" onerror="this.style.display='none'">
+      <div>
+        <h1>Serge</h1>
+        <div class="stats"><b>4</b> simulations on FreeChipStore</div>
+        <div style="margin-top:.35rem"><span class="badge">fundamentals</span> <span class="badge">sequential</span> <span class="badge">design</span></div>
+        <a href="https://github.com/serge-ivo" class="github" target="_blank">GitHub @serge-ivo</a>
+      </div>
+    </div>
+
+    <div class="contribution-bar">
+      <div class="bar-label">Contributions by category</div>
+      <div class="bar">
+        <div class="bar-fill" style="width:50.0%;background:#f97316" title="fundamentals: 2"></div>
+        <div class="bar-fill" style="width:25.0%;background:#3b82f6" title="sequential: 1"></div>
+        <div class="bar-fill" style="width:25.0%;background:#10b981" title="design: 1"></div>
+      </div>
+      <div style="display:flex;gap:1rem;margin-top:.35rem;flex-wrap:wrap">
+        <span style="font-size:.68rem;color:#f97316">fundamentals (2)</span>
+        <span style="font-size:.68rem;color:#3b82f6">sequential (1)</span>
+        <span style="font-size:.68rem;color:#10b981">design (1)</span>
+      </div>
+    </div>
+
+    <h2>Simulations by <span>Serge</span></h2>
+    <div class="items-grid">
+
+      <a href="/items/logic-gates/" style="text-decoration:none;color:inherit" class="item-card">
+        <div class="item-icon" style="background:#ef4444">🔲</div>
+        <div class="item-info">
+          <div class="item-name">Logic Gates</div>
+          <div class="item-desc">AND, OR, NOT, NAND, XOR, XNOR, NOR — click inputs to toggle, see truth tables, watch signals propaga</div>
+        </div>
+      </a>
+
+      <a href="/items/alu-sim/" style="text-decoration:none;color:inherit" class="item-card">
+        <div class="item-icon" style="background:#3b82f6">➕</div>
+        <div class="item-info">
+          <div class="item-name">ALU Simulator</div>
+          <div class="item-desc">8-bit ALU — click individual bits, choose ADD/SUB/AND/OR/XOR/NOT/SHL/SHR. See binary math + CPU flag</div>
+        </div>
+      </a>
+
+      <a href="/items/flip-flop/" style="text-decoration:none;color:inherit" class="item-card">
+        <div class="item-icon" style="background:#ef4444">⏱️</div>
+        <div class="item-info">
+          <div class="item-name">Flip-Flops & Counters</div>
+          <div class="item-desc">SR Latch, D Flip-Flop, JK Flip-Flop, 4-bit Counter. Clock pulse, timing diagram, sequential logic ex</div>
+        </div>
+      </a>
+
+      <a href="/items/circuit-analyzer/" style="text-decoration:none;color:inherit" class="item-card">
+        <div class="item-icon" style="background:#3b82f6">🔧</div>
+        <div class="item-info">
+          <div class="item-name">Circuit Diagram Tool</div>
+          <div class="item-desc">Draw circuits with wire/resistor/capacitor/op-amp tools. Auto-analyze: detect nodes, generate SPICE </div>
+        </div>
+      </a>
+
+    </div>
+
+    <footer>
+      <a href="/creators/">All Creators</a> · <a href="/">FreeChipStore</a>
+    </footer>
+  </div>
+</body>
+</html>

@@ -173,7 +173,7 @@
 
     <section>
       <div class="tabs">
-          <button class="tab active" onclick="switchTab('all')">All <span class="tab-count">8</span></button>
+          <button class="tab active" onclick="switchTab('all')">All <span class="tab-count">2</span></button>
           <button class="tab" onclick="switchTab('library')">Libraries <span class="tab-count">undefined</span></button>
           <button class="tab" onclick="switchTab('model')">Models <span class="tab-count">0</span></button>
           <button class="tab" onclick="switchTab('agent')">Agents <span class="tab-count">undefined</span></button>
@@ -183,20 +183,15 @@
         <input type="text" class="search-input" id="searchInput" placeholder="Search agents..." autocomplete="off" />
         <button class="filter-btn active" onclick="filterCategory('all')">All</button>
         <button class="filter-btn" onclick="filterCategory('fundamentals')">Fundamentals</button>
-        <button class="filter-btn" onclick="filterCategory('architecture')">Architecture</button>
-        <button class="filter-btn" onclick="filterCategory('assembly')">Assembly</button>
-        <button class="filter-btn" onclick="filterCategory('physics')">Physics</button>
-        <button class="filter-btn" onclick="filterCategory('sequential')">Sequential</button>
-        <button class="filter-btn" onclick="filterCategory('fpga')">Fpga</button>
-        <span class="agent-count" id="agentCount">8 agents</span>
+        <span class="agent-count" id="agentCount">2 agents</span>
       </div>
             <div class="agents-grid" id="agentsGrid">
-        <div class="agent-card" data-category="fundamentals" data-store-type="behavior" data-name="logic gates" data-desc="interactive and, or, not, nand, xor, xnor gates. build truth tables, chain gates, see signals propagate.">
+        <div class="agent-card" data-category="fundamentals" data-store-type="behavior" data-name="logic gates" data-desc="interactive and, or, not, nand, xor, xnor, nor. click inputs to toggle, see truth tables, watch signals propagate.">
           <a href="/items/logic-gates/" class="agent-card-body">
             <div class="agent-icon" style="background:#ef4444">🔲</div>
             <div class="agent-body">
               <span class="agent-name">Logic Gates</span>
-              <span class="agent-desc">Interactive AND, OR, NOT, NAND, XOR, XNOR gates. Build truth...</span>
+              <span class="agent-desc">Interactive AND, OR, NOT, NAND, XOR, XNOR, NOR. Click inputs...</span>
               <div class="agent-meta">
                 <span class="tag" style="background:rgba(124,58,237,0.15);color:#a78bfa">behavior</span>
                 <span class="tag"></span>
@@ -209,30 +204,12 @@
           </a>
         </div>
 
-        <div class="agent-card" data-category="architecture" data-store-type="behavior" data-name="cpu builder" data-desc="build a working cpu from logic gates. alu, registers, control unit, memory. execute instructions step by step.">
-          <a href="/items/cpu-builder/" class="agent-card-body">
-            <div class="agent-icon" style="background:#ef4444">🖥️</div>
-            <div class="agent-body">
-              <span class="agent-name">CPU Builder</span>
-              <span class="agent-desc">Build a working CPU from logic gates. ALU, registers, contro...</span>
-              <div class="agent-meta">
-                <span class="tag" style="background:rgba(124,58,237,0.15);color:#a78bfa">behavior</span>
-                <span class="tag"></span>
-              </div>
-            </div>
-          </a>
-          <a href="/items/cpu-builder/" class="agent-cta">
-            <svg viewBox="0 0 24 24"><polygon points="6,4 20,12 6,20"/></svg>
-            Open
-          </a>
-        </div>
-
-        <div class="agent-card" data-category="fundamentals" data-store-type="behavior" data-name="alu simulator" data-desc="arithmetic logic unit — add, subtract, and, or, shift. see the binary math happen bit by bit with carry propagation.">
+        <div class="agent-card" data-category="fundamentals" data-store-type="behavior" data-name="alu simulator" data-desc="arithmetic logic unit — click bits to set values, choose add/sub/and/or/xor/not/shl/shr. see binary math and cpu flags.">
           <a href="/items/alu-sim/" class="agent-card-body">
             <div class="agent-icon" style="background:#3b82f6">➕</div>
             <div class="agent-body">
               <span class="agent-name">ALU Simulator</span>
-              <span class="agent-desc">Arithmetic Logic Unit — add, subtract, AND, OR, shift. See t...</span>
+              <span class="agent-desc">Arithmetic Logic Unit — click bits to set values, choose ADD...</span>
               <div class="agent-meta">
                 <span class="tag" style="background:rgba(124,58,237,0.15);color:#a78bfa">behavior</span>
                 <span class="tag"></span>
@@ -240,96 +217,6 @@
             </div>
           </a>
           <a href="/items/alu-sim/" class="agent-cta">
-            <svg viewBox="0 0 24 24"><polygon points="6,4 20,12 6,20"/></svg>
-            Open
-          </a>
-        </div>
-
-        <div class="agent-card" data-category="architecture" data-store-type="behavior" data-name="memory hierarchy" data-desc="visualize l1/l2/l3 cache, ram, disk. watch cache hits and misses. understand why cache matters for performance.">
-          <a href="/items/memory-sim/" class="agent-card-body">
-            <div class="agent-icon" style="background:#3b82f6">💾</div>
-            <div class="agent-body">
-              <span class="agent-name">Memory Hierarchy</span>
-              <span class="agent-desc">Visualize L1/L2/L3 cache, RAM, disk. Watch cache hits and mi...</span>
-              <div class="agent-meta">
-                <span class="tag" style="background:rgba(124,58,237,0.15);color:#a78bfa">behavior</span>
-                <span class="tag"></span>
-              </div>
-            </div>
-          </a>
-          <a href="/items/memory-sim/" class="agent-cta">
-            <svg viewBox="0 0 24 24"><polygon points="6,4 20,12 6,20"/></svg>
-            Open
-          </a>
-        </div>
-
-        <div class="agent-card" data-category="assembly" data-store-type="behavior" data-name="risc-v playground" data-desc="write and run risc-v assembly in your browser. see registers update, memory change, pipeline stages visualized.">
-          <a href="/items/risc-v/" class="agent-card-body">
-            <div class="agent-icon" style="background:#f97316">⚡</div>
-            <div class="agent-body">
-              <span class="agent-name">RISC-V Playground</span>
-              <span class="agent-desc">Write and run RISC-V assembly in your browser. See registers...</span>
-              <div class="agent-meta">
-                <span class="tag" style="background:rgba(124,58,237,0.15);color:#a78bfa">behavior</span>
-                <span class="tag"></span>
-              </div>
-            </div>
-          </a>
-          <a href="/items/risc-v/" class="agent-cta">
-            <svg viewBox="0 0 24 24"><polygon points="6,4 20,12 6,20"/></svg>
-            Open
-          </a>
-        </div>
-
-        <div class="agent-card" data-category="physics" data-store-type="behavior" data-name="transistor physics" data-desc="mosfet transistor simulation. adjust gate voltage, see channel form, i-v curves update in real time.">
-          <a href="/items/transistor-sim/" class="agent-card-body">
-            <div class="agent-icon" style="background:#a855f7">🔌</div>
-            <div class="agent-body">
-              <span class="agent-name">Transistor Physics</span>
-              <span class="agent-desc">MOSFET transistor simulation. Adjust gate voltage, see chann...</span>
-              <div class="agent-meta">
-                <span class="tag" style="background:rgba(124,58,237,0.15);color:#a78bfa">behavior</span>
-                <span class="tag"></span>
-              </div>
-            </div>
-          </a>
-          <a href="/items/transistor-sim/" class="agent-cta">
-            <svg viewBox="0 0 24 24"><polygon points="6,4 20,12 6,20"/></svg>
-            Open
-          </a>
-        </div>
-
-        <div class="agent-card" data-category="sequential" data-store-type="behavior" data-name="flip-flops & counters" data-desc="sr, jk, d, t flip-flops. build counters, shift registers, state machines. clock signal visualization.">
-          <a href="/items/flip-flop/" class="agent-card-body">
-            <div class="agent-icon" style="background:#ef4444">⏱️</div>
-            <div class="agent-body">
-              <span class="agent-name">Flip-Flops &amp; Counters</span>
-              <span class="agent-desc">SR, JK, D, T flip-flops. Build counters, shift registers, st...</span>
-              <div class="agent-meta">
-                <span class="tag" style="background:rgba(124,58,237,0.15);color:#a78bfa">behavior</span>
-                <span class="tag"></span>
-              </div>
-            </div>
-          </a>
-          <a href="/items/flip-flop/" class="agent-cta">
-            <svg viewBox="0 0 24 24"><polygon points="6,4 20,12 6,20"/></svg>
-            Open
-          </a>
-        </div>
-
-        <div class="agent-card" data-category="fpga" data-store-type="behavior" data-name="fpga designer" data-desc="place logic blocks, route signals, synthesize simple designs. visual fpga architecture exploration.">
-          <a href="/items/fpga-sim/" class="agent-card-body">
-            <div class="agent-icon" style="background:#06b6d4">🧊</div>
-            <div class="agent-body">
-              <span class="agent-name">FPGA Designer</span>
-              <span class="agent-desc">Place logic blocks, route signals, synthesize simple designs...</span>
-              <div class="agent-meta">
-                <span class="tag" style="background:rgba(124,58,237,0.15);color:#a78bfa">behavior</span>
-                <span class="tag"></span>
-              </div>
-            </div>
-          </a>
-          <a href="/items/fpga-sim/" class="agent-cta">
             <svg viewBox="0 0 24 24"><polygon points="6,4 20,12 6,20"/></svg>
             Open
           </a>

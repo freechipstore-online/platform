@@ -1,10 +1,4 @@
 {"robots":[
-  {"id":"logic-gates","name":"Logic Gates","description":"Interactive AND, OR, NOT, NAND, XOR, XNOR gates. Build truth tables, chain gates, see signals propagate.","storeType":"behavior","category":"fundamentals","icon":"🔲","iconBg":"#ef4444"},
-  {"id":"cpu-builder","name":"CPU Builder","description":"Build a working CPU from logic gates. ALU, registers, control unit, memory. Execute instructions step by step.","storeType":"behavior","category":"architecture","icon":"🖥️","iconBg":"#ef4444"},
-  {"id":"alu-sim","name":"ALU Simulator","description":"Arithmetic Logic Unit — add, subtract, AND, OR, shift. See the binary math happen bit by bit with carry propagation.","storeType":"behavior","category":"fundamentals","icon":"➕","iconBg":"#3b82f6"},
-  {"id":"memory-sim","name":"Memory Hierarchy","description":"Visualize L1/L2/L3 cache, RAM, disk. Watch cache hits and misses. Understand why cache matters for performance.","storeType":"behavior","category":"architecture","icon":"💾","iconBg":"#3b82f6"},
-  {"id":"risc-v","name":"RISC-V Playground","description":"Write and run RISC-V assembly in your browser. See registers update, memory change, pipeline stages visualized.","storeType":"behavior","category":"assembly","icon":"⚡","iconBg":"#f97316"},
-  {"id":"transistor-sim","name":"Transistor Physics","description":"MOSFET transistor simulation. Adjust gate voltage, see channel form, I-V curves update in real time.","storeType":"behavior","category":"physics","icon":"🔌","iconBg":"#a855f7"},
-  {"id":"flip-flop","name":"Flip-Flops & Counters","description":"SR, JK, D, T flip-flops. Build counters, shift registers, state machines. Clock signal visualization.","storeType":"behavior","category":"sequential","icon":"⏱️","iconBg":"#ef4444"},
-  {"id":"fpga-sim","name":"FPGA Designer","description":"Place logic blocks, route signals, synthesize simple designs. Visual FPGA architecture exploration.","storeType":"behavior","category":"fpga","icon":"🧊","iconBg":"#06b6d4"}
+  {"id":"logic-gates","name":"Logic Gates","description":"Interactive AND, OR, NOT, NAND, XOR, XNOR, NOR. Click inputs to toggle, see truth tables, watch signals propagate.","storeType":"behavior","category":"fundamentals","icon":"🔲","iconBg":"#ef4444"},
+  {"id":"alu-sim","name":"ALU Simulator","description":"Arithmetic Logic Unit — click bits to set values, choose ADD/SUB/AND/OR/XOR/NOT/SHL/SHR. See binary math and CPU flags.","storeType":"behavior","category":"fundamentals","icon":"➕","iconBg":"#3b82f6"}
 ]}

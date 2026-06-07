@@ -43,6 +43,11 @@
     code{background:#1a1a1a;padding:.15rem .35rem;border-radius:4px;font-size:.82rem;color:#e5e5e5}
     pre{background:#1a1a1a;border:1px solid var(--line);border-radius:8px;padding:1rem;overflow-x:auto;margin:.5rem 0;font-size:.8rem;line-height:1.5;color:#e5e5e5}
     footer{border-top:1px solid var(--line);padding:1.5rem 0;text-align:center;font-size:.75rem;color:#525252}
+    .kids-explain{display:none;background:#1a1a2e;border:1px solid #2d2d5e;border-radius:10px;padding:.75rem 1rem;margin:.75rem 0;font-size:.85rem;line-height:1.6}
+    .kids-explain .emoji{font-size:1.2rem;margin-right:.35rem}
+    .kids-explain b{color:#fbbf24}
+    body.kids-mode .kids-explain{display:block}
+    body.kids-mode .section h2::after{content:" \1F9D2";font-size:.8em}
   </style>
 </head>
 <body>
@@ -52,7 +57,7 @@
         <span class="brand-emoji">🔲</span>
         <span><span class="brand-text">Chip Design Institute</span><br><span class="brand-tag">Educational Resources</span></span>
       </a>
-      <nav><a href="/institute/">Overview</a><a href="/institute/digital-logic">Logic</a><a href="/institute/cpu-architecture">CPU</a><a href="/institute/verilog">Verilog</a><a href="/institute/fpga">FPGA</a><a href="/institute/risc-v">RISC-V</a><a href="/">Simulations</a></nav>
+      <nav><a href="/institute/">Overview</a><a href="/institute/digital-logic">Logic</a><a href="/institute/cpu-architecture">CPU</a><a href="/institute/verilog">Verilog</a><a href="/institute/fpga">FPGA</a><a href="/institute/risc-v">RISC-V</a><a href="/">Simulations</a><button onclick="document.body.classList.toggle('kids-mode');this.textContent=document.body.classList.contains('kids-mode')?'D83CDF93 Expert':'D83EDDD2 Kids'" style="padding:.25rem .6rem;border-radius:6px;border:1px solid #333;background:#171717;color:#fafafa;font-size:.72rem;font-weight:600;cursor:pointer;font-family:inherit">D83EDDD2 Kids</button></nav>
     </div>
   </header>
 
@@ -117,6 +122,7 @@
         <li><strong>SpinalHDL</strong> — Scala-based HDL (independent of Chisel). Strong type checking, good for complex designs. VexRiscv (RISC-V core) is written in SpinalHDL.</li>
         <li><strong>Clash</strong> — Haskell-embedded HDL. Functional programming paradigm for hardware. Leverages Haskell's type system to prevent common errors at compile time.</li>
       </ul>
+      <div class="kids-explain"><span class="emoji">&#128187;</span> Normal programming languages (like Python or JavaScript) tell a computer WHAT to do step by step. <b>Verilog</b> is different — it describes HARDWARE. You're not writing instructions, you're designing actual circuits! It's like the difference between writing a recipe (software) and building a kitchen (hardware). Engineers use Verilog to design the chips inside your phone and computer.</div>
     </section>
 
     <section class="section" id="syntax">
@@ -286,6 +292,8 @@ always #5 clk = ~clk;  // 100 MHz clock (10ns period)</pre>
         <li><strong>Covergroups</strong> — track which values/transitions have been exercised. Functional coverage ensures the testbench has tested the interesting cases.</li>
         <li><strong>Constrained random</strong> — <code>class transaction; rand bit [7:0] data; constraint c { data inside {[0:100]}; } endclass</code> — randomly generate stimuli within constraints. Much more thorough than directed testing.</li>
         <li><strong>UVM (Universal Verification Methodology)</strong> — industry-standard framework for building reusable, modular testbenches. Agents, drivers, monitors, scoreboards. Overkill for small designs but essential for SoC verification.</li>
+      </ul>
+      <div class="kids-explain"><span class="emoji">&#129514;</span> A <b>testbench</b> is like a robot that tests your circuit design before you build it for real. It pokes your design with different inputs and checks if the outputs are correct — like a teacher grading a math test automatically. If something is wrong, it tells you BEFORE you spend millions making the actual chip!</div>
       </ul>
     </section>
 

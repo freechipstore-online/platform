@@ -46,6 +46,11 @@
     th{background:var(--panel);color:var(--ink);font-weight:600}
     td{color:#a3a3a3}
     footer{border-top:1px solid var(--line);padding:1.5rem 0;text-align:center;font-size:.75rem;color:#525252}
+    .kids-explain{display:none;background:#1a1a2e;border:1px solid #2d2d5e;border-radius:10px;padding:.75rem 1rem;margin:.75rem 0;font-size:.85rem;line-height:1.6}
+    .kids-explain .emoji{font-size:1.2rem;margin-right:.35rem}
+    .kids-explain b{color:#fbbf24}
+    body.kids-mode .kids-explain{display:block}
+    body.kids-mode .section h2::after{content:" \1F9D2";font-size:.8em}
   </style>
 </head>
 <body>
@@ -55,7 +60,7 @@
         <span class="brand-emoji">🔲</span>
         <span><span class="brand-text">Chip Design Institute</span><br><span class="brand-tag">Educational Resources</span></span>
       </a>
-      <nav><a href="/institute/">Overview</a><a href="/institute/digital-logic">Logic</a><a href="/institute/cpu-architecture">CPU</a><a href="/institute/verilog">Verilog</a><a href="/institute/fpga">FPGA</a><a href="/institute/risc-v">RISC-V</a><a href="/">Simulations</a></nav>
+      <nav><a href="/institute/">Overview</a><a href="/institute/digital-logic">Logic</a><a href="/institute/cpu-architecture">CPU</a><a href="/institute/verilog">Verilog</a><a href="/institute/fpga">FPGA</a><a href="/institute/risc-v">RISC-V</a><a href="/">Simulations</a><button onclick="document.body.classList.toggle('kids-mode');this.textContent=document.body.classList.contains('kids-mode')?'D83CDF93 Expert':'D83EDDD2 Kids'" style="padding:.25rem .6rem;border-radius:6px;border:1px solid #333;background:#171717;color:#fafafa;font-size:.72rem;font-weight:600;cursor:pointer;font-family:inherit">D83EDDD2 Kids</button></nav>
     </div>
   </header>
 
@@ -122,6 +127,7 @@
         <li><strong>ARM (AArch64)</strong> — RISC-ish, fixed 32-bit instructions, large ISA (~1,000 instructions including extensions). Dominant in mobile/embedded. Requires ARM license (~$1-5M + per-chip royalty).</li>
         <li><strong>RISC-V</strong> — pure RISC, fixed 32-bit instructions (+ 16-bit compressed), minimal base ISA. Open and free. Growing from embedded into application processors. No single vendor controls it.</li>
       </ul>
+      <div class="kids-explain"><span class="emoji">&#128275;</span> <b>RISC-V</b> is like an open-source recipe for making CPUs. Normally, if you want to make a chip, you have to pay companies like ARM millions of dollars for their designs. RISC-V is FREE for anyone to use — like Wikipedia but for chip designs! Students, startups, and even countries are using it to build their own processors.</div>
     </section>
 
     <section class="section" id="base">
@@ -181,6 +187,7 @@
 
       <h3>Custom Extensions</h3>
       <p>RISC-V explicitly reserves opcode space for custom extensions (four major opcodes reserved). Companies can add domain-specific instructions without conflicting with standard extensions. Examples: Qualcomm Hexagon-style VLIW extensions, AI accelerator instructions, cryptographic instructions. Custom extensions are a key advantage over ARM and x86, where adding instructions requires vendor approval.</p>
+      <div class="kids-explain"><span class="emoji">&#129513;</span> RISC-V is like a <b>LEGO instruction set</b>. The base set (RV32I) has just 47 simple instructions — add, subtract, load, store, jump. Then you snap on extensions like LEGO packs: M adds multiply/divide, F adds decimal math, V adds vector math for AI. You only include what you need, so a tiny sensor chip and a supercomputer can both use RISC-V!</div>
     </section>
 
     <section class="section" id="formats">

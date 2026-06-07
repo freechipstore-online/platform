@@ -1,0 +1,351 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>FSM Designer - FreeChipStore</title>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:#0a0a0a;color:#fafafa;font-family:"Manrope",system-ui,sans-serif;min-height:100vh;display:flex;flex-direction:column}
+a{color:#f59e0b;text-decoration:none}
+.top-bar{padding:10px 20px;display:flex;align-items:center;gap:16px;border-bottom:1px solid #1a1a1a}
+.top-bar a{font-size:.82rem;font-weight:600}
+h1{text-align:center;color:#f59e0b;margin:14px 0 4px;font-size:1.35rem}
+.desc{text-align:center;color:#737373;font-size:.82rem;margin-bottom:10px}
+.main{display:flex;gap:14px;padding:0 16px;flex:1;max-width:1200px;margin:0 auto;width:100%}
+.left{flex:1;min-width:0;display:flex;flex-direction:column;gap:10px}
+.right{width:310px;flex-shrink:0}
+canvas{width:100%;background:#111;border:1px solid #222;border-radius:8px;cursor:crosshair}
+.panel{background:#141414;border:1px solid #1a1a1a;border-radius:8px;padding:12px;margin-bottom:10px}
+.panel h3{font-size:.82rem;color:#f59e0b;margin-bottom:8px}
+label{font-size:.75rem;color:#aaa;display:block;margin-bottom:4px}
+input[type=text],select{background:#222;color:#fafafa;border:1px solid #333;padding:5px 8px;border-radius:4px;font-size:.78rem;width:100%;font-family:inherit;margin-bottom:8px}
+button{background:#f59e0b;color:#0a0a0a;border:none;padding:6px 14px;border-radius:4px;font-size:.78rem;cursor:pointer;font-weight:600;font-family:inherit}
+button:hover{background:#d97706}
+button.secondary{background:#222;color:#fafafa;border:1px solid #333}
+button.secondary:hover{background:#333}
+.btn-row{display:flex;gap:6px;margin-bottom:8px;flex-wrap:wrap}
+.table-wrap{max-height:200px;overflow-y:auto}
+table{width:100%;border-collapse:collapse;font-size:.72rem}
+th,td{padding:4px 6px;border:1px solid #222;text-align:center}
+th{background:#1a1a1a;color:#f59e0b;position:sticky;top:0}
+td{color:#aaa}
+.verilog-out{background:#111;border:1px solid #222;border-radius:6px;padding:8px;font-size:.68rem;font-family:"Courier New",monospace;max-height:160px;overflow-y:auto;color:#aaa;white-space:pre;margin-top:8px}
+footer{border-top:1px solid #1a1a1a;padding:12px;text-align:center;font-size:.7rem;color:#404040;margin-top:auto}
+@media(max-width:800px){.main{flex-direction:column}.right{width:100%}}
+</style>
+</head>
+<body>
+<div class="top-bar"><a href="/">&#8592; FreeChipStore</a></div>
+<h1>Finite State Machine Designer</h1>
+<p class="desc">Visual FSM editor: drag states, draw transitions, simulate input sequences, export Verilog</p>
+<div class="main">
+<div class="left">
+ <canvas id="c" width="780" height="420"></canvas>
+ <div class="panel">
+  <h3>State Transition Table</h3>
+  <div class="table-wrap" id="tableWrap"></div>
+ </div>
+</div>
+<div class="right">
+ <div class="panel">
+  <h3>Add State</h3>
+  <label>State Name</label>
+  <input type="text" id="stateName" value="" placeholder="e.g. S0">
+  <label>Output (Moore)</label>
+  <input type="text" id="stateOut" value="0" placeholder="Output value">
+  <button id="addState">Add State</button>
+ </div>
+ <div class="panel">
+  <h3>Add Transition</h3>
+  <label>From</label>
+  <select id="trFrom"></select>
+  <label>To</label>
+  <select id="trTo"></select>
+  <label>Input</label>
+  <input type="text" id="trInput" value="0" placeholder="0 or 1">
+  <label>Output (Mealy, optional)</label>
+  <input type="text" id="trOutput" value="" placeholder="Leave blank for Moore">
+  <button id="addTr">Add Transition</button>
+ </div>
+ <div class="panel">
+  <h3>Simulate</h3>
+  <label>Input Sequence</label>
+  <input type="text" id="simInput" value="0,1,0,1,1,0" placeholder="0,1,0,1,...">
+  <div class="btn-row">
+   <button id="simRun">Run</button>
+   <button id="simStep">Step</button>
+   <button class="secondary" id="simReset">Reset</button>
+  </div>
+  <div style="font-size:.72rem;color:#aaa;margin-top:4px" id="simStatus">Current: (none)</div>
+ </div>
+ <div class="panel">
+  <h3>Machine Type</h3>
+  <select id="machineType">
+   <option value="moore">Moore</option>
+   <option value="mealy">Mealy</option>
+  </select>
+ </div>
+ <div class="btn-row">
+  <button class="secondary" id="exportV">Export Verilog</button>
+  <button class="secondary" id="loadPreset">Load Preset</button>
+  <button class="secondary" id="clearAll">Clear All</button>
+ </div>
+ <div class="verilog-out" id="verilog" style="display:none"></div>
+</div>
+</div>
+<footer><a href="/">FreeChipStore</a></footer>
+
+<script>
+const C=document.getElementById('c'),ctx=C.getContext('2d');
+const W=780,H=420;
+
+let states=[];    // {id,name,x,y,output,isInitial}
+let transitions=[]; // {from,to,input,output}
+let currentState=null;
+let simIdx=0,simSeq=[];
+let dragging=null,dragOff={x:0,y:0};
+let stateCounter=0;
+
+function addState(name,x,y,output,isInitial){
+  const s={id:stateCounter++,name:name||`S${states.length}`,x:x||100+states.length*120,y:y||H/2,output:output||'0',isInitial:!!isInitial};
+  states.push(s);
+  if(states.length===1) currentState=s.id;
+  updateSelects();updateTable();
+  return s;
+}
+
+function addTransition(fromId,toId,input,output){
+  transitions.push({from:fromId,to:toId,input,output:output||''});
+  updateTable();
+}
+
+function updateSelects(){
+  const opts=states.map(s=>`<option value="${s.id}">${s.name}</option>`).join('');
+  document.getElementById('trFrom').innerHTML=opts;
+  document.getElementById('trTo').innerHTML=opts;
+}
+
+function updateTable(){
+  const inputs=[...new Set(transitions.map(t=>t.input))].sort();
+  if(inputs.length===0){document.getElementById('tableWrap').innerHTML='<p style="color:#555;font-size:.72rem">No transitions yet</p>';return;}
+  let html='<table><tr><th>State</th>';
+  inputs.forEach(i=>html+=`<th>In=${i}</th>`);
+  html+='<th>Output</th></tr>';
+  states.forEach(s=>{
+    html+=`<tr><td style="color:#f59e0b">${s.name}</td>`;
+    inputs.forEach(inp=>{
+      const tr=transitions.find(t=>t.from===s.id&&t.input===inp);
+      const target=tr?states.find(st=>st.id===tr.to):null;
+      html+=`<td>${target?target.name+(tr.output?'/'+tr.output:''):'-'}</td>`;
+    });
+    html+=`<td>${s.output}</td></tr>`;
+  });
+  html+='</table>';
+  document.getElementById('tableWrap').innerHTML=html;
+}
+
+function drawState(s,active){
+  const r=32;
+  ctx.beginPath();ctx.arc(s.x,s.y,r,0,Math.PI*2);
+  ctx.fillStyle=active?'#f59e0b33':'#1a1a1a';ctx.fill();
+  ctx.strokeStyle=active?'#f59e0b':'#444';ctx.lineWidth=active?3:2;ctx.stroke();
+  if(s.isInitial){
+    ctx.beginPath();ctx.moveTo(s.x-r-20,s.y);ctx.lineTo(s.x-r,s.y);ctx.strokeStyle='#f59e0b';ctx.lineWidth=2;ctx.stroke();
+    ctx.beginPath();ctx.moveTo(s.x-r-4,s.y-4);ctx.lineTo(s.x-r,s.y);ctx.lineTo(s.x-r-4,s.y+4);ctx.stroke();
+  }
+  ctx.fillStyle=active?'#f59e0b':'#fafafa';ctx.font='bold 13px Manrope,system-ui';ctx.textAlign='center';
+  ctx.fillText(s.name,s.x,s.y+1);
+  ctx.fillStyle='#737373';ctx.font='10px Manrope,system-ui';
+  ctx.fillText(`/${s.output}`,s.x,s.y+16);
+  ctx.textAlign='left';
+}
+
+function drawTransition(t){
+  const fs=states.find(s=>s.id===t.from);
+  const ts=states.find(s=>s.id===t.to);
+  if(!fs||!ts) return;
+  const active=currentState===t.from;
+  const r=32;
+
+  if(t.from===t.to){
+    // Self loop
+    ctx.beginPath();ctx.arc(fs.x,fs.y-r-16,16,0.3*Math.PI,0.7*Math.PI);
+    ctx.strokeStyle=active?'#f59e0b':'#555';ctx.lineWidth=1.5;ctx.stroke();
+    ctx.fillStyle='#aaa';ctx.font='10px Manrope,system-ui';ctx.textAlign='center';
+    let label=t.input;if(t.output) label+=`/${t.output}`;
+    ctx.fillText(label,fs.x,fs.y-r-36);
+    ctx.textAlign='left';
+    return;
+  }
+
+  const dx=ts.x-fs.x,dy=ts.y-fs.y;
+  const dist=Math.sqrt(dx*dx+dy*dy);
+  const nx=dx/dist,ny=dy/dist;
+  const sx=fs.x+nx*r,sy=fs.y+ny*r;
+  const ex=ts.x-nx*r,ey=ts.y-ny*r;
+
+  // Check for parallel transitions (offset curve)
+  const parallel=transitions.some(tt=>tt.from===t.to&&tt.to===t.from);
+  const cpx=(sx+ex)/2+(parallel?ny*30:0);
+  const cpy=(sy+ey)/2+(parallel?-nx*30:0);
+
+  ctx.beginPath();ctx.moveTo(sx,sy);ctx.quadraticCurveTo(cpx,cpy,ex,ey);
+  ctx.strokeStyle=active?'#f59e0b':'#555';ctx.lineWidth=1.5;ctx.stroke();
+
+  // Arrowhead
+  const t2=0.95;
+  const ax=(1-t2)*(1-t2)*sx+2*(1-t2)*t2*cpx+t2*t2*ex;
+  const ay=(1-t2)*(1-t2)*sy+2*(1-t2)*t2*cpy+t2*t2*ey;
+  const angle=Math.atan2(ey-ay,ex-ax);
+  ctx.beginPath();ctx.moveTo(ex,ey);
+  ctx.lineTo(ex-10*Math.cos(angle-0.3),ey-10*Math.sin(angle-0.3));
+  ctx.lineTo(ex-10*Math.cos(angle+0.3),ey-10*Math.sin(angle+0.3));
+  ctx.closePath();ctx.fillStyle=active?'#f59e0b':'#555';ctx.fill();
+
+  // Label
+  ctx.fillStyle='#ddd';ctx.font='11px Manrope,system-ui';ctx.textAlign='center';
+  let label=t.input;if(t.output) label+=`/${t.output}`;
+  ctx.fillText(label,cpx,cpy-6);
+  ctx.textAlign='left';
+}
+
+function draw(){
+  ctx.clearRect(0,0,W,H);
+  if(states.length===0){
+    ctx.fillStyle='#444';ctx.font='14px Manrope,system-ui';ctx.textAlign='center';
+    ctx.fillText('Add states and transitions, or load a preset',W/2,H/2);ctx.textAlign='left';
+    requestAnimationFrame(draw);return;
+  }
+  transitions.forEach(t=>drawTransition(t));
+  states.forEach(s=>drawState(s,s.id===currentState));
+  requestAnimationFrame(draw);
+}
+
+// Dragging
+C.addEventListener('mousedown',e=>{
+  const rect=C.getBoundingClientRect();
+  const mx=(e.clientX-rect.left)*(W/rect.width);
+  const my=(e.clientY-rect.top)*(H/rect.height);
+  for(const s of states){
+    if(Math.hypot(s.x-mx,s.y-my)<32){dragging=s;dragOff={x:s.x-mx,y:s.y-my};break;}
+  }
+});
+C.addEventListener('mousemove',e=>{
+  if(!dragging) return;
+  const rect=C.getBoundingClientRect();
+  dragging.x=(e.clientX-rect.left)*(W/rect.width)+dragOff.x;
+  dragging.y=(e.clientY-rect.top)*(H/rect.height)+dragOff.y;
+});
+C.addEventListener('mouseup',()=>{dragging=null;});
+C.addEventListener('mouseleave',()=>{dragging=null;});
+
+document.getElementById('addState').addEventListener('click',()=>{
+  const name=document.getElementById('stateName').value.trim()||`S${states.length}`;
+  const out=document.getElementById('stateOut').value.trim()||'0';
+  addState(name,100+Math.random()*500,80+Math.random()*260,out,states.length===0);
+  document.getElementById('stateName').value='';
+});
+
+document.getElementById('addTr').addEventListener('click',()=>{
+  const from=+document.getElementById('trFrom').value;
+  const to=+document.getElementById('trTo').value;
+  const input=document.getElementById('trInput').value.trim();
+  const output=document.getElementById('trOutput').value.trim();
+  addTransition(from,to,input,output);
+});
+
+document.getElementById('simRun').addEventListener('click',()=>{
+  simSeq=document.getElementById('simInput').value.split(',').map(s=>s.trim());
+  simIdx=0;
+  const initial=states.find(s=>s.isInitial);
+  if(initial) currentState=initial.id;
+  let i=0;
+  const iv=setInterval(()=>{
+    if(i>=simSeq.length){clearInterval(iv);return;}
+    stepSim(simSeq[i]);i++;
+  },500);
+});
+
+document.getElementById('simStep').addEventListener('click',()=>{
+  if(simIdx===0){
+    simSeq=document.getElementById('simInput').value.split(',').map(s=>s.trim());
+    const initial=states.find(s=>s.isInitial);
+    if(initial) currentState=initial.id;
+  }
+  if(simIdx<simSeq.length) stepSim(simSeq[simIdx]);
+});
+
+function stepSim(input){
+  const tr=transitions.find(t=>t.from===currentState&&t.input===input);
+  const cs=states.find(s=>s.id===currentState);
+  if(tr){
+    currentState=tr.to;
+    const ns=states.find(s=>s.id===currentState);
+    document.getElementById('simStatus').innerHTML=`Step ${simIdx+1}: input=${input}, ${cs.name} -> ${ns.name}, output=${tr.output||ns.output}`;
+  }else{
+    document.getElementById('simStatus').innerHTML=`Step ${simIdx+1}: input=${input}, ${cs?cs.name:'?'} -> no transition!`;
+  }
+  simIdx++;
+}
+
+document.getElementById('simReset').addEventListener('click',()=>{
+  simIdx=0;
+  const initial=states.find(s=>s.isInitial);
+  if(initial) currentState=initial.id;
+  document.getElementById('simStatus').textContent='Current: '+(initial?initial.name:'(none)');
+});
+
+document.getElementById('loadPreset').addEventListener('click',()=>{
+  states=[];transitions=[];stateCounter=0;
+  const s0=addState('S0',200,120,'0',true);
+  const s1=addState('S1',400,120,'0',false);
+  const s2=addState('S2',300,300,'1',false);
+  addTransition(s0.id,s1.id,'1','');
+  addTransition(s0.id,s0.id,'0','');
+  addTransition(s1.id,s2.id,'1','');
+  addTransition(s1.id,s0.id,'0','');
+  addTransition(s2.id,s0.id,'0','');
+  addTransition(s2.id,s2.id,'1','');
+  currentState=s0.id;
+});
+
+document.getElementById('clearAll').addEventListener('click',()=>{
+  states=[];transitions=[];stateCounter=0;currentState=null;simIdx=0;
+  updateSelects();updateTable();
+  document.getElementById('verilog').style.display='none';
+});
+
+document.getElementById('exportV').addEventListener('click',()=>{
+  const v=document.getElementById('verilog');v.style.display='block';
+  if(states.length===0){v.textContent='// No states defined';return;}
+  const inputs=[...new Set(transitions.map(t=>t.input))];
+  const bits=Math.max(1,Math.ceil(Math.log2(states.length)));
+  let code=`module fsm (\n  input clk, rst,\n  input [${inputs.length-1}:0] in,\n  output reg [7:0] out\n);\n\n`;
+  code+=`  // State encoding\n`;
+  states.forEach((s,i)=>code+=`  localparam ${s.name} = ${bits}'d${i};\n`);
+  code+=`\n  reg [${bits-1}:0] state, next_state;\n\n`;
+  code+=`  // State register\n  always @(posedge clk or posedge rst) begin\n`;
+  code+=`    if (rst) state <= ${states[0].name};\n    else state <= next_state;\n  end\n\n`;
+  code+=`  // Next state logic\n  always @(*) begin\n    next_state = state;\n    case (state)\n`;
+  states.forEach(s=>{
+    code+=`      ${s.name}: begin\n`;
+    const trs=transitions.filter(t=>t.from===s.id);
+    trs.forEach(t=>{
+      const ts2=states.find(st=>st.id===t.to);
+      code+=`        if (in == ${t.input}) next_state = ${ts2?ts2.name:'state'};\n`;
+    });
+    code+=`      end\n`;
+  });
+  code+=`    endcase\n  end\n\n`;
+  code+=`  // Output logic (Moore)\n  always @(*) begin\n    case (state)\n`;
+  states.forEach(s=>code+=`      ${s.name}: out = 8'd${s.output};\n`);
+  code+=`      default: out = 8'd0;\n    endcase\n  end\n\nendmodule\n`;
+  v.textContent=code;
+});
+
+draw();
+</script>
+<script src="/related.js"></script>
+</body>
+</html>

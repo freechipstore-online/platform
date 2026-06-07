@@ -1,0 +1,321 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>CPU Pipeline Visualizer - FreeChipStore</title>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:#0a0a0a;color:#fafafa;font-family:"Manrope",system-ui,sans-serif;min-height:100vh;display:flex;flex-direction:column}
+a{color:#f59e0b;text-decoration:none}
+.top-bar{padding:10px 20px;display:flex;align-items:center;gap:16px;border-bottom:1px solid #1a1a1a}
+.top-bar a{font-size:.82rem;font-weight:600}
+h1{text-align:center;color:#f59e0b;margin:14px 0 4px;font-size:1.35rem}
+.desc{text-align:center;color:#737373;font-size:.82rem;margin-bottom:10px}
+.main{display:flex;gap:14px;padding:0 16px;flex:1;max-width:1200px;margin:0 auto;width:100%}
+.left{flex:1;min-width:0}
+.right{width:300px;flex-shrink:0}
+canvas{width:100%;background:#111;border:1px solid #222;border-radius:8px}
+.panel{background:#141414;border:1px solid #1a1a1a;border-radius:8px;padding:12px;margin-bottom:10px}
+.panel h3{font-size:.82rem;color:#f59e0b;margin-bottom:8px}
+label{font-size:.75rem;color:#aaa;display:block;margin-bottom:4px}
+textarea{background:#222;color:#fafafa;border:1px solid #333;padding:8px;border-radius:4px;font-size:.78rem;width:100%;font-family:"Courier New",monospace;resize:vertical;min-height:100px}
+select{background:#222;color:#fafafa;border:1px solid #333;padding:5px 8px;border-radius:4px;font-size:.78rem;width:100%;font-family:inherit;margin-bottom:8px}
+button{background:#f59e0b;color:#0a0a0a;border:none;padding:6px 14px;border-radius:4px;font-size:.78rem;cursor:pointer;font-weight:600;font-family:inherit}
+button:hover{background:#d97706}
+button.secondary{background:#222;color:#fafafa;border:1px solid #333}
+button.secondary:hover{background:#333}
+.btn-row{display:flex;gap:6px;margin-bottom:8px;flex-wrap:wrap}
+.legend{display:flex;flex-wrap:wrap;gap:8px;margin-top:8px}
+.legend span{font-size:.7rem;display:flex;align-items:center;gap:4px}
+.legend .dot{width:10px;height:10px;border-radius:2px}
+.info-box{background:#1a1a1a;border-radius:6px;padding:8px;font-size:.72rem;color:#aaa;margin-top:8px;line-height:1.5}
+.stats-row{display:flex;gap:12px;margin-top:8px;font-size:.78rem}
+.stats-row b{color:#f59e0b}
+footer{border-top:1px solid #1a1a1a;padding:12px;text-align:center;font-size:.7rem;color:#404040;margin-top:auto}
+@media(max-width:800px){.main{flex-direction:column}.right{width:100%}}
+</style>
+</head>
+<body>
+<div class="top-bar"><a href="/">&#8592; FreeChipStore</a></div>
+<h1>CPU Pipeline Visualizer</h1>
+<p class="desc">5-stage pipeline: IF / ID / EX / MEM / WB with hazard detection, stalling, and forwarding</p>
+<div class="main">
+<div class="left">
+ <canvas id="c" width="860" height="500"></canvas>
+ <div class="legend">
+  <span><span class="dot" style="background:#22c55e"></span>IF</span>
+  <span><span class="dot" style="background:#3b82f6"></span>ID</span>
+  <span><span class="dot" style="background:#f59e0b"></span>EX</span>
+  <span><span class="dot" style="background:#a855f7"></span>MEM</span>
+  <span><span class="dot" style="background:#ef4444"></span>WB</span>
+  <span><span class="dot" style="background:#444"></span>Stall</span>
+  <span><span class="dot" style="background:#065f46"></span>Forward</span>
+ </div>
+ <div class="stats-row">
+  <span>Cycles: <b id="sCycles">0</b></span>
+  <span>Instructions: <b id="sInstr">0</b></span>
+  <span>CPI: <b id="sCPI">-</b></span>
+  <span>Stalls: <b id="sStalls">0</b></span>
+  <span>Forwards: <b id="sFwd">0</b></span>
+ </div>
+</div>
+<div class="right">
+ <div class="panel">
+  <h3>Assembly Program</h3>
+  <textarea id="code">ADD R1, R2, R3
+SUB R4, R1, R5
+AND R6, R1, R7
+OR R8, R4, R6
+LW R9, 0(R1)
+ADD R10, R9, R2</textarea>
+  <label style="margin-top:8px">Hazard Mode</label>
+  <select id="mode">
+   <option value="stall">Stall (no forwarding)</option>
+   <option value="forward" selected>Forwarding enabled</option>
+   <option value="none">No hazard handling</option>
+  </select>
+  <div class="btn-row" style="margin-top:8px">
+   <button id="run">Run</button>
+   <button id="step">Step</button>
+   <button class="secondary" id="reset">Reset</button>
+  </div>
+  <div class="btn-row">
+   <button class="secondary" id="p1">Data Hazard</button>
+   <button class="secondary" id="p2">Load-Use</button>
+   <button class="secondary" id="p3">Branch</button>
+  </div>
+ </div>
+ <div class="panel">
+  <h3>Hazard Info</h3>
+  <div class="info-box" id="hazardInfo">Load program and run to see hazards detected.</div>
+ </div>
+</div>
+</div>
+<footer><a href="/">FreeChipStore</a></footer>
+
+<script>
+const C=document.getElementById('c'),ctx=C.getContext('2d');
+const W=860,H=500;
+const STAGES=['IF','ID','EX','MEM','WB'];
+const SCOLORS=['#22c55e','#3b82f6','#f59e0b','#a855f7','#ef4444'];
+
+let instructions=[];
+let pipeline=[];  // [{instr, stages: [{stage,cycle,stall,fwd}]}]
+let cycle=0, totalStalls=0, totalFwd=0;
+let mode='forward';
+let running=false, runTimer=null;
+
+function parseInstructions(){
+  const lines=document.getElementById('code').value.trim().split('\n').filter(l=>l.trim());
+  instructions=lines.map((l,i)=>{
+    const raw=l.trim().toUpperCase();
+    const parts=raw.split(/[\s,()]+/).filter(Boolean);
+    const op=parts[0];
+    let rd=null,rs1=null,rs2=null;
+    if(['ADD','SUB','AND','OR','XOR','SLT','MUL'].includes(op)){rd=parts[1];rs1=parts[2];rs2=parts[3];}
+    else if(['LW','LB'].includes(op)){rd=parts[1];rs1=parts[3]||parts[2];rs2=null;}
+    else if(['SW','SB'].includes(op)){rs2=parts[1];rs1=parts[3]||parts[2];rd=null;}
+    else if(['BEQ','BNE'].includes(op)){rs1=parts[1];rs2=parts[2];rd=null;}
+    else if(['ADDI'].includes(op)){rd=parts[1];rs1=parts[2];rs2=null;}
+    else{rd=parts[1]||null;rs1=parts[2]||null;rs2=parts[3]||null;}
+    return{idx:i,raw,op,rd,rs1,rs2,isLoad:['LW','LB'].includes(op),isBranch:['BEQ','BNE'].includes(op)};
+  });
+}
+
+function buildPipeline(){
+  parseInstructions();
+  mode=document.getElementById('mode').value;
+  pipeline=[];totalStalls=0;totalFwd=0;cycle=0;
+  let hazards=[];
+
+  for(let i=0;i<instructions.length;i++){
+    const instr=instructions[i];
+    let startCycle=i; // ideal start
+    let stallsHere=0;
+    let fwdHere=[];
+
+    // Check against previous instructions for data hazards
+    for(let j=Math.max(0,i-3);j<i;j++){
+      const prev=instructions[j];
+      if(!prev.rd) continue;
+      const prevStart=pipeline[j]?pipeline[j].startCycle:j;
+      const prevWB=prevStart+4;
+      const prevEX=prevStart+2;
+      const prevMEM=prevStart+3;
+      const needBy=startCycle+1; // ID stage needs operands
+
+      const depRS1=instr.rs1&&instr.rs1===prev.rd;
+      const depRS2=instr.rs2&&instr.rs2===prev.rd;
+      if(!depRS1&&!depRS2) continue;
+
+      if(mode==='stall'){
+        // stall until WB completes
+        const stallNeeded=Math.max(0,prevWB-needBy);
+        if(stallNeeded>0&&stallNeeded<=3){
+          stallsHere=Math.max(stallsHere,stallNeeded);
+          hazards.push(`Stall ${stallNeeded}c: I${i+1} waits for I${j+1} (${prev.rd})`);
+        }
+      }else if(mode==='forward'){
+        if(prev.isLoad){
+          // load-use: forward from MEM, but need 1 stall
+          const dist=startCycle-prevStart;
+          if(dist<=1){
+            stallsHere=Math.max(stallsHere,1);
+            hazards.push(`Load-use stall: I${i+1} waits 1c for LW I${j+1} (${prev.rd})`);
+          }else if(dist<=2){
+            fwdHere.push({from:j,stage:'MEM'});
+            hazards.push(`Forward MEM->EX: I${j+1}.${prev.rd} -> I${i+1}`);
+          }
+        }else{
+          const dist=startCycle-prevStart;
+          if(dist<=1){
+            fwdHere.push({from:j,stage:'EX'});
+            hazards.push(`Forward EX->EX: I${j+1}.${prev.rd} -> I${i+1}`);
+          }else if(dist<=2){
+            fwdHere.push({from:j,stage:'MEM'});
+            hazards.push(`Forward MEM->EX: I${j+1}.${prev.rd} -> I${i+1}`);
+          }
+        }
+      }
+    }
+
+    startCycle+=stallsHere;
+    // Ensure we don't start before prev instruction's IF+1
+    if(i>0){
+      const prevPipe=pipeline[i-1];
+      startCycle=Math.max(startCycle,prevPipe.startCycle+1+prevPipe.stalls);
+    }
+    totalStalls+=stallsHere;
+    totalFwd+=fwdHere.length;
+    pipeline.push({instr,startCycle,stalls:stallsHere,fwd:fwdHere});
+  }
+
+  const totalCycles=pipeline.length>0?pipeline[pipeline.length-1].startCycle+5:0;
+  cycle=totalCycles;
+
+  document.getElementById('hazardInfo').innerHTML=hazards.length?hazards.map(h=>`- ${h}`).join('<br>'):'No hazards detected.';
+  updateStats();
+}
+
+function updateStats(){
+  const n=instructions.length;
+  const totalCyc=pipeline.length>0?pipeline[pipeline.length-1].startCycle+5:0;
+  document.getElementById('sCycles').textContent=totalCyc;
+  document.getElementById('sInstr').textContent=n;
+  document.getElementById('sCPI').textContent=n?(totalCyc/n).toFixed(2):'-';
+  document.getElementById('sStalls').textContent=totalStalls;
+  document.getElementById('sFwd').textContent=totalFwd;
+}
+
+function draw(){
+  ctx.clearRect(0,0,W,H);
+
+  if(pipeline.length===0){
+    ctx.fillStyle='#444';ctx.font='14px Manrope,system-ui';ctx.textAlign='center';
+    ctx.fillText('Write assembly and click Run',W/2,H/2);ctx.textAlign='left';
+    requestAnimationFrame(draw);return;
+  }
+
+  const totalCyc=pipeline[pipeline.length-1].startCycle+5;
+  const rowH=32;const headerH=50;const instrW=180;
+  const cellW=Math.min(50,Math.max(28,(W-instrW-40)/totalCyc));
+  const startX=instrW+20;
+
+  // Column headers (cycle numbers)
+  ctx.fillStyle='#737373';ctx.font='10px Manrope,system-ui';ctx.textAlign='center';
+  for(let c=0;c<totalCyc;c++){
+    ctx.fillText(`C${c+1}`,startX+c*cellW+cellW/2,headerH-8);
+  }
+  ctx.textAlign='left';
+
+  // Rows
+  pipeline.forEach((p,i)=>{
+    const y=headerH+i*(rowH+4);
+    // Instruction text
+    ctx.fillStyle='#aaa';ctx.font='11px "Courier New",monospace';
+    ctx.fillText(`I${i+1}: ${p.instr.raw}`,10,y+rowH/2+4);
+
+    // Stall bubbles
+    for(let s=0;s<p.stalls;s++){
+      const cx=startX+(p.startCycle-p.stalls+s)*cellW;
+      ctx.fillStyle='#333';
+      ctx.beginPath();ctx.roundRect(cx+1,y+2,cellW-2,rowH-4,4);ctx.fill();
+      ctx.fillStyle='#666';ctx.font='bold 10px Manrope,system-ui';ctx.textAlign='center';
+      ctx.fillText('S',cx+cellW/2,y+rowH/2+3);ctx.textAlign='left';
+    }
+
+    // Pipeline stages
+    for(let s=0;s<5;s++){
+      const cx=startX+(p.startCycle+s)*cellW;
+      if(cx+cellW>W-10) continue;
+      const hasFwd=p.fwd.some(f=>(f.stage==='EX'&&s===2)||(f.stage==='MEM'&&s===2));
+      ctx.fillStyle=hasFwd?'#065f46':SCOLORS[s];
+      ctx.beginPath();ctx.roundRect(cx+1,y+2,cellW-2,rowH-4,4);ctx.fill();
+      ctx.fillStyle=hasFwd?'#34d399':'#0a0a0a';ctx.font='bold 10px Manrope,system-ui';ctx.textAlign='center';
+      ctx.fillText(STAGES[s],cx+cellW/2,y+rowH/2+3);ctx.textAlign='left';
+    }
+  });
+
+  // Forwarding arrows
+  pipeline.forEach((p,i)=>{
+    p.fwd.forEach(f=>{
+      const srcP=pipeline[f.from];
+      const srcStage=f.stage==='EX'?2:3;
+      const srcCycle=srcP.startCycle+srcStage;
+      const dstCycle=p.startCycle+2; // into EX
+      const srcY=headerH+f.from*(rowH+4)+rowH;
+      const dstY=headerH+i*(rowH+4);
+      const sx=startX+srcCycle*cellW+cellW/2;
+      const dx=startX+dstCycle*cellW+cellW/2;
+      ctx.strokeStyle='#34d39988';ctx.lineWidth=2;ctx.setLineDash([4,3]);
+      ctx.beginPath();ctx.moveTo(sx,srcY);ctx.lineTo(dx,dstY);ctx.stroke();
+      ctx.setLineDash([]);
+    });
+  });
+
+  // Stage diagram at bottom
+  const diagramY=H-80;
+  const dw=120,dh=36,dgap=16;
+  const dStartX=(W-5*(dw+dgap)+dgap)/2;
+  STAGES.forEach((s,i)=>{
+    const x=dStartX+i*(dw+dgap);
+    ctx.fillStyle=SCOLORS[i]+'33';ctx.strokeStyle=SCOLORS[i];ctx.lineWidth=2;
+    ctx.beginPath();ctx.roundRect(x,diagramY,dw,dh,6);ctx.fill();ctx.stroke();
+    ctx.fillStyle=SCOLORS[i];ctx.font='bold 12px Manrope,system-ui';ctx.textAlign='center';
+    const labels=['Fetch','Decode','Execute','Memory','WriteBack'];
+    ctx.fillText(`${s}: ${labels[i]}`,x+dw/2,diagramY+dh/2+4);ctx.textAlign='left';
+    if(i<4){
+      ctx.strokeStyle='#444';ctx.lineWidth=1;
+      ctx.beginPath();ctx.moveTo(x+dw,diagramY+dh/2);ctx.lineTo(x+dw+dgap,diagramY+dh/2);ctx.stroke();
+      ctx.beginPath();ctx.moveTo(x+dw+dgap-5,diagramY+dh/2-4);ctx.lineTo(x+dw+dgap,diagramY+dh/2);
+      ctx.lineTo(x+dw+dgap-5,diagramY+dh/2+4);ctx.stroke();
+    }
+  });
+
+  requestAnimationFrame(draw);
+}
+
+document.getElementById('run').addEventListener('click',()=>{buildPipeline();});
+document.getElementById('step').addEventListener('click',()=>{buildPipeline();});
+document.getElementById('reset').addEventListener('click',()=>{
+  pipeline=[];cycle=0;totalStalls=0;totalFwd=0;
+  document.getElementById('hazardInfo').innerHTML='Load program and run to see hazards detected.';
+  updateStats();
+});
+
+document.getElementById('p1').addEventListener('click',()=>{
+  document.getElementById('code').value='ADD R1, R2, R3\nSUB R4, R1, R5\nAND R6, R4, R7';
+});
+document.getElementById('p2').addEventListener('click',()=>{
+  document.getElementById('code').value='LW R1, 0(R2)\nADD R3, R1, R4\nSUB R5, R3, R6';
+});
+document.getElementById('p3').addEventListener('click',()=>{
+  document.getElementById('code').value='ADD R1, R2, R3\nBEQ R1, R0, label\nSUB R4, R5, R6\nAND R7, R8, R9';
+});
+
+draw();
+</script>
+<script src="/related.js"></script>
+</body>
+</html>

@@ -1,6 +1,18 @@
 {
   "robots": [
     {
+      "id": "chip-pipeline",
+      "name": "Chip \u2192 CPU Pipeline",
+      "description": "Chain",
+      "storeType": " logic gates \u2192 4-bit ALU \u2192 CPU execution. Watch gates become a working processor.",
+      "category": "behavior",
+      "icon": "pipelines",
+      "iconBg": "\ud83c\udfd7\ufe0f:#ef4444",
+      "creator": "serge-ivo",
+      "creatorName": "Serge",
+      "creatorAvatar": "https://github.com/serge-ivo.png?size=96"
+    },
+    {
       "id": "pipeline",
       "name": "Pipeline Processor",
       "description": "5-stage instruction pipeline with hazard detection. Data forwarding, stalls, branch flush visualized. CPI comparison.",
@@ -176,6 +188,50 @@
       "category": "architecture",
       "icon": "\ud83d\udcca",
       "iconBg": "#ef4444",
+      "creator": "serge-ivo",
+      "creatorName": "Serge",
+      "creatorAvatar": "https://github.com/serge-ivo.png?size=96"
+    },
+    {
+      "id": "memory-sim",
+      "name": "Memory Hierarchy Simulator",
+      "description": "Visualize L1/L2/L3/RAM/Disk with cache replacement policies (LRU, FIFO, Random). Hit rate stats and latency breakdown.",
+      "category": "architecture",
+      "icon": "🧠",
+      "iconBg": "#f59e0b",
+      "creator": "serge-ivo",
+      "creatorName": "Serge",
+      "creatorAvatar": "https://github.com/serge-ivo.png?size=96"
+    },
+    {
+      "id": "pipelining",
+      "name": "CPU Pipeline Visualizer",
+      "description": "5-stage pipeline (IF/ID/EX/MEM/WB) with hazard detection. Data forwarding, stalls, and CPI comparison.",
+      "category": "architecture",
+      "icon": "🔀",
+      "iconBg": "#f59e0b",
+      "creator": "serge-ivo",
+      "creatorName": "Serge",
+      "creatorAvatar": "https://github.com/serge-ivo.png?size=96"
+    },
+    {
+      "id": "fsm-designer",
+      "name": "FSM Designer",
+      "description": "Visual finite state machine editor. Drag states, draw transitions, simulate inputs, generate Verilog. Mealy/Moore modes.",
+      "category": "sequential",
+      "icon": "🔁",
+      "iconBg": "#f59e0b",
+      "creator": "serge-ivo",
+      "creatorName": "Serge",
+      "creatorAvatar": "https://github.com/serge-ivo.png?size=96"
+    },
+    {
+      "id": "signal-processor",
+      "name": "Digital Signal Processor",
+      "description": "Generate signals (sine, square, noise), compute FFT, design FIR/IIR filters with interactive pole-zero plot.",
+      "category": "design",
+      "icon": "📡",
+      "iconBg": "#f59e0b",
       "creator": "serge-ivo",
       "creatorName": "Serge",
       "creatorAvatar": "https://github.com/serge-ivo.png?size=96"

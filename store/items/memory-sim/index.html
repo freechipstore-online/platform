@@ -1,0 +1,320 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Memory Hierarchy Simulator - FreeChipStore</title>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:#0a0a0a;color:#fafafa;font-family:"Manrope",system-ui,sans-serif;min-height:100vh;display:flex;flex-direction:column}
+a{color:#f59e0b;text-decoration:none}
+.top-bar{padding:10px 20px;display:flex;align-items:center;gap:16px;border-bottom:1px solid #1a1a1a}
+.top-bar a{font-size:.82rem;font-weight:600}
+h1{text-align:center;color:#f59e0b;margin:14px 0 4px;font-size:1.35rem}
+.desc{text-align:center;color:#737373;font-size:.82rem;margin-bottom:10px}
+.main{display:flex;gap:14px;padding:0 16px;flex:1;max-width:1200px;margin:0 auto;width:100%}
+.left{flex:1;min-width:0}
+.right{width:320px;flex-shrink:0}
+canvas{width:100%;background:#111;border:1px solid #222;border-radius:8px}
+.panel{background:#141414;border:1px solid #1a1a1a;border-radius:8px;padding:12px;margin-bottom:10px}
+.panel h3{font-size:.82rem;color:#f59e0b;margin-bottom:8px}
+label{font-size:.75rem;color:#aaa;display:block;margin-bottom:4px}
+select,input[type=text],input[type=number]{background:#222;color:#fafafa;border:1px solid #333;padding:5px 8px;border-radius:4px;font-size:.78rem;width:100%;font-family:inherit;margin-bottom:8px}
+button{background:#f59e0b;color:#0a0a0a;border:none;padding:6px 14px;border-radius:4px;font-size:.78rem;cursor:pointer;font-weight:600;font-family:inherit}
+button:hover{background:#d97706}
+button.secondary{background:#222;color:#fafafa;border:1px solid #333}
+button.secondary:hover{background:#333}
+.btn-row{display:flex;gap:6px;margin-bottom:8px;flex-wrap:wrap}
+.stats-grid{display:grid;grid-template-columns:1fr 1fr;gap:6px}
+.stat-box{background:#1a1a1a;border-radius:6px;padding:8px;text-align:center}
+.stat-val{font-size:1.1rem;font-weight:700;color:#f59e0b}
+.stat-label{font-size:.65rem;color:#737373;margin-top:2px}
+.log{background:#111;border:1px solid #222;border-radius:6px;padding:8px;font-size:.7rem;font-family:"Courier New",monospace;max-height:160px;overflow-y:auto;color:#aaa;margin-top:8px}
+.log .hit{color:#22c55e}.log .miss{color:#ef4444}
+footer{border-top:1px solid #1a1a1a;padding:12px;text-align:center;font-size:.7rem;color:#404040;margin-top:auto}
+@media(max-width:800px){.main{flex-direction:column}.right{width:100%}}
+</style>
+</head>
+<body>
+<div class="top-bar"><a href="/">&#8592; FreeChipStore</a></div>
+<h1>Memory Hierarchy Simulator</h1>
+<p class="desc">Visualize L1 / L2 / L3 / RAM / Disk with cache replacement policies and latency breakdown</p>
+<div class="main">
+<div class="left">
+ <canvas id="c" width="820" height="480"></canvas>
+ <div class="log" id="log"></div>
+</div>
+<div class="right">
+ <div class="panel">
+  <h3>Access Pattern</h3>
+  <label>Addresses (comma-separated)</label>
+  <input type="text" id="addrs" value="0,1,2,3,0,1,4,0,1,2,3,4" placeholder="0,1,2,3,...">
+  <label>Replacement Policy</label>
+  <select id="policy"><option value="lru">LRU</option><option value="fifo">FIFO</option><option value="random">Random</option></select>
+  <label>L1 Cache Lines</label>
+  <select id="l1size"><option value="2">2</option><option value="4" selected>4</option><option value="8">8</option></select>
+  <label>L2 Cache Lines</label>
+  <select id="l2size"><option value="4">4</option><option value="8" selected>8</option><option value="16">16</option></select>
+  <label>L3 Cache Lines</label>
+  <select id="l3size"><option value="8">8</option><option value="16" selected>16</option><option value="32">32</option></select>
+  <div class="btn-row" style="margin-top:8px">
+   <button id="run">Run All</button>
+   <button id="step">Step</button>
+   <button class="secondary" id="reset">Reset</button>
+  </div>
+  <div class="btn-row">
+   <button class="secondary" id="preset1">Sequential</button>
+   <button class="secondary" id="preset2">Locality</button>
+   <button class="secondary" id="preset3">Thrashing</button>
+  </div>
+ </div>
+ <div class="panel">
+  <h3>Statistics</h3>
+  <div class="stats-grid">
+   <div class="stat-box"><div class="stat-val" id="sL1">0%</div><div class="stat-label">L1 Hit Rate</div></div>
+   <div class="stat-box"><div class="stat-val" id="sL2">0%</div><div class="stat-label">L2 Hit Rate</div></div>
+   <div class="stat-box"><div class="stat-val" id="sL3">0%</div><div class="stat-label">L3 Hit Rate</div></div>
+   <div class="stat-box"><div class="stat-val" id="sAvg">0</div><div class="stat-label">Avg Latency (ns)</div></div>
+  </div>
+ </div>
+ <div class="panel">
+  <h3>Latency Reference</h3>
+  <div style="font-size:.72rem;color:#aaa;line-height:1.6">
+   L1: <b style="color:#22c55e">1 ns</b><br>
+   L2: <b style="color:#3b82f6">4 ns</b><br>
+   L3: <b style="color:#a855f7">12 ns</b><br>
+   RAM: <b style="color:#f59e0b">100 ns</b><br>
+   Disk: <b style="color:#ef4444">10,000,000 ns</b>
+  </div>
+ </div>
+</div>
+</div>
+<footer><a href="/">FreeChipStore</a></footer>
+
+<script>
+const C=document.getElementById('c'),ctx=C.getContext('2d');
+const W=820,H=480;
+const LATENCY={l1:1,l2:4,l3:12,ram:100,disk:10000000};
+const COLORS={l1:'#22c55e',l2:'#3b82f6',l3:'#a855f7',ram:'#f59e0b',disk:'#ef4444'};
+const LEVEL_NAMES=['L1 Cache','L2 Cache','L3 Cache','RAM','Disk'];
+const LEVEL_KEYS=['l1','l2','l3','ram','disk'];
+
+let l1=[],l2=[],l3=[];
+let l1Size=4,l2Size=8,l3Size=16,policy='lru';
+let stats={l1h:0,l2h:0,l3h:0,total:0,totalLat:0};
+let accessQueue=[],currentAccess=null,animPhase=0,animLevel=-1,animTimer=0;
+let accessHistory=[];
+
+function initCaches(){
+  l1=[];l2=[];l3=[];
+  stats={l1h:0,l2h:0,l3h:0,total:0,totalLat:0};
+  accessHistory=[];
+  document.getElementById('log').innerHTML='';
+  updateStats();
+}
+
+function findInCache(cache,addr){return cache.findIndex(e=>e.addr===addr);}
+
+function evict(cache,maxSize,pol){
+  if(cache.length<maxSize) return;
+  let idx=0;
+  if(pol==='lru'){let oldest=Infinity;cache.forEach((e,i)=>{if(e.lastUsed<oldest){oldest=e.lastUsed;idx=i;}});}
+  else if(pol==='fifo'){let oldest=Infinity;cache.forEach((e,i)=>{if(e.inserted<oldest){oldest=e.inserted;idx=i;}});}
+  else idx=Math.floor(Math.random()*cache.length);
+  cache.splice(idx,1);
+}
+
+function touchCache(cache,idx){cache[idx].lastUsed=performance.now();}
+let accessCounter=0;
+
+function doAccess(addr){
+  accessCounter++;
+  stats.total++;
+  let level='disk',lat=LATENCY.disk;
+  let i1=findInCache(l1,addr);
+  if(i1>=0){touchCache(l1,i1);stats.l1h++;level='l1';lat=LATENCY.l1;}
+  else{
+    let i2=findInCache(l2,addr);
+    if(i2>=0){touchCache(l2,i2);stats.l2h++;level='l2';lat=LATENCY.l2;
+      evict(l1,l1Size,policy);l1.push({addr,lastUsed:performance.now(),inserted:performance.now()});
+    }else{
+      let i3=findInCache(l3,addr);
+      if(i3>=0){touchCache(l3,i3);stats.l3h++;level='l3';lat=LATENCY.l3;
+        evict(l2,l2Size,policy);l2.push({addr,lastUsed:performance.now(),inserted:performance.now()});
+        evict(l1,l1Size,policy);l1.push({addr,lastUsed:performance.now(),inserted:performance.now()});
+      }else{
+        level='ram';lat=LATENCY.ram;
+        evict(l3,l3Size,policy);l3.push({addr,lastUsed:performance.now(),inserted:performance.now()});
+        evict(l2,l2Size,policy);l2.push({addr,lastUsed:performance.now(),inserted:performance.now()});
+        evict(l1,l1Size,policy);l1.push({addr,lastUsed:performance.now(),inserted:performance.now()});
+      }
+    }
+  }
+  stats.totalLat+=lat;
+  accessHistory.push({addr,level,lat});
+  const log=document.getElementById('log');
+  const cls=level==='l1'||level==='l2'||level==='l3'?'hit':'miss';
+  log.innerHTML+=`<span class="${cls}">[${stats.total}] addr=${addr} => ${level.toUpperCase()} ${cls==='hit'?'HIT':'MISS'} (${lat}ns)</span>\n`;
+  log.scrollTop=log.scrollHeight;
+  animLevel=LEVEL_KEYS.indexOf(level);
+  animTimer=60;
+  currentAccess=addr;
+  updateStats();
+}
+
+function updateStats(){
+  const t=stats.total||1;
+  document.getElementById('sL1').textContent=Math.round(stats.l1h/t*100)+'%';
+  document.getElementById('sL2').textContent=Math.round(stats.l2h/t*100)+'%';
+  document.getElementById('sL3').textContent=Math.round(stats.l3h/t*100)+'%';
+  document.getElementById('sAvg').textContent=Math.round(stats.totalLat/t);
+}
+
+function drawLevel(x,y,w,h,name,cache,maxSize,color,levelIdx){
+  ctx.fillStyle='#181818';ctx.strokeStyle=color;ctx.lineWidth=2;
+  ctx.beginPath();ctx.roundRect(x,y,w,h,8);ctx.fill();ctx.stroke();
+  const glow=animTimer>0&&animLevel===levelIdx;
+  if(glow){ctx.save();ctx.shadowColor=color;ctx.shadowBlur=20;ctx.strokeStyle=color;
+    ctx.beginPath();ctx.roundRect(x,y,w,h,8);ctx.stroke();ctx.restore();}
+  ctx.fillStyle=color;ctx.font='bold 13px Manrope,system-ui';
+  ctx.fillText(name,x+10,y+20);
+  ctx.fillStyle='#737373';ctx.font='11px Manrope,system-ui';
+  ctx.fillText(`${cache.length}/${maxSize} lines`,x+w-80,y+20);
+  const cellW=Math.min(36,(w-20)/maxSize);
+  const cellH=24;
+  const startX=x+10;
+  const startY=y+32;
+  for(let i=0;i<maxSize;i++){
+    const cx=startX+(cellW+2)*i;
+    const filled=i<cache.length;
+    ctx.fillStyle=filled?'#1a1a1a':'#111';
+    ctx.strokeStyle=filled?color+'66':'#222';
+    ctx.lineWidth=1;
+    ctx.fillRect(cx,startY,cellW,cellH);ctx.strokeRect(cx,startY,cellW,cellH);
+    if(filled){
+      const isActive=glow&&cache[i].addr===currentAccess;
+      if(isActive){ctx.fillStyle=color;ctx.fillRect(cx,startY,cellW,cellH);}
+      ctx.fillStyle=isActive?'#0a0a0a':'#aaa';
+      ctx.font='bold 10px monospace';
+      ctx.textAlign='center';
+      ctx.fillText(cache[i].addr.toString(),cx+cellW/2,startY+16);
+      ctx.textAlign='left';
+    }
+  }
+}
+
+function drawArrow(x1,y1,x2,y2,active,color){
+  ctx.strokeStyle=active?color:'#333';ctx.lineWidth=active?2:1;
+  ctx.beginPath();ctx.moveTo(x1,y1);ctx.lineTo(x2,y2);ctx.stroke();
+  const angle=Math.atan2(y2-y1,x2-x1);
+  ctx.beginPath();ctx.moveTo(x2,y2);
+  ctx.lineTo(x2-8*Math.cos(angle-0.4),y2-8*Math.sin(angle-0.4));
+  ctx.lineTo(x2-8*Math.cos(angle+0.4),y2-8*Math.sin(angle+0.4));
+  ctx.closePath();ctx.fillStyle=active?color:'#333';ctx.fill();
+}
+
+function drawLatencyBar(){
+  if(accessHistory.length===0) return;
+  const bx=580,by=30,bw=220,bh=180;
+  ctx.fillStyle='#141414';ctx.strokeStyle='#222';ctx.lineWidth=1;
+  ctx.beginPath();ctx.roundRect(bx,by,bw,bh,8);ctx.fill();ctx.stroke();
+  ctx.fillStyle='#f59e0b';ctx.font='bold 12px Manrope,system-ui';
+  ctx.fillText('Latency Breakdown',bx+10,by+20);
+  const last=accessHistory.slice(-10);
+  const barH=12,gap=3;
+  const maxLat=Math.max(...last.map(a=>a.lat),1);
+  last.forEach((a,i)=>{
+    const y=by+35+i*(barH+gap);
+    const w=Math.max(4,Math.min(190,(a.lat/maxLat)*190));
+    const col=COLORS[a.level];
+    ctx.fillStyle=col+'44';ctx.fillRect(bx+10,y,w,barH);
+    ctx.fillStyle=col;ctx.fillRect(bx+10,y,Math.min(w,3),barH);
+    ctx.fillStyle='#aaa';ctx.font='9px monospace';
+    ctx.fillText(`${a.addr}`,bx+14,y+10);
+    ctx.fillStyle='#666';
+    ctx.fillText(`${a.level.toUpperCase()}`,bx+w+16,y+10);
+  });
+}
+
+function draw(){
+  ctx.clearRect(0,0,W,H);
+  const lx=30,lw=500;
+  const levels=[
+    {name:'L1 Cache (1ns)',cache:l1,max:l1Size,color:COLORS.l1},
+    {name:'L2 Cache (4ns)',cache:l2,max:l2Size,color:COLORS.l2},
+    {name:'L3 Cache (12ns)',cache:l3,max:l3Size,color:COLORS.l3},
+    {name:'RAM (100ns)',cache:[],max:0,color:COLORS.ram},
+    {name:'Disk (10ms)',cache:[],max:0,color:COLORS.disk},
+  ];
+  const levelH=70;const gap=12;const startY=20;
+  levels.forEach((lv,i)=>{
+    const y=startY+i*(levelH+gap);
+    if(i<3){
+      drawLevel(lx,y,lw,levelH,lv.name,lv.cache,lv.max,lv.color,i);
+    }else{
+      ctx.fillStyle='#181818';ctx.strokeStyle=lv.color;ctx.lineWidth=2;
+      ctx.beginPath();ctx.roundRect(lx,y,lw,levelH,8);ctx.fill();ctx.stroke();
+      const glow=animTimer>0&&animLevel===i;
+      if(glow){ctx.save();ctx.shadowColor=lv.color;ctx.shadowBlur=20;
+        ctx.strokeStyle=lv.color;ctx.beginPath();ctx.roundRect(lx,y,lw,levelH,8);ctx.stroke();ctx.restore();}
+      ctx.fillStyle=lv.color;ctx.font='bold 13px Manrope,system-ui';
+      ctx.fillText(lv.name,lx+10,y+20);
+      ctx.fillStyle='#737373';ctx.font='11px Manrope,system-ui';
+      ctx.fillText(i===3?'Main memory (DRAM)':'Secondary storage (SSD/HDD)',lx+10,y+42);
+    }
+    if(i<4){
+      const y1=startY+i*(levelH+gap)+levelH;
+      const y2=startY+(i+1)*(levelH+gap);
+      const active=animTimer>0&&animLevel>i;
+      drawArrow(lx+lw/2,y1,lx+lw/2,y2,active,COLORS[LEVEL_KEYS[i]]);
+    }
+  });
+  drawLatencyBar();
+  // Access ball animation
+  if(animTimer>0){
+    animTimer--;
+    const targetY=startY+animLevel*(levelH+gap)+levelH/2;
+    const ballY=targetY;
+    ctx.beginPath();ctx.arc(lx+lw/2+60,ballY,6,0,Math.PI*2);
+    ctx.fillStyle=COLORS[LEVEL_KEYS[animLevel]];ctx.fill();
+    ctx.fillStyle='#0a0a0a';ctx.font='bold 8px monospace';ctx.textAlign='center';
+    ctx.fillText(currentAccess!=null?currentAccess:'',lx+lw/2+60,ballY+3);
+    ctx.textAlign='left';
+  }
+  requestAnimationFrame(draw);
+}
+
+document.getElementById('run').addEventListener('click',()=>{
+  const addrs=document.getElementById('addrs').value.split(',').map(s=>parseInt(s.trim())).filter(n=>!isNaN(n));
+  policy=document.getElementById('policy').value;
+  l1Size=+document.getElementById('l1size').value;
+  l2Size=+document.getElementById('l2size').value;
+  l3Size=+document.getElementById('l3size').value;
+  initCaches();
+  let i=0;
+  const iv=setInterval(()=>{
+    if(i>=addrs.length){clearInterval(iv);return;}
+    doAccess(addrs[i]);i++;
+  },200);
+});
+
+document.getElementById('step').addEventListener('click',()=>{
+  policy=document.getElementById('policy').value;
+  l1Size=+document.getElementById('l1size').value;
+  l2Size=+document.getElementById('l2size').value;
+  l3Size=+document.getElementById('l3size').value;
+  const addrs=document.getElementById('addrs').value.split(',').map(s=>parseInt(s.trim())).filter(n=>!isNaN(n));
+  if(accessHistory.length>=addrs.length) return;
+  doAccess(addrs[accessHistory.length]);
+});
+
+document.getElementById('reset').addEventListener('click',()=>{initCaches();});
+document.getElementById('preset1').addEventListener('click',()=>{document.getElementById('addrs').value='0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15';});
+document.getElementById('preset2').addEventListener('click',()=>{document.getElementById('addrs').value='0,1,2,0,1,2,0,1,2,3,0,1,2,3';});
+document.getElementById('preset3').addEventListener('click',()=>{document.getElementById('addrs').value='0,1,2,3,4,0,1,2,3,4,0,1,2,3,4';});
+
+initCaches();draw();
+</script>
+<script src="/related.js"></script>
+</body>
+</html>

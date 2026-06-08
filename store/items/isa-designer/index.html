@@ -1,0 +1,336 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>ISA Designer - FreeChipStore</title>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:#0a0a0a;color:#fafafa;font-family:"Manrope",system-ui,sans-serif;min-height:100vh;display:flex;flex-direction:column}
+a{color:#f59e0b;text-decoration:none}
+.top-bar{padding:10px 20px;display:flex;align-items:center;gap:16px;border-bottom:1px solid #1a1a1a}
+.top-bar a{font-size:.82rem;font-weight:600}
+h1{text-align:center;color:#f59e0b;margin:14px 0 4px;font-size:1.35rem}
+.desc{text-align:center;color:#737373;font-size:.82rem;margin-bottom:10px}
+.main{display:flex;gap:14px;padding:0 16px;flex:1;max-width:1300px;margin:0 auto;width:100%}
+.col{flex:1;min-width:0;display:flex;flex-direction:column;gap:8px}
+.col.narrow{width:280px;max-width:280px;flex:none}
+.panel{background:#141414;border:1px solid #1a1a1a;border-radius:8px;padding:12px;margin-bottom:10px}
+.panel h3{font-size:.82rem;color:#f59e0b;margin-bottom:8px}
+label{font-size:.75rem;color:#aaa;display:block;margin-bottom:4px}
+select,input[type=number],input[type=text]{background:#222;color:#fafafa;border:1px solid #333;padding:5px 8px;border-radius:4px;font-size:.78rem;width:100%;font-family:inherit;margin-bottom:8px}
+input[type=range]{width:100%;accent-color:#f59e0b;margin-bottom:8px}
+textarea{background:#222;color:#fafafa;border:1px solid #333;padding:8px;border-radius:4px;font-size:.75rem;width:100%;font-family:'Courier New',monospace;resize:vertical;min-height:100px;margin-bottom:8px}
+button{background:#f59e0b;color:#0a0a0a;border:none;padding:6px 14px;border-radius:4px;font-size:.78rem;cursor:pointer;font-weight:600;font-family:inherit;width:100%;margin-bottom:6px}
+button:hover{background:#d97706}
+button.secondary{background:#222;color:#fafafa;border:1px solid #333}
+button.secondary:hover{background:#333}
+.btn-row{display:flex;gap:6px;margin-bottom:8px}
+.btn-row button{flex:1}
+.reg-file{display:grid;grid-template-columns:repeat(4,1fr);gap:3px;margin-bottom:8px}
+.reg{background:#1a1a1a;border:1px solid #333;border-radius:3px;padding:3px 5px;font-size:.65rem;text-align:center;font-family:'Courier New',monospace}
+.reg .name{color:#f59e0b;font-weight:600}.reg .val{color:#fafafa}
+.mem-view{display:grid;grid-template-columns:repeat(8,1fr);gap:2px;margin-bottom:8px}
+.mem-cell{background:#1a1a1a;border:1px solid #262626;border-radius:2px;padding:2px;font-size:.58rem;text-align:center;font-family:'Courier New',monospace;color:#737373}
+.mem-cell.active{background:#f59e0b22;border-color:#f59e0b;color:#f59e0b}
+.instr-table{width:100%;font-size:.68rem;border-collapse:collapse}
+.instr-table th{color:#f59e0b;text-align:left;padding:3px 5px;border-bottom:1px solid #333}
+.instr-table td{padding:3px 5px;border-bottom:1px solid #1a1a1a;color:#aaa}
+.instr-table tr.current td{background:#f59e0b22;color:#fafafa}
+.highlight{background:#f59e0b22;border:1px solid #f59e0b;border-radius:4px;padding:6px;margin:6px 0;font-size:.7rem;color:#fafafa}
+.benchmark{display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;margin-top:8px}
+.bench-item{background:#1a1a1a;border:1px solid #262626;border-radius:4px;padding:6px;text-align:center}
+.bench-item .name{font-size:.6rem;color:#737373;margin-bottom:2px}
+.bench-item .val{font-size:.85rem;font-weight:700;color:#f59e0b}
+.bench-item .sub{font-size:.55rem;color:#555}
+footer{border-top:1px solid #1a1a1a;padding:12px;text-align:center;font-size:.7rem;color:#404040;margin-top:auto}
+@media(max-width:900px){.main{flex-direction:column}.col.narrow{width:100%;max-width:100%}}
+</style>
+</head>
+<body>
+<div class="top-bar"><a href="/">&#8592; FreeChipStore</a></div>
+<h1>ISA Designer</h1>
+<p class="desc">Design your own instruction set architecture, write assembly, and execute step-by-step</p>
+<div class="main">
+<div class="col narrow">
+<div class="panel">
+<h3>ISA Configuration</h3>
+<label>Style</label>
+<select id="style">
+<option value="risc">RISC (fixed 16-bit)</option>
+<option value="cisc">CISC (variable 8-24 bit)</option>
+</select>
+<label>Registers: <span id="regCountV">8</span></label>
+<input type="range" id="regCount" min="4" max="16" step="2" value="8">
+<label>Preset</label>
+<div class="btn-row">
+<button class="secondary" id="presetCustom">Custom</button>
+<button class="secondary" id="presetMips">MIPS-like</button>
+<button class="secondary" id="presetX86">x86-like</button>
+</div>
+</div>
+<div class="panel">
+<h3>Instruction Set</h3>
+<div id="instrList"></div>
+<button class="secondary" id="addInstr">+ Add Instruction</button>
+</div>
+</div>
+<div class="col">
+<div class="panel">
+<h3>Assembly Editor</h3>
+<textarea id="asm" placeholder="Write assembly using your ISA instructions...
+Example:
+LOAD R0, 5
+LOAD R1, 3
+ADD R2, R0, R1
+STORE R2, 0"></textarea>
+<div class="btn-row">
+<button id="assembleBtn">Assemble</button>
+<button id="stepBtn" class="secondary">Step</button>
+<button id="runBtn" class="secondary">Run All</button>
+<button id="resetExBtn" class="secondary">Reset</button>
+</div>
+<div class="highlight" id="status">Define instructions, write assembly, then assemble and execute.</div>
+</div>
+<div class="panel">
+<h3>Register File</h3>
+<div class="reg-file" id="regFile"></div>
+</div>
+<div class="panel">
+<h3>Memory (first 32 bytes)</h3>
+<div class="mem-view" id="memView"></div>
+</div>
+<div class="panel">
+<h3>Benchmark Comparison</h3>
+<div class="benchmark" id="benchmarks">
+<div class="bench-item"><div class="name">Your ISA</div><div class="val" id="bYou">-</div><div class="sub">instructions</div></div>
+<div class="bench-item"><div class="name">MIPS-like</div><div class="val" id="bMips">-</div><div class="sub">instructions</div></div>
+<div class="bench-item"><div class="name">x86-like</div><div class="val" id="bX86">-</div><div class="sub">instructions</div></div>
+</div>
+</div>
+</div>
+<div class="col narrow">
+<div class="panel">
+<h3>Program (assembled)</h3>
+<table class="instr-table" id="progTable">
+<thead><tr><th>#</th><th>Instruction</th><th>Binary</th></tr></thead>
+<tbody id="progBody"></tbody>
+</table>
+</div>
+</div>
+</div>
+<footer>FreeChipStore — free simulations &amp; education.</footer>
+<script>
+let instructions=[
+{name:'LOAD',opcode:'0001',args:['reg','imm'],desc:'Load immediate into register'},
+{name:'STORE',opcode:'0010',args:['reg','addr'],desc:'Store register to memory'},
+{name:'ADD',opcode:'0011',args:['reg','reg','reg'],desc:'Add two registers'},
+{name:'SUB',opcode:'0100',args:['reg','reg','reg'],desc:'Subtract two registers'},
+{name:'JUMP',opcode:'0101',args:['addr'],desc:'Jump to address'},
+{name:'BEQ',opcode:'0110',args:['reg','reg','addr'],desc:'Branch if equal'},
+];
+let regCount=8,regs=[],memory=new Array(32).fill(0),pc=0,program=[],assembled=false,halted=false;
+
+function getRegCount(){return parseInt(document.getElementById('regCount').value);}
+function getStyle(){return document.getElementById('style').value;}
+
+function initRegs(){regCount=getRegCount();regs=new Array(regCount).fill(0);}
+function renderRegFile(){
+let el=document.getElementById('regFile');el.innerHTML='';
+for(let i=0;i<regCount;i++){
+el.innerHTML+=`<div class="reg"><span class="name">R${i}</span><br><span class="val">${regs[i]}</span></div>`;
+}
+}
+function renderMemory(){
+let el=document.getElementById('memView');el.innerHTML='';
+for(let i=0;i<32;i++){
+let cls=memory[i]!==0?'mem-cell active':'mem-cell';
+el.innerHTML+=`<div class="${cls}">${i}:${memory[i]}</div>`;
+}
+}
+function renderInstrList(){
+let el=document.getElementById('instrList');el.innerHTML='';
+instructions.forEach((inst,idx)=>{
+el.innerHTML+=`<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;padding:3px 5px;background:#1a1a1a;border-radius:3px">
+<span style="font-size:.68rem;color:#fafafa;font-weight:600">${inst.name}</span>
+<span style="font-size:.6rem;color:#737373">${inst.args.join(', ')}</span>
+<span style="font-size:.58rem;color:#555;cursor:pointer" onclick="removeInstr(${idx})">x</span>
+</div>`;
+});
+}
+function renderProgram(){
+let body=document.getElementById('progBody');body.innerHTML='';
+program.forEach((p,i)=>{
+let cls=i===pc?'current':'';
+body.innerHTML+=`<tr class="${cls}"><td>${i}</td><td>${p.text}</td><td style="font-family:monospace;font-size:.6rem">${p.binary}</td></tr>`;
+});
+}
+
+function removeInstr(idx){instructions.splice(idx,1);renderInstrList();}
+
+function toBin(n,bits){return(n>>>0).toString(2).padStart(bits,'0');}
+
+function assemble(){
+initRegs();memory.fill(0);pc=0;halted=false;program=[];
+let lines=document.getElementById('asm').value.trim().split('\n').filter(l=>l.trim()&&!l.trim().startsWith('//'));
+let errors=[];
+lines.forEach((line,ln)=>{
+let parts=line.trim().replace(/,/g,' ').split(/\s+/);
+let op=parts[0].toUpperCase();
+let inst=instructions.find(i=>i.name===op);
+if(!inst){errors.push(`Line ${ln+1}: Unknown instruction "${op}"`);return;}
+let args=parts.slice(1);
+let binary=inst.opcode;
+let style=getStyle();
+args.forEach((a,ai)=>{
+if(inst.args[ai]==='reg'){
+let rn=parseInt(a.replace(/[Rr]/,''));
+binary+=toBin(rn,4);
+}else{
+let v=parseInt(a);
+binary+=toBin(v&0xFF,8);
+}
+});
+// Pad to fixed width for RISC
+if(style==='risc')binary=binary.padEnd(16,'0');
+program.push({text:line.trim(),binary,op,args,inst});
+});
+if(errors.length){document.getElementById('status').textContent=errors.join('; ');return;}
+assembled=true;
+document.getElementById('status').textContent=`Assembled ${program.length} instructions. Ready to execute.`;
+renderProgram();renderRegFile();renderMemory();
+document.getElementById('bYou').textContent=program.length;
+}
+
+function parseReg(s){return parseInt(s.replace(/[Rr]/,''));}
+function parseImm(s){return parseInt(s);}
+
+function stepExec(){
+if(!assembled||halted||pc>=program.length){
+if(pc>=program.length)halted=true;
+document.getElementById('status').textContent=halted?'Program halted (end reached).':'Not assembled.';
+return;
+}
+let p=program[pc];
+let op=p.op.toUpperCase();
+let args=p.args;
+switch(op){
+case 'LOAD':regs[parseReg(args[0])]=parseImm(args[1]);break;
+case 'STORE':{let addr=parseImm(args[1]);if(addr>=0&&addr<32)memory[addr]=regs[parseReg(args[0])];break;}
+case 'ADD':regs[parseReg(args[0])]=regs[parseReg(args[1])]+regs[parseReg(args[2])];break;
+case 'SUB':regs[parseReg(args[0])]=regs[parseReg(args[1])]-regs[parseReg(args[2])];break;
+case 'JUMP':pc=parseImm(args[0])-1;break;
+case 'BEQ':if(regs[parseReg(args[0])]===regs[parseReg(args[1])]){pc=parseImm(args[2])-1;}break;
+default:break;
+}
+pc++;
+if(pc>=program.length)halted=true;
+document.getElementById('status').textContent=halted?'Program halted.':'PC = '+pc;
+renderProgram();renderRegFile();renderMemory();
+}
+
+function runAll(){
+if(!assembled)return;
+let limit=1000,count=0;
+while(!halted&&pc<program.length&&count<limit){stepExec();count++;}
+if(count>=limit)document.getElementById('status').textContent='Execution limit reached (infinite loop?).';
+}
+
+function resetExec(){pc=0;halted=false;initRegs();memory.fill(0);renderProgram();renderRegFile();renderMemory();document.getElementById('status').textContent='Reset. Ready to execute.';}
+
+// Presets
+function loadPreset(type){
+if(type==='mips'){
+instructions=[
+{name:'LOAD',opcode:'0001',args:['reg','imm'],desc:'Load immediate'},
+{name:'STORE',opcode:'0010',args:['reg','addr'],desc:'Store to memory'},
+{name:'ADD',opcode:'0011',args:['reg','reg','reg'],desc:'Add'},
+{name:'SUB',opcode:'0100',args:['reg','reg','reg'],desc:'Subtract'},
+{name:'JUMP',opcode:'0101',args:['addr'],desc:'Jump'},
+{name:'BEQ',opcode:'0110',args:['reg','reg','addr'],desc:'Branch if equal'},
+{name:'AND',opcode:'0111',args:['reg','reg','reg'],desc:'Bitwise AND'},
+{name:'OR',opcode:'1000',args:['reg','reg','reg'],desc:'Bitwise OR'},
+];
+document.getElementById('style').value='risc';
+document.getElementById('asm').value='LOAD R0, 5\nLOAD R1, 3\nADD R2, R0, R1\nSUB R3, R0, R1\nSTORE R2, 0\nSTORE R3, 1';
+}else if(type==='x86'){
+instructions=[
+{name:'MOV',opcode:'0001',args:['reg','imm'],desc:'Move immediate to register'},
+{name:'STORE',opcode:'0010',args:['reg','addr'],desc:'Store to memory'},
+{name:'ADD',opcode:'0011',args:['reg','reg','reg'],desc:'Add'},
+{name:'SUB',opcode:'0100',args:['reg','reg','reg'],desc:'Subtract'},
+{name:'JUMP',opcode:'0101',args:['addr'],desc:'Jump'},
+{name:'JZ',opcode:'0110',args:['reg','addr'],desc:'Jump if zero'},
+{name:'MUL',opcode:'0111',args:['reg','reg','reg'],desc:'Multiply'},
+{name:'INC',opcode:'1000',args:['reg'],desc:'Increment register'},
+];
+document.getElementById('style').value='cisc';
+document.getElementById('asm').value='MOV R0, 4\nMOV R1, 3\nMUL R2, R0, R1\nINC R2\nSTORE R2, 0';
+// Extend stepExec for MUL/INC/MOV/JZ
+}else{
+instructions=[
+{name:'LOAD',opcode:'0001',args:['reg','imm'],desc:'Load immediate'},
+{name:'STORE',opcode:'0010',args:['reg','addr'],desc:'Store to memory'},
+{name:'ADD',opcode:'0011',args:['reg','reg','reg'],desc:'Add'},
+{name:'SUB',opcode:'0100',args:['reg','reg','reg'],desc:'Subtract'},
+{name:'JUMP',opcode:'0101',args:['addr'],desc:'Jump'},
+{name:'BEQ',opcode:'0110',args:['reg','reg','addr'],desc:'Branch if equal'},
+];
+document.getElementById('style').value='risc';
+document.getElementById('asm').value='LOAD R0, 10\nLOAD R1, 1\nSUB R0, R0, R1\nBEQ R0, R1, 5\nJUMP 2\nSTORE R0, 0';
+}
+renderInstrList();
+document.getElementById('bMips').textContent='6';
+document.getElementById('bX86').textContent='5';
+}
+
+// Extended execution for x86-like
+const origStep=stepExec;
+stepExec=function(){
+if(!assembled||halted||pc>=program.length){
+if(pc>=program.length)halted=true;
+document.getElementById('status').textContent=halted?'Program halted.':'Not assembled.';
+return;
+}
+let p=program[pc];let op=p.op.toUpperCase();let args=p.args;
+switch(op){
+case 'LOAD':case 'MOV':regs[parseReg(args[0])]=parseImm(args[1]);break;
+case 'STORE':{let addr=parseImm(args[1]);if(addr>=0&&addr<32)memory[addr]=regs[parseReg(args[0])];break;}
+case 'ADD':regs[parseReg(args[0])]=regs[parseReg(args[1])]+regs[parseReg(args[2])];break;
+case 'SUB':regs[parseReg(args[0])]=regs[parseReg(args[1])]-regs[parseReg(args[2])];break;
+case 'MUL':regs[parseReg(args[0])]=regs[parseReg(args[1])]*regs[parseReg(args[2])];break;
+case 'AND':regs[parseReg(args[0])]=regs[parseReg(args[1])]&regs[parseReg(args[2])];break;
+case 'OR':regs[parseReg(args[0])]=regs[parseReg(args[1])]|regs[parseReg(args[2])];break;
+case 'INC':regs[parseReg(args[0])]++;break;
+case 'JUMP':pc=parseImm(args[0])-1;break;
+case 'BEQ':if(regs[parseReg(args[0])]===regs[parseReg(args[1])]){pc=parseImm(args[2])-1;}break;
+case 'JZ':if(regs[parseReg(args[0])]===0){pc=parseImm(args[1])-1;}break;
+default:break;
+}
+pc++;
+if(pc>=program.length)halted=true;
+document.getElementById('status').textContent=halted?'Program halted.':'PC = '+pc;
+renderProgram();renderRegFile();renderMemory();
+};
+
+document.getElementById('assembleBtn').onclick=assemble;
+document.getElementById('stepBtn').onclick=stepExec;
+document.getElementById('runBtn').onclick=runAll;
+document.getElementById('resetExBtn').onclick=resetExec;
+document.getElementById('presetCustom').onclick=()=>loadPreset('custom');
+document.getElementById('presetMips').onclick=()=>loadPreset('mips');
+document.getElementById('presetX86').onclick=()=>loadPreset('x86');
+document.getElementById('regCount').oninput=function(){document.getElementById('regCountV').textContent=this.value;initRegs();renderRegFile();};
+document.getElementById('addInstr').onclick=()=>{
+let name=prompt('Instruction name (e.g., SHL):');if(!name)return;
+let args=prompt('Args (comma separated: reg,reg,imm):');if(!args)return;
+let opcode=toBin(instructions.length+1,4);
+instructions.push({name:name.toUpperCase(),opcode,args:args.split(',').map(s=>s.trim()),desc:''});
+renderInstrList();
+};
+
+initRegs();renderRegFile();renderMemory();renderInstrList();loadPreset('custom');
+</script>
+<script src="/related.js"></script>
+</body>
+</html>

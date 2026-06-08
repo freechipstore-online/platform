@@ -235,6 +235,28 @@
       "creator": "serge-ivo",
       "creatorName": "Serge",
       "creatorAvatar": "https://github.com/serge-ivo.png?size=96"
+    },
+    {
+      "id": "gpu-pipeline",
+      "name": "GPU Pipeline Visualizer",
+      "description": "Simplified GPU rendering pipeline: vertex shader, rasterizer, fragment shader, framebuffer. Draw a triangle and watch it transform.",
+      "category": "architecture",
+      "icon": "🎮",
+      "iconBg": "#f59e0b",
+      "creator": "serge-ivo",
+      "creatorName": "Serge",
+      "creatorAvatar": "https://github.com/serge-ivo.png?size=96"
+    },
+    {
+      "id": "isa-designer",
+      "name": "ISA Designer",
+      "description": "Design your own instruction set architecture. Define opcodes, write assembly, execute step-by-step. Compare against MIPS and x86 presets.",
+      "category": "design",
+      "icon": "📐",
+      "iconBg": "#f59e0b",
+      "creator": "serge-ivo",
+      "creatorName": "Serge",
+      "creatorAvatar": "https://github.com/serge-ivo.png?size=96"
     }
   ]
 }

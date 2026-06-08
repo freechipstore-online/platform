@@ -1,0 +1,275 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>GPU Pipeline Visualizer - FreeChipStore</title>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:#0a0a0a;color:#fafafa;font-family:"Manrope",system-ui,sans-serif;min-height:100vh;display:flex;flex-direction:column}
+a{color:#f59e0b;text-decoration:none}
+.top-bar{padding:10px 20px;display:flex;align-items:center;gap:16px;border-bottom:1px solid #1a1a1a}
+.top-bar a{font-size:.82rem;font-weight:600}
+h1{text-align:center;color:#f59e0b;margin:14px 0 4px;font-size:1.35rem}
+.desc{text-align:center;color:#737373;font-size:.82rem;margin-bottom:10px}
+.main{display:flex;gap:14px;padding:0 16px;flex:1;max-width:1200px;margin:0 auto;width:100%}
+.left{flex:1;min-width:0;display:flex;flex-direction:column;gap:8px}
+.right{width:280px;flex-shrink:0}
+canvas{width:100%;background:#111;border:1px solid #222;border-radius:8px}
+.panel{background:#141414;border:1px solid #1a1a1a;border-radius:8px;padding:12px;margin-bottom:10px}
+.panel h3{font-size:.82rem;color:#f59e0b;margin-bottom:8px}
+label{font-size:.75rem;color:#aaa;display:block;margin-bottom:4px}
+select,input[type=number]{background:#222;color:#fafafa;border:1px solid #333;padding:5px 8px;border-radius:4px;font-size:.78rem;width:100%;font-family:inherit;margin-bottom:8px}
+input[type=range]{background:#222;border:none;padding:0;width:100%;accent-color:#f59e0b;margin-bottom:8px}
+button{background:#f59e0b;color:#0a0a0a;border:none;padding:6px 14px;border-radius:4px;font-size:.78rem;cursor:pointer;font-weight:600;font-family:inherit;width:100%;margin-bottom:6px}
+button:hover{background:#d97706}
+button.secondary{background:#222;color:#fafafa;border:1px solid #333}
+button.secondary:hover{background:#333}
+.stage-bar{display:flex;gap:2px;margin-bottom:10px}
+.stage{flex:1;text-align:center;padding:6px 2px;border-radius:4px;font-size:.65rem;font-weight:600;background:#222;color:#737373;transition:all .2s}
+.stage.active{background:#f59e0b;color:#0a0a0a}
+.info{font-size:.68rem;color:#737373;line-height:1.5;margin-top:6px}
+.info b{color:#f59e0b}
+footer{border-top:1px solid #1a1a1a;padding:12px;text-align:center;font-size:.7rem;color:#404040;margin-top:auto}
+@media(max-width:800px){.main{flex-direction:column}.right{width:100%}}
+</style>
+</head>
+<body>
+<div class="top-bar"><a href="/">&#8592; FreeChipStore</a></div>
+<h1>GPU Pipeline Visualizer</h1>
+<p class="desc">Draw a triangle, then watch it transform through each GPU rendering stage</p>
+<div class="stage-bar">
+<div class="stage" id="s0">Vertices</div>
+<div class="stage" id="s1">Vertex Shader</div>
+<div class="stage" id="s2">Rasterizer</div>
+<div class="stage" id="s3">Fragment Shader</div>
+<div class="stage" id="s4">Framebuffer</div>
+</div>
+<div class="main">
+<div class="left">
+<canvas id="input" width="550" height="250"></canvas>
+<canvas id="output" width="550" height="250"></canvas>
+</div>
+<div class="right">
+<div class="panel">
+<h3>Vertex Transform</h3>
+<label>Rotate (deg): <span id="rotV">0</span></label>
+<input type="range" id="rot" min="0" max="360" value="0">
+<label>Scale X: <span id="sxV">1.0</span></label>
+<input type="range" id="sx" min="0.2" max="2" step="0.1" value="1.0">
+<label>Scale Y: <span id="syV">1.0</span></label>
+<input type="range" id="sy" min="0.2" max="2" step="0.1" value="1.0">
+<label>Translate X: <span id="txV">0</span></label>
+<input type="range" id="tx" min="-100" max="100" value="0">
+<label>Translate Y: <span id="tyV">0</span></label>
+<input type="range" id="ty" min="-100" max="100" value="0">
+</div>
+<div class="panel">
+<h3>Fragment Shader</h3>
+<label>Coloring Mode</label>
+<select id="colorMode">
+<option value="flat">Flat Color</option>
+<option value="gradient">Barycentric Gradient</option>
+<option value="checkerboard">Checkerboard Texture</option>
+</select>
+</div>
+<div class="panel">
+<h3>Controls</h3>
+<button id="stepBtn">Step Through Pipeline</button>
+<button id="autoBtn" class="secondary">Auto Animate</button>
+<button id="resetBtn" class="secondary">Reset Triangle</button>
+<div class="info">
+<b>Click on the top canvas</b> to place 3 vertices for your triangle.<br><br>
+<b>Pipeline stages:</b><br>
+1. Vertices: raw input positions<br>
+2. Vertex Shader: transform (rotate/scale/translate)<br>
+3. Rasterizer: find pixels inside triangle<br>
+4. Fragment Shader: color each pixel<br>
+5. Framebuffer: final output
+</div>
+</div>
+</div>
+</div>
+<footer>FreeChipStore — free simulations &amp; education.</footer>
+<script>
+const inC=document.getElementById('input'),ctxI=inC.getContext('2d');
+const outC=document.getElementById('output'),ctxO=outC.getContext('2d');
+const IW=550,IH=250;
+
+let vertices=[],stage=0,transformed=[],rasterPixels=[],autoRunning=false,autoId=null;
+
+function getRot(){return parseFloat(document.getElementById('rot').value)*Math.PI/180;}
+function getSx(){return parseFloat(document.getElementById('sx').value);}
+function getSy(){return parseFloat(document.getElementById('sy').value);}
+function getTx(){return parseFloat(document.getElementById('tx').value);}
+function getTy(){return parseFloat(document.getElementById('ty').value);}
+function getColorMode(){return document.getElementById('colorMode').value;}
+
+function setStage(s){
+stage=s;
+for(let i=0;i<5;i++)document.getElementById('s'+i).classList.toggle('active',i<=s);
+}
+
+function transformVerts(){
+let cx=IW/2,cy=IH/2;
+let r=getRot(),scx=getSx(),scy=getSy(),tx=getTx(),ty=getTy();
+transformed=vertices.map(v=>{
+let x=v.x-cx,y=v.y-cy;
+// Scale
+x*=scx;y*=scy;
+// Rotate
+let nx=x*Math.cos(r)-y*Math.sin(r);
+let ny=x*Math.sin(r)+y*Math.cos(r);
+// Translate
+return{x:nx+cx+tx,y:ny+cy+ty};
+});
+}
+
+function rasterize(){
+if(transformed.length<3)return;
+rasterPixels=[];
+let pixSize=4;
+let minX=Math.max(0,Math.floor(Math.min(transformed[0].x,transformed[1].x,transformed[2].x)/pixSize)*pixSize);
+let maxX=Math.min(IW,Math.ceil(Math.max(transformed[0].x,transformed[1].x,transformed[2].x)/pixSize)*pixSize);
+let minY=Math.max(0,Math.floor(Math.min(transformed[0].y,transformed[1].y,transformed[2].y)/pixSize)*pixSize);
+let maxY=Math.min(IH,Math.ceil(Math.max(transformed[0].y,transformed[1].y,transformed[2].y)/pixSize)*pixSize);
+let [p0,p1,p2]=transformed;
+for(let y=minY;y<maxY;y+=pixSize){
+for(let x=minX;x<maxX;x+=pixSize){
+let px=x+pixSize/2,py=y+pixSize/2;
+let b=barycentric(px,py,p0,p1,p2);
+if(b[0]>=0&&b[1]>=0&&b[2]>=0){rasterPixels.push({x,y,w:pixSize,b});}
+}}
+}
+
+function barycentric(px,py,v0,v1,v2){
+let d=(v1.y-v2.y)*(v0.x-v2.x)+(v2.x-v1.x)*(v0.y-v2.y);
+if(Math.abs(d)<0.001)return[-1,-1,-1];
+let w0=((v1.y-v2.y)*(px-v2.x)+(v2.x-v1.x)*(py-v2.y))/d;
+let w1=((v2.y-v0.y)*(px-v2.x)+(v0.x-v2.x)*(py-v2.y))/d;
+let w2=1-w0-w1;
+return[w0,w1,w2];
+}
+
+function getPixelColor(pix){
+let mode=getColorMode();
+if(mode==='flat')return'#f59e0b';
+if(mode==='gradient'){
+let r=Math.round(pix.b[0]*255),g=Math.round(pix.b[1]*255),b=Math.round(pix.b[2]*255);
+return`rgb(${r},${g},${b})`;
+}
+if(mode==='checkerboard'){
+let cx=Math.floor(pix.x/16)%2,cy=Math.floor(pix.y/16)%2;
+return(cx^cy)?'#f59e0b':'#92400e';
+}
+return'#f59e0b';
+}
+
+function drawInput(){
+ctxI.fillStyle='#111';ctxI.fillRect(0,0,IW,IH);
+// Grid
+ctxI.strokeStyle='#1a1a1a';ctxI.lineWidth=0.5;
+for(let x=0;x<IW;x+=25){ctxI.beginPath();ctxI.moveTo(x,0);ctxI.lineTo(x,IH);ctxI.stroke();}
+for(let y=0;y<IH;y+=25){ctxI.beginPath();ctxI.moveTo(0,y);ctxI.lineTo(IW,y);ctxI.stroke();}
+// Label
+ctxI.fillStyle='#737373';ctxI.font='10px Manrope';ctxI.fillText('INPUT: Click to place vertices (3 max)',8,14);
+// Draw vertices
+if(vertices.length>0){
+ctxI.strokeStyle='#f59e0b';ctxI.lineWidth=2;ctxI.beginPath();
+ctxI.moveTo(vertices[0].x,vertices[0].y);
+for(let i=1;i<vertices.length;i++)ctxI.lineTo(vertices[i].x,vertices[i].y);
+if(vertices.length===3){ctxI.closePath();ctxI.fillStyle='rgba(245,158,11,0.15)';ctxI.fill();}
+ctxI.stroke();
+vertices.forEach((v,i)=>{
+ctxI.fillStyle='#f59e0b';ctxI.beginPath();ctxI.arc(v.x,v.y,5,0,Math.PI*2);ctxI.fill();
+ctxI.fillStyle='#fafafa';ctxI.font='bold 9px Manrope';ctxI.textAlign='center';ctxI.fillText('V'+i,v.x,v.y-10);
+});
+ctxI.textAlign='left';
+}
+}
+
+function drawOutput(){
+ctxO.fillStyle='#111';ctxO.fillRect(0,0,IW,IH);
+ctxO.strokeStyle='#1a1a1a';ctxO.lineWidth=0.5;
+for(let x=0;x<IW;x+=25){ctxO.beginPath();ctxO.moveTo(x,0);ctxO.lineTo(x,IH);ctxO.stroke();}
+for(let y=0;y<IH;y+=25){ctxO.beginPath();ctxO.moveTo(0,y);ctxO.lineTo(IW,y);ctxO.stroke();}
+
+let label='OUTPUT: ';
+if(stage===0)label+='Raw vertices';
+else if(stage===1)label+='After vertex shader (transformed)';
+else if(stage===2)label+='Rasterized pixels';
+else if(stage===3)label+='Fragment-shaded pixels';
+else label+='Final framebuffer';
+ctxO.fillStyle='#737373';ctxO.font='10px Manrope';ctxO.fillText(label,8,14);
+
+if(stage>=1&&transformed.length===3){
+// Draw transformed triangle outline
+ctxO.strokeStyle=stage>=3?'rgba(245,158,11,0.3)':'#f59e0b';ctxO.lineWidth=stage>=2?1:2;ctxO.beginPath();
+ctxO.moveTo(transformed[0].x,transformed[0].y);
+ctxO.lineTo(transformed[1].x,transformed[1].y);
+ctxO.lineTo(transformed[2].x,transformed[2].y);
+ctxO.closePath();ctxO.stroke();
+if(stage===1){
+transformed.forEach((v,i)=>{
+ctxO.fillStyle='#f59e0b';ctxO.beginPath();ctxO.arc(v.x,v.y,5,0,Math.PI*2);ctxO.fill();
+ctxO.fillStyle='#fafafa';ctxO.font='bold 9px Manrope';ctxO.textAlign='center';ctxO.fillText("V'"+i,v.x,v.y-10);
+});
+ctxO.textAlign='left';
+}
+}
+if(stage>=2&&rasterPixels.length>0){
+rasterPixels.forEach(p=>{
+if(stage===2){ctxO.fillStyle='rgba(245,158,11,0.4)';ctxO.strokeStyle='#f59e0b44';ctxO.fillRect(p.x,p.y,p.w,p.w);ctxO.strokeRect(p.x,p.y,p.w,p.w);}
+else{ctxO.fillStyle=getPixelColor(p);ctxO.fillRect(p.x,p.y,p.w,p.w);}
+});
+}
+if(stage===0&&vertices.length===3){
+ctxO.strokeStyle='#f59e0b55';ctxO.lineWidth=1;ctxO.setLineDash([3,3]);ctxO.beginPath();
+ctxO.moveTo(vertices[0].x,vertices[0].y);ctxO.lineTo(vertices[1].x,vertices[1].y);ctxO.lineTo(vertices[2].x,vertices[2].y);ctxO.closePath();ctxO.stroke();ctxO.setLineDash([]);
+}
+}
+
+function draw(){drawInput();drawOutput();}
+
+function pipeline(){
+if(vertices.length<3)return;
+if(stage===0){transformVerts();setStage(1);}
+else if(stage===1){rasterize();setStage(2);}
+else if(stage===2){setStage(3);}
+else if(stage===3){setStage(4);}
+else{setStage(0);}
+draw();
+}
+
+inC.addEventListener('click',e=>{
+if(vertices.length>=3)return;
+let rect=inC.getBoundingClientRect();
+let scaleX=IW/rect.width;
+let x=(e.clientX-rect.left)*scaleX,y=(e.clientY-rect.top)*(IH/rect.height);
+vertices.push({x,y});
+if(vertices.length===3){transformVerts();rasterize();setStage(0);}
+draw();
+});
+
+document.getElementById('stepBtn').onclick=pipeline;
+document.getElementById('resetBtn').onclick=()=>{vertices=[];transformed=[];rasterPixels=[];stage=0;setStage(0);stopAuto();draw();};
+document.getElementById('autoBtn').onclick=()=>{
+if(autoRunning){stopAuto();}
+else{autoRunning=true;document.getElementById('autoBtn').textContent='Stop Auto';autoId=setInterval(pipeline,800);}
+};
+function stopAuto(){autoRunning=false;document.getElementById('autoBtn').textContent='Auto Animate';if(autoId)clearInterval(autoId);autoId=null;}
+
+// Sliders update in realtime
+['rot','sx','sy','tx','ty'].forEach(id=>{
+document.getElementById(id).oninput=function(){
+document.getElementById(id+'V').textContent=this.value;
+if(vertices.length===3){transformVerts();rasterize();draw();}
+};
+});
+document.getElementById('colorMode').onchange=()=>{if(vertices.length===3)draw();};
+
+setStage(0);draw();
+</script>
+<script src="/related.js"></script>
+</body>
+</html>

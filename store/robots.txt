@@ -1,4 +1,4 @@
 User-agent: *
 Allow: /
 
-Sitemap: https://store.online/sitemap.xml
+Sitemap: https://freechipstore.pages.dev/sitemap.xml

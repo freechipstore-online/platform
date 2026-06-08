@@ -4,7 +4,16 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1.0">
 <title>FreeChipStore — 22 Simulations</title>
-<meta name="description" content="22 interactive simulations. Free, open source.">
+<meta name="description" content="22 interactive simulations. Free, open source, no signup required.">
+<meta property="og:title" content="FreeChipStore — Free Interactive Simulations">
+<meta property="og:description" content="22 interactive simulations. Free forever, open source.">
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://freechipstore.pages.dev">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="FreeChipStore">
+<meta name="twitter:description" content="22 interactive simulations. Free forever, open source.">
+<link rel="canonical" href="https://freechipstore.pages.dev/">
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"WebSite","name":"FreeChipStore","url":"https://freechipstore.pages.dev","description":"22 interactive simulations. Free, open source."}</script>
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,700&family=Manrope:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
@@ -16,37 +25,37 @@ header{border-bottom:1px solid var(--line);padding:.6rem 1.5rem;display:flex;ali
 .brand-emoji{font-size:1.4rem}.brand-name{font-family:'Fraunces',serif;font-size:1.05rem;font-weight:700}
 nav{display:flex;gap:.85rem;font-size:.82rem;font-weight:600;margin-left:auto}
 nav a{color:var(--muted)}nav a:hover{color:var(--ink);text-decoration:none}
-.hero{text-align:center;padding:2.5rem 1.5rem 1.5rem}
+.hero{text-align:center;padding:2.5rem 1.5rem 1rem}
 .hero h1{font-family:'Fraunces',serif;font-size:2rem;font-weight:700;margin-bottom:.4rem}
 .hero h1 span{color:var(--accent)}
 .hero p{color:var(--muted);font-size:.95rem;max-width:550px;margin:0 auto .75rem}
 .badge{display:inline-block;padding:.2rem .65rem;border-radius:99px;font-size:.75rem;font-weight:600;background:var(--panel);border:1px solid var(--line);color:var(--muted);margin:.15rem}
-.grid{max-width:1100px;margin:0 auto;padding:0 1.5rem 3rem;display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:.65rem}
+.filters{max-width:1100px;margin:0 auto;padding:.8rem 1.5rem;display:flex;gap:.4rem;flex-wrap:wrap;justify-content:center}
+.filter-btn{background:var(--panel);border:1px solid var(--line);color:var(--muted);padding:.35rem .8rem;border-radius:99px;font-size:.72rem;font-weight:600;cursor:pointer;font-family:inherit;transition:all .15s}
+.filter-btn:hover{border-color:var(--accent);color:var(--ink)}
+.filter-btn.active{background:var(--accent);border-color:var(--accent);color:#000}
+.grid{max-width:1100px;margin:0 auto;padding:0 1.5rem 2rem;display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:.65rem}
 .card{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:.9rem;display:flex;gap:.7rem;align-items:flex-start;transition:border-color .15s,transform .15s;text-decoration:none;color:inherit}
 .card:hover{border-color:var(--accent);transform:translateY(-1px);text-decoration:none}
+.card.hidden{display:none}
 .card-icon{width:40px;height:40px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:1.3rem;flex-shrink:0}
 .card-body{flex:1;min-width:0}.card-name{font-size:.9rem;font-weight:700;margin-bottom:.15rem}
 .card-desc{font-size:.72rem;color:var(--muted);line-height:1.4;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
 .card-cta{font-size:.72rem;font-weight:600;color:var(--accent);white-space:nowrap;align-self:center}
-footer{border-top:1px solid var(--line);padding:1.5rem;text-align:center;font-size:.72rem;color:#404040}
-
+.community{max-width:800px;margin:0 auto 2rem;padding:0 1.5rem;text-align:center}
+.community h2{font-family:'Fraunces',serif;font-size:1.3rem;margin-bottom:.3rem}
+.community>p{color:var(--muted);font-size:.82rem;margin-bottom:.8rem}
+.community-links{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:.5rem}
+.community-card{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:.7rem;text-decoration:none;color:inherit;display:flex;flex-direction:column;align-items:center;gap:.2rem;transition:border-color .15s}
+.community-card:hover{border-color:var(--accent);text-decoration:none}
+.c-icon{font-size:1.2rem}.c-title{font-size:.78rem;font-weight:700}.c-desc{font-size:.65rem;color:var(--muted);text-align:center}
 .xstore{max-width:1100px;margin:0 auto;padding:1rem 1.5rem 0;text-align:center}
-.xstore h3{font-size:.78rem;color:#525252;font-weight:600;margin-bottom:.6rem;text-transform:uppercase;letter-spacing:.5px}
-.xstore-grid{display:flex;justify-content:center;gap:.5rem;flex-wrap:wrap}
-.xstore-link{display:flex;align-items:center;gap:.3rem;background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:.4rem .7rem;text-decoration:none;color:var(--muted);font-size:.72rem;font-weight:600;transition:border-color .15s,color .15s}
+.xstore h3{font-size:.72rem;color:#525252;font-weight:600;margin-bottom:.5rem;text-transform:uppercase;letter-spacing:.5px}
+.xstore-grid{display:flex;justify-content:center;gap:.4rem;flex-wrap:wrap}
+.xstore-link{display:flex;align-items:center;gap:.3rem;background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:.35rem .65rem;text-decoration:none;color:var(--muted);font-size:.7rem;font-weight:600;transition:border-color .15s}
 .xstore-link:hover{border-color:var(--accent);color:var(--ink);text-decoration:none}
-.xstore-emoji{font-size:.9rem}
-.xstore-name{white-space:nowrap}
+footer{border-top:1px solid var(--line);padding:1.2rem;text-align:center;font-size:.7rem;color:#404040}
 </style>
-<meta property="og:title" content="FreeChipStore — Free Interactive Simulations">
-<meta property="og:description" content="22 chip design & architecture simulations. Free forever, open source.">
-<meta property="og:type" content="website">
-<meta property="og:url" content="https://freechipstore.pages.dev">
-<meta name="twitter:card" content="summary_large_image">
-<meta name="twitter:title" content="FreeChipStore">
-<meta name="twitter:description" content="22 chip design & architecture simulations. Free forever, open source.">
-<link rel="canonical" href="https://freechipstore.pages.dev/">
-<script type="application/ld+json">{"@context": "https://schema.org", "@type": "WebSite", "name": "FreeChipStore", "url": "https://freechipstore.pages.dev", "description": "Free interactive chip design simulations covering CPU architecture, GPU pipelines, ISA design, and signal processing.", "publisher": {"@type": "Organization", "name": "Open Frontier", "url": "https://freeprostores.pages.dev"}, "potentialAction": {"@type": "SearchAction", "target": "https://freechipstore.pages.dev/?q={search_term_string}", "query-input": "required name=search_term_string"}}</script>
 </head>
 <body>
 <header>
@@ -55,12 +64,55 @@ footer{border-top:1px solid var(--line);padding:1.5rem;text-align:center;font-si
 </header>
 <section class="hero">
 <h1>Free<span>Chip</span>Store</h1>
-<p>22 interactive simulations. Free forever, open source.</p>
-<span class="badge">22 Simulations</span><span class="badge">Open Source</span>
+<p>22 interactive simulations. Free forever, open source, runs in your browser.</p>
+<span class="badge">22 Simulations</span><span class="badge">Open Source</span><span class="badge">No Signup</span>
 </section>
-<div class="grid">
-<a href="/items/chip-pipeline/" class="card"><div class="card-icon" style="background:🏗️:#ef4444">pipelines</div><div class="card-body"><div class="card-name">Chip → CPU Pipeline</div><div class="card-desc">logic gates → 4-bit ALU → CPU execution. Watch gates become a working processor.</div></div><span class="card-cta">Open →</span></a><a href="/items/pipeline/" class="card"><div class="card-icon" style="background:#ef4444">⚡</div><div class="card-body"><div class="card-name">Pipeline Processor</div><div class="card-desc">5-stage instruction pipeline with hazard detection. Data forwarding, stalls, branch flush visualized. CPI comparison.</div></div><span class="card-cta">Open →</span></a><a href="/items/wafer-viewer/" class="card"><div class="card-icon" style="background:#ef4444">🔬</div><div class="card-body"><div class="card-name">Wafer/Die Viewer</div><div class="card-desc">Zoom from 300mm silicon wafer → die → standard cells → transistor cross-section. Yield simulation. Electron microscope feel.</div></div><span class="card-cta">Open →</span></a><a href="/items/cpu-builder/" class="card"><div class="card-icon" style="background:🖥️:#ef4444">architecture</div><div class="card-body"><div class="card-name">CPU Builder</div><div class="card-desc">Working 8-bit CPU — write assembly, watch fetch/decode/execute with animated data flow. 3 programs counter, Fibonacci, multiply.</div></div><span class="card-cta">Open →</span></a><a href="/items/waveform-ai/" class="card"><div class="card-icon" style="background:ai:#ef4444">🤖</div><div class="card-body"><div class="card-name">Waveform Analyzer</div><div class="card-desc">Neural net trained in-browser classifies digital signals clock, PWM, SPI, I2C, UART, noise. Oscilloscope display.</div></div><span class="card-cta">Open →</span></a><a href="/items/ai-circuit-id/" class="card"><div class="card-icon" style="background:#ef4444">🤖</div><div class="card-body"><div class="card-name">AI Circuit Classifier</div><div class="card-desc">CLIP model identifies hand-drawn circuit components. Draw or pick presets — AI classifies AND/OR/resistor/capacitor/op-amp.</div></div><span class="card-cta">Open →</span></a><a href="/items/binary-calc/" class="card"><div class="card-icon" style="background:#ef4444">🔢</div><div class="card-body"><div class="card-name">Binary Calculator</div><div class="card-desc">Binary/hex/decimal converter with gate-level visualization. Ripple carry adder, shift-and-add multiplier, IEEE 754 floats.</div></div><span class="card-cta">Open →</span></a><a href="/items/logic-gates/" class="card"><div class="card-icon" style="background:#ef4444">🔲</div><div class="card-body"><div class="card-name">Logic Gates</div><div class="card-desc">AND, OR, NOT, NAND, XOR, XNOR, NOR — click inputs to toggle, see truth tables, watch signals propagate through gates.</div></div><span class="card-cta">Open →</span></a><a href="/items/alu-sim/" class="card"><div class="card-icon" style="background:#3b82f6">➕</div><div class="card-body"><div class="card-name">ALU Simulator</div><div class="card-desc">8-bit ALU — click individual bits, choose ADD/SUB/AND/OR/XOR/NOT/SHL/SHR. See binary math + CPU flags (Z/N/C/V).</div></div><span class="card-cta">Open →</span></a><a href="/items/flip-flop/" class="card"><div class="card-icon" style="background:#ef4444">⏱️</div><div class="card-body"><div class="card-name">Flip-Flops &amp; Counters</div><div class="card-desc">SR Latch, D Flip-Flop, JK Flip-Flop, 4-bit Counter. Clock pulse, timing diagram, sequential logic explained.</div></div><span class="card-cta">Open →</span></a><a href="/items/circuit-analyzer/" class="card"><div class="card-icon" style="background:#3b82f6">🔧</div><div class="card-body"><div class="card-name">Circuit Diagram Tool</div><div class="card-desc">Draw circuits with wire/resistor/capacitor/op-amp tools. Auto-analyze: detect nodes, generate SPICE netlist.</div></div><span class="card-cta">Open →</span></a><a href="/items/cache-sim/" class="card"><div class="card-icon" style="background:#ef4444">💾</div><div class="card-body"><div class="card-name">Cache Simulator</div><div class="card-desc">L1/L2 cache sim. Direct-mapped, set-associative. LRU/FIFO. Hit rate tracking.</div></div><span class="card-cta">Open →</span></a><a href="/items/fsm-builder/" class="card"><div class="card-icon" style="background:#ef4444">🔄</div><div class="card-body"><div class="card-name">FSM Builder</div><div class="card-desc">Visual state machine editor. Add states, transitions. Simulate. Generate Verilog.</div></div><span class="card-cta">Open →</span></a><a href="/items/multiplier/" class="card"><div class="card-icon" style="background:#ef4444">✖️</div><div class="card-body"><div class="card-name">Binary Multiplier</div><div class="card-desc">Shift-and-add multiplication visualized. Step through partial products bit by bit.</div></div><span class="card-cta">Open →</span></a><a href="/items/karnaugh/" class="card"><div class="card-icon" style="background:#ef4444">🗺️</div><div class="card-body"><div class="card-name">Karnaugh Map</div><div class="card-desc">2/3/4 variable K-maps. Click cells, auto-group, minimize Boolean expression.</div></div><span class="card-cta">Open →</span></a><a href="/items/memory-map/" class="card"><div class="card-icon" style="background:#ef4444">📊</div><div class="card-body"><div class="card-name">Memory Hierarchy</div><div class="card-desc">Registers → L1 → L2 → L3 → RAM → Disk. Access latency animation. Miss penalty calc.</div></div><span class="card-cta">Open →</span></a><a href="/items/memory-sim/" class="card"><div class="card-icon" style="background:#f59e0b">🧠</div><div class="card-body"><div class="card-name">Memory Hierarchy Simulator</div><div class="card-desc">Visualize L1/L2/L3/RAM/Disk with cache replacement policies (LRU, FIFO, Random). Hit rate stats and latency breakdown.</div></div><span class="card-cta">Open →</span></a><a href="/items/pipelining/" class="card"><div class="card-icon" style="background:#f59e0b">🔀</div><div class="card-body"><div class="card-name">CPU Pipeline Visualizer</div><div class="card-desc">5-stage pipeline (IF/ID/EX/MEM/WB) with hazard detection. Data forwarding, stalls, and CPI comparison.</div></div><span class="card-cta">Open →</span></a><a href="/items/fsm-designer/" class="card"><div class="card-icon" style="background:#f59e0b">🔁</div><div class="card-body"><div class="card-name">FSM Designer</div><div class="card-desc">Visual finite state machine editor. Drag states, draw transitions, simulate inputs, generate Verilog. Mealy/Moore modes.</div></div><span class="card-cta">Open →</span></a><a href="/items/signal-processor/" class="card"><div class="card-icon" style="background:#f59e0b">📡</div><div class="card-body"><div class="card-name">Digital Signal Processor</div><div class="card-desc">Generate signals (sine, square, noise), compute FFT, design FIR/IIR filters with interactive pole-zero plot.</div></div><span class="card-cta">Open →</span></a><a href="/items/gpu-pipeline/" class="card"><div class="card-icon" style="background:#f59e0b">🎮</div><div class="card-body"><div class="card-name">GPU Pipeline Visualizer</div><div class="card-desc">Simplified GPU rendering pipeline: vertex shader, rasterizer, fragment shader, framebuffer. Draw a triangle and watch it transform.</div></div><span class="card-cta">Open →</span></a><a href="/items/isa-designer/" class="card"><div class="card-icon" style="background:#f59e0b">📐</div><div class="card-body"><div class="card-name">ISA Designer</div><div class="card-desc">Design your own instruction set architecture. Define opcodes, write assembly, execute step-by-step. Compare against MIPS and x86 presets.</div></div><span class="card-cta">Open →</span></a>
+<div class="filters">
+<button class="filter-btn active" data-cat="all">All</button>
+<button class="filter-btn" data-cat="architecture">Architecture</button>
+<button class="filter-btn" data-cat="design">Design</button>
+<button class="filter-btn" data-cat="fabrication">Fabrication</button>
+<button class="filter-btn" data-cat="fundamentals">Fundamentals</button>
 </div>
-<footer>FreeChipStore — free simulations &amp; education.</footer>
+<div class="grid">
+<a href="/items/chip-pipeline/" class="card" data-cat="fundamentals"><div class="card-icon" style="background:🏗️:#ef4444">pipelines</div><div class="card-body"><div class="card-name">Chip → CPU Pipeline</div><div class="card-desc">logic gates → 4-bit ALU → CPU execution. Watch gates become a working processor.</div></div><span class="card-cta">Open →</span></a><a href="/items/pipeline/" class="card" data-cat="architecture"><div class="card-icon" style="background:#ef4444">⚡</div><div class="card-body"><div class="card-name">Pipeline Processor</div><div class="card-desc">5-stage instruction pipeline with hazard detection. Data forwarding, stalls, branch flush visualized. CPI comparison.</div></div><span class="card-cta">Open →</span></a><a href="/items/wafer-viewer/" class="card" data-cat="fabrication"><div class="card-icon" style="background:#ef4444">🔬</div><div class="card-body"><div class="card-name">Wafer/Die Viewer</div><div class="card-desc">Zoom from 300mm silicon wafer → die → standard cells → transistor cross-section. Yield simulation. Electron microscope feel.</div></div><span class="card-cta">Open →</span></a><a href="/items/cpu-builder/" class="card" data-cat="fundamentals"><div class="card-icon" style="background:🖥️:#ef4444">architecture</div><div class="card-body"><div class="card-name">CPU Builder</div><div class="card-desc">Working 8-bit CPU — write assembly, watch fetch/decode/execute with animated data flow. 3 programs counter, Fibonacci, multiply.</div></div><span class="card-cta">Open →</span></a><a href="/items/waveform-ai/" class="card" data-cat="fundamentals"><div class="card-icon" style="background:ai:#ef4444">🤖</div><div class="card-body"><div class="card-name">Waveform Analyzer</div><div class="card-desc">Neural net trained in-browser classifies digital signals clock, PWM, SPI, I2C, UART, noise. Oscilloscope display.</div></div><span class="card-cta">Open →</span></a><a href="/items/ai-circuit-id/" class="card" data-cat="design"><div class="card-icon" style="background:#ef4444">🤖</div><div class="card-body"><div class="card-name">AI Circuit Classifier</div><div class="card-desc">CLIP model identifies hand-drawn circuit components. Draw or pick presets — AI classifies AND/OR/resistor/capacitor/op-amp.</div></div><span class="card-cta">Open →</span></a><a href="/items/binary-calc/" class="card" data-cat="fundamentals"><div class="card-icon" style="background:#ef4444">🔢</div><div class="card-body"><div class="card-name">Binary Calculator</div><div class="card-desc">Binary/hex/decimal converter with gate-level visualization. Ripple carry adder, shift-and-add multiplier, IEEE 754 floats.</div></div><span class="card-cta">Open →</span></a><a href="/items/logic-gates/" class="card" data-cat="fundamentals"><div class="card-icon" style="background:#ef4444">🔲</div><div class="card-body"><div class="card-name">Logic Gates</div><div class="card-desc">AND, OR, NOT, NAND, XOR, XNOR, NOR — click inputs to toggle, see truth tables, watch signals propagate through gates.</div></div><span class="card-cta">Open →</span></a><a href="/items/alu-sim/" class="card" data-cat="fundamentals"><div class="card-icon" style="background:#3b82f6">➕</div><div class="card-body"><div class="card-name">ALU Simulator</div><div class="card-desc">8-bit ALU — click individual bits, choose ADD/SUB/AND/OR/XOR/NOT/SHL/SHR. See binary math + CPU flags (Z/N/C/V).</div></div><span class="card-cta">Open →</span></a><a href="/items/flip-flop/" class="card" data-cat="architecture"><div class="card-icon" style="background:#ef4444">⏱️</div><div class="card-body"><div class="card-name">Flip-Flops &amp; Counters</div><div class="card-desc">SR Latch, D Flip-Flop, JK Flip-Flop, 4-bit Counter. Clock pulse, timing diagram, sequential logic explained.</div></div><span class="card-cta">Open →</span></a><a href="/items/circuit-analyzer/" class="card" data-cat="design"><div class="card-icon" style="background:#3b82f6">🔧</div><div class="card-body"><div class="card-name">Circuit Diagram Tool</div><div class="card-desc">Draw circuits with wire/resistor/capacitor/op-amp tools. Auto-analyze: detect nodes, generate SPICE netlist.</div></div><span class="card-cta">Open →</span></a><a href="/items/cache-sim/" class="card" data-cat="architecture"><div class="card-icon" style="background:#ef4444">💾</div><div class="card-body"><div class="card-name">Cache Simulator</div><div class="card-desc">L1/L2 cache sim. Direct-mapped, set-associative. LRU/FIFO. Hit rate tracking.</div></div><span class="card-cta">Open →</span></a><a href="/items/fsm-builder/" class="card" data-cat="architecture"><div class="card-icon" style="background:#ef4444">🔄</div><div class="card-body"><div class="card-name">FSM Builder</div><div class="card-desc">Visual state machine editor. Add states, transitions. Simulate. Generate Verilog.</div></div><span class="card-cta">Open →</span></a><a href="/items/multiplier/" class="card" data-cat="fundamentals"><div class="card-icon" style="background:#ef4444">✖️</div><div class="card-body"><div class="card-name">Binary Multiplier</div><div class="card-desc">Shift-and-add multiplication visualized. Step through partial products bit by bit.</div></div><span class="card-cta">Open →</span></a><a href="/items/karnaugh/" class="card" data-cat="fundamentals"><div class="card-icon" style="background:#ef4444">🗺️</div><div class="card-body"><div class="card-name">Karnaugh Map</div><div class="card-desc">2/3/4 variable K-maps. Click cells, auto-group, minimize Boolean expression.</div></div><span class="card-cta">Open →</span></a><a href="/items/memory-map/" class="card" data-cat="architecture"><div class="card-icon" style="background:#ef4444">📊</div><div class="card-body"><div class="card-name">Memory Hierarchy</div><div class="card-desc">Registers → L1 → L2 → L3 → RAM → Disk. Access latency animation. Miss penalty calc.</div></div><span class="card-cta">Open →</span></a><a href="/items/memory-sim/" class="card" data-cat="architecture"><div class="card-icon" style="background:#f59e0b">🧠</div><div class="card-body"><div class="card-name">Memory Hierarchy Simulator</div><div class="card-desc">Visualize L1/L2/L3/RAM/Disk with cache replacement policies (LRU, FIFO, Random). Hit rate stats and latency breakdown.</div></div><span class="card-cta">Open →</span></a><a href="/items/pipelining/" class="card" data-cat="architecture"><div class="card-icon" style="background:#f59e0b">🔀</div><div class="card-body"><div class="card-name">CPU Pipeline Visualizer</div><div class="card-desc">5-stage pipeline (IF/ID/EX/MEM/WB) with hazard detection. Data forwarding, stalls, and CPI comparison.</div></div><span class="card-cta">Open →</span></a><a href="/items/fsm-designer/" class="card" data-cat="architecture"><div class="card-icon" style="background:#f59e0b">🔁</div><div class="card-body"><div class="card-name">FSM Designer</div><div class="card-desc">Visual finite state machine editor. Drag states, draw transitions, simulate inputs, generate Verilog. Mealy/Moore modes.</div></div><span class="card-cta">Open →</span></a><a href="/items/signal-processor/" class="card" data-cat="design"><div class="card-icon" style="background:#f59e0b">📡</div><div class="card-body"><div class="card-name">Digital Signal Processor</div><div class="card-desc">Generate signals (sine, square, noise), compute FFT, design FIR/IIR filters with interactive pole-zero plot.</div></div><span class="card-cta">Open →</span></a><a href="/items/gpu-pipeline/" class="card" data-cat="architecture"><div class="card-icon" style="background:#f59e0b">🎮</div><div class="card-body"><div class="card-name">GPU Pipeline Visualizer</div><div class="card-desc">Simplified GPU rendering pipeline: vertex shader, rasterizer, fragment shader, framebuffer. Draw a triangle and watch it transform.</div></div><span class="card-cta">Open →</span></a><a href="/items/isa-designer/" class="card" data-cat="design"><div class="card-icon" style="background:#f59e0b">📐</div><div class="card-body"><div class="card-name">ISA Designer</div><div class="card-desc">Design your own instruction set architecture. Define opcodes, write assembly, execute step-by-step. Compare against MIPS and x86 presets.</div></div><span class="card-cta">Open →</span></a>
+</div>
+<section class="community">
+<h2>Join the Community</h2>
+<p>Build simulations, learn together, share what you discover.</p>
+<div class="community-links">
+<a href="https://github.com/fcsonline" class="community-card"><span class="c-icon">🛠️</span><span class="c-title">Contribute</span><span class="c-desc">One HTML file, one PR</span></a>
+<a href="#" class="community-card"><span class="c-icon">💬</span><span class="c-title">Discord</span><span class="c-desc">Chat & share</span></a>
+<a href="https://github.com//issues" class="community-card"><span class="c-icon">💡</span><span class="c-title">Ideas</span><span class="c-desc">Suggest simulations</span></a>
+</div>
+</section>
+<section class="xstore">
+<h3>Explore More</h3>
+<div class="xstore-grid">
+<a href="https://freerobotstore.online" class="xstore-link"><span class="xstore-emoji">🦾</span><span class="xstore-name">Robots</span></a>
+<a href="https://freequantumstore.pages.dev" class="xstore-link"><span class="xstore-emoji">⚛️</span><span class="xstore-name">Quantum</span></a>
+<a href="https://freebiostore.pages.dev" class="xstore-link"><span class="xstore-emoji">🧬</span><span class="xstore-name">Bio</span></a>
+<a href="https://freespacestore.pages.dev" class="xstore-link"><span class="xstore-emoji">🚀</span><span class="xstore-name">Space</span></a>
+<a href="https://freecryptostore.pages.dev" class="xstore-link"><span class="xstore-emoji">🔗</span><span class="xstore-name">Crypto</span></a>
+</div>
+</section>
+<footer>FreeChipStore — free interactive simulations & education.</footer>
+<script>
+(function(){
+  const btns=document.querySelectorAll('.filter-btn');
+  const cards=document.querySelectorAll('.card');
+  btns.forEach(btn=>{
+    btn.addEventListener('click',()=>{
+      btns.forEach(b=>b.classList.remove('active'));
+      btn.classList.add('active');
+      const cat=btn.dataset.cat;
+      cards.forEach(card=>{
+        if(cat==='all'||card.dataset.cat===cat)card.classList.remove('hidden');
+        else card.classList.add('hidden');
+      });
+    });
+  });
+})();
+</script>
 </body>
 </html>

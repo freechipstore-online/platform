@@ -1,0 +1,474 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Binary Adder Visualizer - FreeChipStore</title>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:#0a0a0a;color:#fafafa;font-family:"Manrope",system-ui,sans-serif;min-height:100vh;display:flex;flex-direction:column}
+a{color:#f59e0b;text-decoration:none}
+.top-bar{padding:10px 20px;display:flex;align-items:center;gap:16px;border-bottom:1px solid #1a1a1a}
+.top-bar a{font-size:.82rem;font-weight:600}
+h1{text-align:center;color:#f59e0b;margin:14px 0 4px;font-size:1.35rem}
+.desc{text-align:center;color:#737373;font-size:.82rem;margin-bottom:10px}
+.main{display:flex;gap:14px;padding:0 16px;flex:1;max-width:1200px;margin:0 auto;width:100%}
+.left{flex:1;min-width:0}
+.right{width:320px;flex-shrink:0}
+canvas{width:100%;background:#111;border:1px solid #222;border-radius:8px}
+.panel{background:#141414;border:1px solid #1a1a1a;border-radius:8px;padding:12px;margin-bottom:10px}
+.panel h3{font-size:.82rem;color:#f59e0b;margin-bottom:8px}
+label{font-size:.75rem;color:#aaa;display:block;margin-bottom:4px}
+select,input[type=text],input[type=number]{background:#222;color:#fafafa;border:1px solid #333;padding:5px 8px;border-radius:4px;font-size:.78rem;width:100%;font-family:inherit;margin-bottom:8px}
+button{background:#f59e0b;color:#0a0a0a;border:none;padding:6px 14px;border-radius:4px;font-size:.78rem;cursor:pointer;font-weight:600;font-family:inherit}
+button:hover{background:#d97706}
+button.secondary{background:#222;color:#fafafa;border:1px solid #333}
+button.secondary:hover{background:#333}
+.btn-row{display:flex;gap:6px;margin-bottom:8px;flex-wrap:wrap}
+.stats-grid{display:grid;grid-template-columns:1fr 1fr;gap:6px}
+.stat-box{background:#1a1a1a;border-radius:6px;padding:8px;text-align:center}
+.stat-val{font-size:1.1rem;font-weight:700;color:#f59e0b}
+.stat-label{font-size:.65rem;color:#737373;margin-top:2px}
+.bit-input{display:flex;gap:2px;margin-bottom:8px}
+.bit-input .bit{width:28px;height:28px;background:#222;border:1px solid #333;border-radius:4px;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:.85rem;font-weight:700;font-family:monospace;user-select:none;transition:all .15s}
+.bit-input .bit.on{background:#f59e0b;color:#0a0a0a;border-color:#f59e0b}
+.legend{font-size:.7rem;color:#737373;margin-top:6px;line-height:1.5}
+.legend span{display:inline-block;width:10px;height:10px;border-radius:2px;margin-right:4px;vertical-align:middle}
+footer{border-top:1px solid #1a1a1a;padding:12px;text-align:center;font-size:.7rem;color:#404040;margin-top:auto}
+@media(max-width:800px){.main{flex-direction:column}.right{width:100%}}
+</style>
+<meta name="description" content="Build half adder to full adder to ripple carry to carry lookahead. Watch carry propagation gate by gate.">
+<meta property="og:title" content="Binary Adder Visualizer - FreeChipStore">
+<meta property="og:description" content="Build half adder to full adder to ripple carry to carry lookahead. Watch carry propagation gate by gate.">
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://freechipstore.pages.dev/items/adder-visualizer/">
+<meta name="twitter:card" content="summary">
+<link rel="canonical" href="https://freechipstore.pages.dev/items/adder-visualizer/">
+<link rel="icon" type="image/svg+xml" href="/favicon.svg">
+</head>
+<body>
+<div class="top-bar"><a href="/">&#8592; FreeChipStore</a></div>
+<h1>Binary Adder Visualizer</h1>
+<p class="desc">Half adder &rarr; Full adder &rarr; Ripple carry &rarr; Carry lookahead. Watch carry propagation gate by gate.</p>
+<div class="main">
+<div class="left">
+ <canvas id="c" width="820" height="520"></canvas>
+</div>
+<div class="right">
+ <div class="panel">
+  <h3>Input A (8-bit)</h3>
+  <div class="bit-input" id="bitsA"></div>
+  <label>Decimal: <span id="decA">0</span></label>
+ </div>
+ <div class="panel">
+  <h3>Input B (8-bit)</h3>
+  <div class="bit-input" id="bitsB"></div>
+  <label>Decimal: <span id="decB">0</span></label>
+ </div>
+ <div class="panel">
+  <h3>Adder Type</h3>
+  <select id="adderType">
+   <option value="half">Half Adder (1-bit)</option>
+   <option value="full">Full Adder (1-bit + Cin)</option>
+   <option value="ripple" selected>Ripple Carry (8-bit)</option>
+   <option value="cla">Carry Lookahead (8-bit)</option>
+  </select>
+  <div class="btn-row">
+   <button id="animate">Animate</button>
+   <button id="step">Step</button>
+   <button class="secondary" id="reset">Reset</button>
+  </div>
+  <label>Speed</label>
+  <select id="speed">
+   <option value="slow">Slow</option>
+   <option value="medium" selected>Medium</option>
+   <option value="fast">Fast</option>
+  </select>
+ </div>
+ <div class="panel">
+  <h3>Comparison</h3>
+  <div class="stats-grid">
+   <div class="stat-box"><div class="stat-val" id="rcGates">--</div><div class="stat-label">Ripple Gates</div></div>
+   <div class="stat-box"><div class="stat-val" id="claGates">--</div><div class="stat-label">CLA Gates</div></div>
+   <div class="stat-box"><div class="stat-val" id="rcDelay">--</div><div class="stat-label">Ripple Delay</div></div>
+   <div class="stat-box"><div class="stat-val" id="claDelay">--</div><div class="stat-label">CLA Delay</div></div>
+  </div>
+  <div class="legend" style="margin-top:8px">
+   <span style="background:#22c55e"></span>Sum/XOR &nbsp;
+   <span style="background:#3b82f6"></span>AND &nbsp;
+   <span style="background:#f59e0b"></span>Carry &nbsp;
+   <span style="background:#ef4444"></span>Critical path
+  </div>
+ </div>
+ <div class="panel">
+  <h3>Result</h3>
+  <div style="font-size:1rem;font-weight:700;font-family:monospace;color:#22c55e" id="result">00000000 (0)</div>
+  <div style="font-size:.72rem;color:#737373;margin-top:4px" id="carry">Carry out: 0</div>
+ </div>
+</div>
+</div>
+<footer><a href="/">FreeChipStore</a></footer>
+
+<script>
+const C=document.getElementById('c'),ctx=C.getContext('2d');
+const W=820,H=520;
+let A=new Array(8).fill(0),B=new Array(8).fill(0);
+let animState=null,animStep=0,animMax=0,animInterval=null;
+
+function buildBitInputs(){
+  ['A','B'].forEach(name=>{
+    const el=document.getElementById('bits'+name);
+    el.innerHTML='';
+    const bits=name==='A'?A:B;
+    for(let i=7;i>=0;i--){
+      const d=document.createElement('div');
+      d.className='bit'+(bits[i]?' on':'');
+      d.textContent=bits[i];
+      d.addEventListener('click',()=>{
+        bits[i]=bits[i]?0:1;
+        d.textContent=bits[i];
+        d.className='bit'+(bits[i]?' on':'');
+        updateDecimal();compute();draw();
+      });
+      el.appendChild(d);
+    }
+  });
+  updateDecimal();
+}
+
+function updateDecimal(){
+  let va=0,vb=0;
+  for(let i=0;i<8;i++){va+=A[i]*(1<<i);vb+=B[i]*(1<<i);}
+  document.getElementById('decA').textContent=va;
+  document.getElementById('decB').textContent=vb;
+}
+
+function bitsToNum(bits){let v=0;for(let i=0;i<bits.length;i++)v+=bits[i]*(1<<i);return v;}
+
+// Adder computations
+function halfAdd(a,b){return{sum:a^b,cout:a&b,gates:[{type:'XOR',in:[a,b],out:a^b},{type:'AND',in:[a,b],out:a&b}]};}
+function fullAdd(a,b,cin){
+  const s1=a^b,c1=a&b,s2=s1^cin,c2=s1&cin,cout=c1|c2;
+  return{sum:s2,cout,gates:[
+    {type:'XOR',in:[a,b],out:s1},{type:'AND',in:[a,b],out:c1},
+    {type:'XOR',in:[s1,cin],out:s2},{type:'AND',in:[s1,cin],out:c2},
+    {type:'OR',in:[c1,c2],out:cout}
+  ]};
+}
+
+function rippleCarry(a,b){
+  const stages=[];let cin=0;
+  for(let i=0;i<8;i++){
+    const r=fullAdd(a[i],b[i],cin);
+    stages.push({bit:i,sum:r.sum,cout:r.cout,cin,gates:r.gates});
+    cin=r.cout;
+  }
+  return{stages,carryOut:cin};
+}
+
+function carryLookahead(a,b){
+  const P=[],G=[],S=[];
+  for(let i=0;i<8;i++){P[i]=a[i]^b[i];G[i]=a[i]&b[i];}
+  const C=[0];
+  for(let i=0;i<8;i++){
+    C[i+1]=G[i]|(P[i]&C[i]);
+    S[i]=P[i]^C[i];
+  }
+  return{P,G,C,S,carryOut:C[8]};
+}
+
+let computed=null;
+function compute(){
+  const type=document.getElementById('adderType').value;
+  if(type==='half'){computed={type,result:halfAdd(A[0],B[0])};}
+  else if(type==='full'){computed={type,result:fullAdd(A[0],B[0],0)};}
+  else if(type==='ripple'){computed={type,result:rippleCarry(A,B)};}
+  else{computed={type,result:carryLookahead(A,B)};}
+  updateResult();updateStats();
+}
+
+function updateResult(){
+  if(!computed)return;
+  let bits=[],cout=0;
+  if(computed.type==='half'){bits=[computed.result.sum];cout=computed.result.cout;}
+  else if(computed.type==='full'){bits=[computed.result.sum];cout=computed.result.cout;}
+  else if(computed.type==='ripple'){bits=computed.result.stages.map(s=>s.sum);cout=computed.result.carryOut;}
+  else{bits=computed.result.S;cout=computed.result.carryOut;}
+  const str=bits.slice().reverse().map(b=>b?'1':'0').join('').padStart(8,'0');
+  const val=bitsToNum(bits);
+  document.getElementById('result').textContent=str+' ('+val+')';
+  document.getElementById('carry').textContent='Carry out: '+cout;
+}
+
+function updateStats(){
+  // Ripple: 5 gates per bit, delay = 2*n gate delays (carry chain)
+  // CLA: more gates (~20 for 8-bit), but O(1) carry delay (3 levels)
+  document.getElementById('rcGates').textContent='40';
+  document.getElementById('claGates').textContent='56';
+  document.getElementById('rcDelay').textContent='16T';
+  document.getElementById('claDelay').textContent='4T';
+}
+
+// Drawing
+const GATE_COLORS={XOR:'#22c55e',AND:'#3b82f6',OR:'#f59e0b',NOT:'#a855f7'};
+
+function drawGate(x,y,type,active,critical){
+  const w=44,h=28;
+  ctx.fillStyle=active?GATE_COLORS[type]+'33':'#181818';
+  ctx.strokeStyle=critical?'#ef4444':active?GATE_COLORS[type]:'#333';
+  ctx.lineWidth=critical?2:1;
+  ctx.beginPath();ctx.roundRect(x,y,w,h,4);ctx.fill();ctx.stroke();
+  ctx.fillStyle=active?GATE_COLORS[type]:'#666';
+  ctx.font='bold 10px Manrope,system-ui';
+  ctx.textAlign='center';
+  ctx.fillText(type,x+w/2,y+h/2+4);
+  ctx.textAlign='left';
+  return{x,y,w,h};
+}
+
+function drawWire(x1,y1,x2,y2,active,critical){
+  ctx.strokeStyle=critical?'#ef4444':active?'#f59e0b':'#333';
+  ctx.lineWidth=critical?2:active?1.5:1;
+  ctx.beginPath();ctx.moveTo(x1,y1);ctx.lineTo(x2,y2);ctx.stroke();
+}
+
+function drawBitLabel(x,y,label,value,color){
+  ctx.fillStyle=color||'#fafafa';
+  ctx.font='bold 11px monospace';
+  ctx.textAlign='center';
+  ctx.fillText(label,x,y-4);
+  ctx.fillStyle=value?'#f59e0b':'#555';
+  ctx.fillText(value!==undefined?value.toString():'',x,y+12);
+  ctx.textAlign='left';
+}
+
+function drawHalfAdder(activeStep){
+  const cx=W/2,cy=H/2-40;
+  ctx.fillStyle='#fafafa';ctx.font='bold 14px Manrope,system-ui';
+  ctx.textAlign='center';ctx.fillText('Half Adder',cx,40);ctx.textAlign='left';
+  const a=A[0],b=B[0];
+  drawBitLabel(cx-80,cy-60,'A',a);
+  drawBitLabel(cx+80,cy-60,'B',b);
+  drawWire(cx-80,cy-48,cx-30,cy,activeStep>=1,false);
+  drawWire(cx+80,cy-48,cx+30,cy,activeStep>=1,false);
+  drawGate(cx-22,cy-14,'XOR',activeStep>=1,false);
+  drawWire(cx-80,cy-48,cx-30,cy+60,activeStep>=2,false);
+  drawWire(cx+80,cy-48,cx+30,cy+60,activeStep>=2,false);
+  drawGate(cx-22,cy+46,'AND',activeStep>=2,false);
+  drawBitLabel(cx,cy+110,'Sum',activeStep>=1?(a^b):undefined,'#22c55e');
+  drawBitLabel(cx,cy+170,'Cout',activeStep>=2?(a&b):undefined,'#f59e0b');
+  drawWire(cx,cy+14,cx,cy+96,activeStep>=1,false);
+  drawWire(cx,cy+74,cx,cy+156,activeStep>=2,false);
+}
+
+function drawFullAdder(activeStep){
+  const cx=W/2,cy=H/2-60;
+  ctx.fillStyle='#fafafa';ctx.font='bold 14px Manrope,system-ui';
+  ctx.textAlign='center';ctx.fillText('Full Adder',cx,40);ctx.textAlign='left';
+  const a=A[0],b=B[0],cin=0;
+  const s1=a^b,c1=a&b,s2=s1^cin,c2=s1&cin,cout=c1|c2;
+  drawBitLabel(cx-120,cy-40,'A',a);
+  drawBitLabel(cx,cy-40,'B',b);
+  drawBitLabel(cx+120,cy-40,'Cin',cin);
+  // XOR1
+  drawWire(cx-120,cy-28,cx-60,cy+10,activeStep>=1,false);
+  drawWire(cx,cy-28,cx-20,cy+10,activeStep>=1,false);
+  drawGate(cx-62,cy-4,'XOR',activeStep>=1,false);
+  // AND1
+  drawWire(cx-120,cy-28,cx-60,cy+60,activeStep>=2,false);
+  drawWire(cx,cy-28,cx-20,cy+60,activeStep>=2,false);
+  drawGate(cx-62,cy+46,'AND',activeStep>=2,false);
+  // XOR2
+  drawWire(cx-40,cy+24,cx+20,cy+110,activeStep>=3,false);
+  drawWire(cx+120,cy-28,cx+60,cy+110,activeStep>=3,false);
+  drawGate(cx+18,cy+96,'XOR',activeStep>=3,false);
+  // AND2
+  drawWire(cx-40,cy+24,cx+20,cy+160,activeStep>=4,false);
+  drawWire(cx+120,cy-28,cx+60,cy+160,activeStep>=4,false);
+  drawGate(cx+18,cy+146,'AND',activeStep>=4,false);
+  // OR
+  drawWire(cx-40,cy+74,cx+20,cy+220,activeStep>=5,false);
+  drawWire(cx+40,cy+174,cx+60,cy+220,activeStep>=5,false);
+  drawGate(cx+18,cy+206,'OR',activeStep>=5,false);
+  drawBitLabel(cx+40,cy+260,'Sum',activeStep>=3?s2:undefined,'#22c55e');
+  drawBitLabel(cx+40,cy+310,'Cout',activeStep>=5?cout:undefined,'#f59e0b');
+}
+
+function drawRippleCarry(activeStep){
+  if(!computed||computed.type!=='ripple')return;
+  const stages=computed.result.stages;
+  ctx.fillStyle='#fafafa';ctx.font='bold 14px Manrope,system-ui';
+  ctx.textAlign='center';ctx.fillText('Ripple Carry Adder (8-bit)',W/2,30);ctx.textAlign='left';
+  const startX=40,spacing=92,startY=80;
+  for(let i=0;i<8;i++){
+    const x=startX+i*spacing,y=startY;
+    const active=activeStep>i;
+    const critical=i>0;
+    // Full adder box
+    ctx.fillStyle=active?'#1a2a1a':'#141414';
+    ctx.strokeStyle=active?'#22c55e':'#333';
+    ctx.lineWidth=active?2:1;
+    ctx.beginPath();ctx.roundRect(x,y,80,140,6);ctx.fill();ctx.stroke();
+    ctx.fillStyle=active?'#22c55e':'#666';ctx.font='bold 10px Manrope,system-ui';
+    ctx.textAlign='center';ctx.fillText('FA'+i,x+40,y+16);
+    // Inputs
+    ctx.fillStyle='#aaa';ctx.font='9px monospace';
+    ctx.fillText('A'+i+'='+A[i],x+20,y+36);
+    ctx.fillText('B'+i+'='+B[i],x+60,y+36);
+    // Sum output
+    ctx.fillStyle=active?'#22c55e':'#555';
+    ctx.fillText('S'+i+'='+(active?stages[i].sum:'?'),x+40,y+120);
+    // Carry output
+    if(active){
+      ctx.fillStyle='#f59e0b';
+      ctx.fillText('C='+(stages[i].cout),x+40,y+136);
+    }
+    ctx.textAlign='left';
+    // Carry chain (critical path)
+    if(i<7&&active){
+      const nx=startX+(i+1)*spacing;
+      drawWire(x+80,y+100,nx,y+100,true,true);
+      // Arrow
+      ctx.fillStyle='#ef4444';
+      ctx.beginPath();ctx.moveTo(nx,y+100);ctx.lineTo(nx-6,y+96);ctx.lineTo(nx-6,y+104);ctx.closePath();ctx.fill();
+    }
+  }
+  // Critical path label
+  if(activeStep>1){
+    ctx.fillStyle='#ef4444';ctx.font='bold 11px Manrope,system-ui';
+    ctx.textAlign='center';
+    ctx.fillText('Critical Path (carry must ripple through all bits)',W/2,startY+170);
+    ctx.fillText('Delay = 2n gate delays = 16T for 8 bits',W/2,startY+188);
+    ctx.textAlign='left';
+  }
+  // Result at bottom
+  if(activeStep>=8){
+    const bits=stages.map(s=>s.sum);
+    ctx.fillStyle='#22c55e';ctx.font='bold 14px monospace';
+    ctx.textAlign='center';
+    ctx.fillText('Result: '+bits.slice().reverse().map(b=>b?'1':'0').join('')+' ('+bitsToNum(bits)+')',W/2,startY+220);
+    ctx.fillText('Carry out: '+computed.result.carryOut,W/2,startY+240);
+    ctx.textAlign='left';
+  }
+}
+
+function drawCLA(activeStep){
+  if(!computed||computed.type!=='cla')return;
+  const{P,G,C,S}=computed.result;
+  ctx.fillStyle='#fafafa';ctx.font='bold 14px Manrope,system-ui';
+  ctx.textAlign='center';ctx.fillText('Carry Lookahead Adder (8-bit)',W/2,30);ctx.textAlign='left';
+  const startX=50,spacing=88,y1=70,y2=180,y3=310,y4=420;
+  // Stage 1: Generate P and G
+  for(let i=0;i<8;i++){
+    const x=startX+i*spacing;
+    const active=activeStep>=1;
+    ctx.fillStyle=active?'#141428':'#141414';
+    ctx.strokeStyle=active?'#3b82f6':'#333';ctx.lineWidth=1;
+    ctx.beginPath();ctx.roundRect(x,y1,76,80,5);ctx.fill();ctx.stroke();
+    ctx.fillStyle='#aaa';ctx.font='9px monospace';ctx.textAlign='center';
+    ctx.fillText('A'+i+'='+A[i]+' B'+i+'='+B[i],x+38,y1+16);
+    if(active){
+      ctx.fillStyle='#22c55e';ctx.fillText('P'+i+'='+P[i],x+38,y1+40);
+      ctx.fillStyle='#3b82f6';ctx.fillText('G'+i+'='+G[i],x+38,y1+60);
+    }
+    ctx.textAlign='left';
+  }
+  if(activeStep>=1){
+    ctx.fillStyle='#737373';ctx.font='11px Manrope,system-ui';ctx.textAlign='center';
+    ctx.fillText('P = A XOR B (propagate),  G = A AND B (generate)',W/2,y1+96);
+    ctx.textAlign='left';
+  }
+  // Stage 2: CLA logic computes all carries in parallel
+  if(activeStep>=2){
+    ctx.fillStyle='#1a1a14';ctx.strokeStyle='#f59e0b';ctx.lineWidth=2;
+    ctx.beginPath();ctx.roundRect(startX,y2,spacing*8-12,90,8);ctx.fill();ctx.stroke();
+    ctx.fillStyle='#f59e0b';ctx.font='bold 12px Manrope,system-ui';ctx.textAlign='center';
+    ctx.fillText('Carry Lookahead Unit (ALL carries computed in parallel)',W/2,y2+20);
+    ctx.font='9px monospace';
+    for(let i=0;i<8;i++){
+      const x=startX+i*spacing;
+      ctx.fillStyle='#f59e0b';
+      ctx.fillText('C'+i+'='+C[i],x+38,y2+50);
+    }
+    ctx.fillStyle='#f59e0b';ctx.fillText('Cout='+C[8],startX+8*spacing-20,y2+50);
+    ctx.fillStyle='#737373';ctx.font='10px Manrope,system-ui';
+    ctx.fillText('C(i+1) = G(i) OR (P(i) AND C(i))  -- only 2 gate delays!',W/2,y2+76);
+    ctx.textAlign='left';
+  }
+  // Stage 3: Final sum
+  if(activeStep>=3){
+    for(let i=0;i<8;i++){
+      const x=startX+i*spacing;
+      ctx.fillStyle='#1a2a1a';ctx.strokeStyle='#22c55e';ctx.lineWidth=1;
+      ctx.beginPath();ctx.roundRect(x,y3,76,50,5);ctx.fill();ctx.stroke();
+      ctx.fillStyle='#22c55e';ctx.font='bold 10px monospace';ctx.textAlign='center';
+      ctx.fillText('S'+i+'=P'+i+' XOR C'+i,x+38,y3+22);
+      ctx.fillText('= '+S[i],x+38,y3+40);
+      ctx.textAlign='left';
+    }
+  }
+  // Comparison
+  if(activeStep>=3){
+    ctx.fillStyle='#22c55e';ctx.font='bold 14px monospace';ctx.textAlign='center';
+    ctx.fillText('Result: '+S.slice().reverse().map(b=>b?'1':'0').join('')+' ('+bitsToNum(S)+')',W/2,y4);
+    ctx.fillStyle='#737373';ctx.font='11px Manrope,system-ui';
+    ctx.fillText('Only 4 gate delays total (vs 16 for ripple carry)',W/2,y4+22);
+    ctx.textAlign='left';
+  }
+}
+
+function draw(){
+  ctx.clearRect(0,0,W,H);
+  const type=document.getElementById('adderType').value;
+  const step=animState!==null?animState:999;
+  if(type==='half')drawHalfAdder(step);
+  else if(type==='full')drawFullAdder(step);
+  else if(type==='ripple')drawRippleCarry(step);
+  else drawCLA(step);
+  requestAnimationFrame(draw);
+}
+
+function getSpeed(){
+  const s=document.getElementById('speed').value;
+  return s==='slow'?800:s==='medium'?400:150;
+}
+
+function getMaxSteps(){
+  const type=document.getElementById('adderType').value;
+  if(type==='half')return 2;
+  if(type==='full')return 5;
+  if(type==='ripple')return 8;
+  return 3;
+}
+
+document.getElementById('animate').addEventListener('click',()=>{
+  if(animInterval){clearInterval(animInterval);animInterval=null;}
+  compute();
+  animState=0;animMax=getMaxSteps();
+  animInterval=setInterval(()=>{
+    animState++;
+    if(animState>animMax){clearInterval(animInterval);animInterval=null;}
+  },getSpeed());
+});
+
+document.getElementById('step').addEventListener('click',()=>{
+  compute();
+  if(animState===null)animState=0;
+  else animState=Math.min(animState+1,getMaxSteps());
+});
+
+document.getElementById('reset').addEventListener('click',()=>{
+  if(animInterval){clearInterval(animInterval);animInterval=null;}
+  animState=null;
+});
+
+document.getElementById('adderType').addEventListener('change',()=>{
+  if(animInterval){clearInterval(animInterval);animInterval=null;}
+  animState=null;compute();
+});
+
+buildBitInputs();compute();draw();
+</script>
+<script src="/related.js"></script>
+</body>
+</html>

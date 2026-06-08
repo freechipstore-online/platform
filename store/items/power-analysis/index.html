@@ -1,0 +1,455 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Chip Power Analysis - FreeChipStore</title>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:#0a0a0a;color:#fafafa;font-family:"Manrope",system-ui,sans-serif;min-height:100vh;display:flex;flex-direction:column}
+a{color:#f59e0b;text-decoration:none}
+.top-bar{padding:10px 20px;display:flex;align-items:center;gap:16px;border-bottom:1px solid #1a1a1a}
+.top-bar a{font-size:.82rem;font-weight:600}
+h1{text-align:center;color:#f59e0b;margin:14px 0 4px;font-size:1.35rem}
+.desc{text-align:center;color:#737373;font-size:.82rem;margin-bottom:10px}
+.main{display:flex;gap:14px;padding:0 16px;flex:1;max-width:1200px;margin:0 auto;width:100%}
+.left{flex:1;min-width:0}
+.right{width:300px;flex-shrink:0}
+canvas{width:100%;background:#111;border:1px solid #222;border-radius:8px;margin-bottom:10px}
+.panel{background:#141414;border:1px solid #1a1a1a;border-radius:8px;padding:12px;margin-bottom:10px}
+.panel h3{font-size:.82rem;color:#f59e0b;margin-bottom:8px}
+label{font-size:.75rem;color:#aaa;display:block;margin-bottom:4px}
+select,input[type=range]{background:#222;color:#fafafa;border:1px solid #333;padding:5px 8px;border-radius:4px;font-size:.78rem;width:100%;font-family:inherit;margin-bottom:8px}
+input[type=range]{padding:0;height:6px;-webkit-appearance:none;appearance:none;border:none;background:#333;border-radius:3px;cursor:pointer}
+input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:14px;height:14px;border-radius:50%;background:#f59e0b;cursor:pointer}
+button{background:#f59e0b;color:#0a0a0a;border:none;padding:6px 14px;border-radius:4px;font-size:.78rem;cursor:pointer;font-weight:600;font-family:inherit}
+button:hover{background:#d97706}
+button.secondary{background:#222;color:#fafafa;border:1px solid #333}
+button.secondary:hover{background:#333}
+.btn-row{display:flex;gap:6px;margin-bottom:8px;flex-wrap:wrap}
+.stats-grid{display:grid;grid-template-columns:1fr 1fr;gap:6px}
+.stat-box{background:#1a1a1a;border-radius:6px;padding:8px;text-align:center}
+.stat-val{font-size:1rem;font-weight:700;color:#f59e0b}
+.stat-label{font-size:.65rem;color:#737373;margin-top:2px}
+.slider-row{display:flex;align-items:center;gap:8px;margin-bottom:8px}
+.slider-row label{flex:1;margin:0}
+.slider-row .val{font-size:.78rem;font-weight:600;color:#f59e0b;min-width:60px;text-align:right}
+footer{border-top:1px solid #1a1a1a;padding:12px;text-align:center;font-size:.7rem;color:#404040;margin-top:auto}
+@media(max-width:800px){.main{flex-direction:column}.right{width:100%}}
+</style>
+<meta name="description" content="Chip power analysis: dynamic power (CV2f), static leakage, thermal model. Compare technology nodes 90nm to 5nm.">
+<meta property="og:title" content="Chip Power Analysis - FreeChipStore">
+<meta property="og:description" content="Chip power analysis: dynamic power (CV2f), static leakage, thermal model. Compare technology nodes 90nm to 5nm.">
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://freechipstore.pages.dev/items/power-analysis/">
+<meta name="twitter:card" content="summary">
+<link rel="canonical" href="https://freechipstore.pages.dev/items/power-analysis/">
+<link rel="icon" type="image/svg+xml" href="/favicon.svg">
+</head>
+<body>
+<div class="top-bar"><a href="/">&#8592; FreeChipStore</a></div>
+<h1>Chip Power Analysis</h1>
+<p class="desc">Dynamic power, static leakage, thermal model, technology node comparison, and the power wall</p>
+<div class="main">
+<div class="left">
+ <canvas id="pie" width="820" height="240"></canvas>
+ <canvas id="curve" width="820" height="260"></canvas>
+</div>
+<div class="right">
+ <div class="panel">
+  <h3>Circuit Parameters</h3>
+  <div class="slider-row">
+   <label>Transistors</label>
+   <input type="range" id="transistors" min="5" max="9" step="0.1" value="7">
+   <span class="val" id="vTrans">10M</span>
+  </div>
+  <div class="slider-row">
+   <label>Frequency (GHz)</label>
+   <input type="range" id="freq" min="0.1" max="6" step="0.1" value="3.0">
+   <span class="val" id="vFreq">3.0</span>
+  </div>
+  <div class="slider-row">
+   <label>Voltage (V)</label>
+   <input type="range" id="voltage" min="0.4" max="1.4" step="0.01" value="1.0">
+   <span class="val" id="vVolt">1.00</span>
+  </div>
+  <div class="slider-row">
+   <label>Activity Factor</label>
+   <input type="range" id="activity" min="0.01" max="1" step="0.01" value="0.3">
+   <span class="val" id="vAct">0.30</span>
+  </div>
+  <div class="slider-row">
+   <label>Tech Node</label>
+   <select id="node">
+    <option value="90">90nm</option>
+    <option value="45">45nm</option>
+    <option value="14" selected>14nm</option>
+    <option value="7">7nm</option>
+    <option value="5">5nm</option>
+   </select>
+  </div>
+ </div>
+ <div class="panel">
+  <h3>Power Breakdown</h3>
+  <div class="stats-grid">
+   <div class="stat-box"><div class="stat-val" id="dynP">--</div><div class="stat-label">Dynamic (W)</div></div>
+   <div class="stat-box"><div class="stat-val" id="staP">--</div><div class="stat-label">Static (W)</div></div>
+   <div class="stat-box"><div class="stat-val" id="totP">--</div><div class="stat-label">Total (W)</div></div>
+   <div class="stat-box"><div class="stat-val" id="temp">--</div><div class="stat-label">Temp (C)</div></div>
+  </div>
+ </div>
+ <div class="panel">
+  <h3>Compare Nodes</h3>
+  <div class="btn-row">
+   <button class="secondary" id="cmp90">90nm</button>
+   <button class="secondary" id="cmp45">45nm</button>
+   <button class="secondary" id="cmp14">14nm</button>
+   <button class="secondary" id="cmp7">7nm</button>
+   <button class="secondary" id="cmp5">5nm</button>
+  </div>
+  <button id="showHistory">MHz vs Watts (History)</button>
+ </div>
+ <div class="panel">
+  <h3>Formulas</h3>
+  <div style="font-size:.7rem;color:#aaa;line-height:1.7;font-family:monospace">
+   P_dyn = &alpha; &middot; C &middot; V&sup2; &middot; f<br>
+   P_static = I_leak &middot; V<br>
+   P_total = P_dyn + P_static<br>
+   T = T_amb + P &middot; R_thermal
+  </div>
+ </div>
+</div>
+</div>
+<footer><a href="/">FreeChipStore</a></footer>
+
+<script>
+const pieCanvas=document.getElementById('pie'),pieCtx=pieCanvas.getContext('2d');
+const curveCanvas=document.getElementById('curve'),curveCtx=curveCanvas.getContext('2d');
+const PW=820,PH=240,CW=820,CH=260;
+
+// Technology node parameters: {cap_per_transistor (fF), leakage_per_transistor (nA)}
+const NODES={
+  90:{cap:1.2,leak:20,name:'90nm',year:2004},
+  45:{cap:0.8,leak:50,name:'45nm',year:2007},
+  14:{cap:0.4,leak:10,name:'14nm',year:2014},
+  7:{cap:0.25,leak:8,name:'7nm',year:2018},
+  5:{cap:0.18,leak:6,name:'5nm',year:2020}
+};
+
+// Historical data: {year, chip, freq_mhz, watts}
+const HISTORY=[
+  {year:1985,chip:'386',freq:33,watts:1},
+  {year:1993,chip:'Pentium',freq:66,watts:10},
+  {year:1999,chip:'P3',freq:500,watts:25},
+  {year:2002,chip:'P4',freq:3000,watts:82},
+  {year:2004,chip:'P4 HT',freq:3800,watts:115},
+  {year:2006,chip:'Core2',freq:2930,watts:65},
+  {year:2010,chip:'i7-2600',freq:3400,watts:95},
+  {year:2014,chip:'i7-4790',freq:4000,watts:84},
+  {year:2018,chip:'i9-9900K',freq:5000,watts:95},
+  {year:2020,chip:'M1',freq:3200,watts:20},
+  {year:2022,chip:'i9-13900K',freq:5800,watts:253},
+  {year:2024,chip:'M4 Max',freq:4500,watts:40}
+];
+
+let showHistoryMode=false;
+let params={transistors:7,freq:3.0,voltage:1.0,activity:0.3,node:14};
+
+function formatNum(n){
+  if(n>=1e9)return(n/1e9).toFixed(1)+'B';
+  if(n>=1e6)return(n/1e6).toFixed(1)+'M';
+  if(n>=1e3)return(n/1e3).toFixed(1)+'K';
+  return n.toFixed(0);
+}
+
+function computePower(){
+  const node=NODES[params.node];
+  const numTrans=Math.pow(10,params.transistors);
+  const capTotal=numTrans*node.cap*1e-15; // Total capacitance in F
+  const f=params.freq*1e9;
+  const V=params.voltage;
+  const alpha=params.activity;
+
+  const pDyn=alpha*capTotal*V*V*f; // Watts
+  const pStatic=numTrans*node.leak*1e-9*V; // Watts
+  const pTotal=pDyn+pStatic;
+
+  // Thermal: ambient 35C, thermal resistance ~0.3 C/W for typical heatsink
+  const rThermal=0.3;
+  const temp=35+pTotal*rThermal;
+
+  return{pDyn,pStatic,pTotal,temp,numTrans};
+}
+
+function updateDisplay(){
+  const r=computePower();
+  document.getElementById('dynP').textContent=r.pDyn.toFixed(1);
+  document.getElementById('staP').textContent=r.pStatic.toFixed(1);
+  document.getElementById('totP').textContent=r.pTotal.toFixed(1);
+  document.getElementById('temp').textContent=r.temp.toFixed(0)+'C';
+}
+
+function drawPie(){
+  pieCtx.clearRect(0,0,PW,PH);
+  const r=computePower();
+
+  // Pie chart
+  const cx=140,cy=PH/2,radius=80;
+  const dynRatio=r.pDyn/r.pTotal;
+  const statRatio=r.pStatic/r.pTotal;
+
+  // Dynamic slice
+  pieCtx.beginPath();pieCtx.moveTo(cx,cy);
+  pieCtx.arc(cx,cy,radius,0,dynRatio*Math.PI*2);
+  pieCtx.closePath();pieCtx.fillStyle='#f59e0b';pieCtx.fill();
+
+  // Static slice
+  pieCtx.beginPath();pieCtx.moveTo(cx,cy);
+  pieCtx.arc(cx,cy,radius,dynRatio*Math.PI*2,Math.PI*2);
+  pieCtx.closePath();pieCtx.fillStyle='#a855f7';pieCtx.fill();
+
+  // Labels
+  pieCtx.fillStyle='#fafafa';pieCtx.font='bold 12px Manrope,system-ui';
+  pieCtx.textAlign='center';
+  pieCtx.fillText('Power Breakdown',cx,20);
+  pieCtx.font='11px Manrope,system-ui';
+  pieCtx.fillStyle='#f59e0b';
+  pieCtx.fillText('Dynamic: '+(dynRatio*100).toFixed(1)+'%',cx,PH-30);
+  pieCtx.fillStyle='#a855f7';
+  pieCtx.fillText('Static: '+(statRatio*100).toFixed(1)+'%',cx,PH-12);
+
+  // Bar chart: node comparison
+  const bx=300,by=30,bw=480,bh=PH-50;
+  pieCtx.fillStyle='#181818';pieCtx.strokeStyle='#222';pieCtx.lineWidth=1;
+  pieCtx.beginPath();pieCtx.roundRect(bx,by,bw,bh,8);pieCtx.fill();pieCtx.stroke();
+  pieCtx.fillStyle='#fafafa';pieCtx.font='bold 12px Manrope,system-ui';
+  pieCtx.fillText('Power by Technology Node',bx+bw/2,by+20);
+
+  const nodeKeys=[90,45,14,7,5];
+  const barW=60,gap=20;
+  const startX=bx+40;
+  const maxP=Math.max(...nodeKeys.map(n=>{
+    const nd=NODES[n];const nt=Math.pow(10,params.transistors);
+    return params.activity*(nt*nd.cap*1e-15)*params.voltage*params.voltage*params.freq*1e9+nt*nd.leak*1e-9*params.voltage;
+  }));
+
+  nodeKeys.forEach((n,i)=>{
+    const nd=NODES[n];const nt=Math.pow(10,params.transistors);
+    const pD=params.activity*(nt*nd.cap*1e-15)*params.voltage*params.voltage*params.freq*1e9;
+    const pS=nt*nd.leak*1e-9*params.voltage;
+    const total=pD+pS;
+    const x=startX+i*(barW+gap);
+    const maxBarH=bh-60;
+    const hD=(pD/maxP)*maxBarH;
+    const hS=(pS/maxP)*maxBarH;
+    const baseY=by+bh-20;
+    // Dynamic bar
+    pieCtx.fillStyle=n===params.node?'#f59e0b':'#f59e0b66';
+    pieCtx.fillRect(x,baseY-hD-hS,barW,hD);
+    // Static bar
+    pieCtx.fillStyle=n===params.node?'#a855f7':'#a855f766';
+    pieCtx.fillRect(x,baseY-hS,barW,hS);
+    // Label
+    pieCtx.fillStyle=n===params.node?'#fafafa':'#737373';
+    pieCtx.font='bold 10px Manrope,system-ui';
+    pieCtx.fillText(nd.name,x+barW/2,baseY+14);
+    // Watts
+    pieCtx.fillStyle='#aaa';pieCtx.font='9px monospace';
+    pieCtx.fillText(total.toFixed(1)+'W',x+barW/2,baseY-hD-hS-6);
+  });
+  pieCtx.textAlign='left';
+}
+
+function drawCurve(){
+  curveCtx.clearRect(0,0,CW,CH);
+
+  if(showHistoryMode){
+    drawHistory();return;
+  }
+
+  // Frequency vs Power curve
+  const px=60,py=30,pw=CW-100,ph=CH-70;
+  curveCtx.fillStyle='#181818';curveCtx.strokeStyle='#222';curveCtx.lineWidth=1;
+  curveCtx.beginPath();curveCtx.roundRect(px-10,py-10,pw+30,ph+40,8);curveCtx.fill();curveCtx.stroke();
+  curveCtx.fillStyle='#fafafa';curveCtx.font='bold 12px Manrope,system-ui';
+  curveCtx.textAlign='center';
+  curveCtx.fillText('Frequency vs Power (why we hit the power wall)',px+pw/2,py+6);
+
+  // Axes
+  curveCtx.strokeStyle='#444';curveCtx.lineWidth=1;
+  curveCtx.beginPath();curveCtx.moveTo(px,py+ph);curveCtx.lineTo(px+pw,py+ph);curveCtx.stroke();
+  curveCtx.beginPath();curveCtx.moveTo(px,py+20);curveCtx.lineTo(px,py+ph);curveCtx.stroke();
+  curveCtx.fillStyle='#737373';curveCtx.font='10px Manrope,system-ui';
+  curveCtx.fillText('Frequency (GHz)',px+pw/2,py+ph+26);
+  curveCtx.save();curveCtx.translate(px-35,py+ph/2);curveCtx.rotate(-Math.PI/2);
+  curveCtx.fillText('Power (W)',0,0);curveCtx.restore();
+
+  // Plot curves for current node at different voltages
+  const node=NODES[params.node];
+  const nt=Math.pow(10,params.transistors);
+  const voltages=[0.6,0.8,1.0,1.2];
+  const vColors=['#22c55e','#3b82f6','#f59e0b','#ef4444'];
+  const maxFreq=6,steps=60;
+  let maxPower=0;
+  voltages.forEach(v=>{
+    const p=params.activity*(nt*node.cap*1e-15)*v*v*maxFreq*1e9+nt*node.leak*1e-9*v;
+    if(p>maxPower)maxPower=p;
+  });
+  maxPower*=1.1;
+
+  // Axis labels
+  for(let f=0;f<=maxFreq;f++){
+    const x=px+(f/maxFreq)*pw;
+    curveCtx.fillStyle='#555';curveCtx.font='9px monospace';
+    curveCtx.fillText(f.toString(),x,py+ph+12);
+  }
+  for(let p=0;p<=maxPower;p+=Math.ceil(maxPower/5)){
+    const y=py+ph-(p/maxPower)*ph+20;
+    curveCtx.fillStyle='#555';curveCtx.font='9px monospace';curveCtx.textAlign='right';
+    curveCtx.fillText(p.toFixed(0),px-8,y+3);
+    curveCtx.textAlign='center';
+  }
+
+  voltages.forEach((v,vi)=>{
+    curveCtx.strokeStyle=vColors[vi];curveCtx.lineWidth=2;
+    curveCtx.beginPath();
+    for(let i=0;i<=steps;i++){
+      const f=(i/steps)*maxFreq;
+      const pD=params.activity*(nt*node.cap*1e-15)*v*v*f*1e9;
+      const pS=nt*node.leak*1e-9*v;
+      const total=pD+pS;
+      const x=px+(f/maxFreq)*pw;
+      const y=py+ph-(total/maxPower)*ph+20;
+      if(i===0)curveCtx.moveTo(x,y);else curveCtx.lineTo(x,y);
+    }
+    curveCtx.stroke();
+    // Label
+    curveCtx.fillStyle=vColors[vi];curveCtx.font='bold 10px Manrope,system-ui';
+    const labelX=px+pw+5;
+    const pAtMax=params.activity*(nt*node.cap*1e-15)*v*v*maxFreq*1e9+nt*node.leak*1e-9*v;
+    const labelY=py+ph-(pAtMax/maxPower)*ph+20;
+    curveCtx.textAlign='left';
+    curveCtx.fillText(v.toFixed(1)+'V',labelX,labelY+4);
+  });
+
+  // Current operating point
+  const curP=computePower().pTotal;
+  const dotX=px+(params.freq/maxFreq)*pw;
+  const dotY=py+ph-(curP/maxPower)*ph+20;
+  curveCtx.beginPath();curveCtx.arc(dotX,dotY,6,0,Math.PI*2);
+  curveCtx.fillStyle='#fafafa';curveCtx.fill();
+  curveCtx.strokeStyle='#f59e0b';curveCtx.lineWidth=2;curveCtx.stroke();
+  curveCtx.fillStyle='#fafafa';curveCtx.font='bold 9px monospace';curveCtx.textAlign='center';
+  curveCtx.fillText(curP.toFixed(1)+'W',dotX,dotY-12);
+
+  // Power wall annotation
+  const wallX=px+(4/maxFreq)*pw;
+  curveCtx.strokeStyle='#ef444466';curveCtx.lineWidth=1;curveCtx.setLineDash([4,4]);
+  curveCtx.beginPath();curveCtx.moveTo(wallX,py+20);curveCtx.lineTo(wallX,py+ph);curveCtx.stroke();
+  curveCtx.setLineDash([]);
+  curveCtx.fillStyle='#ef4444';curveCtx.font='9px Manrope,system-ui';
+  curveCtx.fillText('~Power Wall',wallX,py+18);
+  curveCtx.textAlign='left';
+}
+
+function drawHistory(){
+  const px=60,py=30,pw=CW-100,ph=CH-70;
+  curveCtx.fillStyle='#181818';curveCtx.strokeStyle='#222';curveCtx.lineWidth=1;
+  curveCtx.beginPath();curveCtx.roundRect(px-10,py-10,pw+30,ph+40,8);curveCtx.fill();curveCtx.stroke();
+  curveCtx.fillStyle='#fafafa';curveCtx.font='bold 12px Manrope,system-ui';
+  curveCtx.textAlign='center';
+  curveCtx.fillText('Historical: MHz vs Watts (the power wall in action)',px+pw/2,py+6);
+
+  const maxFreq=6000,maxWatts=260;
+  // Axes
+  curveCtx.strokeStyle='#444';curveCtx.lineWidth=1;
+  curveCtx.beginPath();curveCtx.moveTo(px,py+ph);curveCtx.lineTo(px+pw,py+ph);curveCtx.stroke();
+  curveCtx.beginPath();curveCtx.moveTo(px,py+20);curveCtx.lineTo(px,py+ph);curveCtx.stroke();
+  curveCtx.fillStyle='#737373';curveCtx.font='10px Manrope,system-ui';
+  curveCtx.fillText('Year',px+pw/2,py+ph+26);
+  curveCtx.textAlign='left';
+
+  const minYear=1985,maxYear=2025;
+  // Plot MHz line
+  curveCtx.strokeStyle='#3b82f6';curveCtx.lineWidth=2;curveCtx.beginPath();
+  HISTORY.forEach((h,i)=>{
+    const x=px+((h.year-minYear)/(maxYear-minYear))*pw;
+    const y=py+ph-(h.freq/maxFreq)*(ph-20);
+    if(i===0)curveCtx.moveTo(x,y);else curveCtx.lineTo(x,y);
+  });
+  curveCtx.stroke();
+
+  // Plot Watts line
+  curveCtx.strokeStyle='#ef4444';curveCtx.lineWidth=2;curveCtx.beginPath();
+  HISTORY.forEach((h,i)=>{
+    const x=px+((h.year-minYear)/(maxYear-minYear))*pw;
+    const y=py+ph-(h.watts/maxWatts)*(ph-20);
+    if(i===0)curveCtx.moveTo(x,y);else curveCtx.lineTo(x,y);
+  });
+  curveCtx.stroke();
+
+  // Data points and labels
+  HISTORY.forEach(h=>{
+    const x=px+((h.year-minYear)/(maxYear-minYear))*pw;
+    const yF=py+ph-(h.freq/maxFreq)*(ph-20);
+    const yW=py+ph-(h.watts/maxWatts)*(ph-20);
+    curveCtx.beginPath();curveCtx.arc(x,yF,3,0,Math.PI*2);curveCtx.fillStyle='#3b82f6';curveCtx.fill();
+    curveCtx.beginPath();curveCtx.arc(x,yW,3,0,Math.PI*2);curveCtx.fillStyle='#ef4444';curveCtx.fill();
+    curveCtx.fillStyle='#666';curveCtx.font='8px monospace';curveCtx.textAlign='center';
+    curveCtx.fillText(h.chip,x,yF-8);
+  });
+
+  // Legend
+  curveCtx.font='bold 11px Manrope,system-ui';curveCtx.textAlign='left';
+  curveCtx.fillStyle='#3b82f6';curveCtx.fillText('MHz',px+pw-80,py+30);
+  curveCtx.fillStyle='#ef4444';curveCtx.fillText('Watts',px+pw-80,py+46);
+
+  // Power wall annotation
+  const wallYear=2004;
+  const wallX=px+((wallYear-minYear)/(maxYear-minYear))*pw;
+  curveCtx.strokeStyle='#f59e0b66';curveCtx.lineWidth=1;curveCtx.setLineDash([4,4]);
+  curveCtx.beginPath();curveCtx.moveTo(wallX,py+20);curveCtx.lineTo(wallX,py+ph);curveCtx.stroke();
+  curveCtx.setLineDash([]);
+  curveCtx.fillStyle='#f59e0b';curveCtx.font='9px Manrope,system-ui';curveCtx.textAlign='center';
+  curveCtx.fillText('Power Wall (~2004)',wallX,py+ph+12);
+  curveCtx.fillText('Freq stopped scaling, multi-core era began',wallX,py+18);
+  curveCtx.textAlign='left';
+}
+
+function readParams(){
+  params.transistors=+document.getElementById('transistors').value;
+  params.freq=+document.getElementById('freq').value;
+  params.voltage=+document.getElementById('voltage').value;
+  params.activity=+document.getElementById('activity').value;
+  params.node=+document.getElementById('node').value;
+  document.getElementById('vTrans').textContent=formatNum(Math.pow(10,params.transistors));
+  document.getElementById('vFreq').textContent=params.freq.toFixed(1);
+  document.getElementById('vVolt').textContent=params.voltage.toFixed(2);
+  document.getElementById('vAct').textContent=params.activity.toFixed(2);
+}
+
+function update(){
+  readParams();updateDisplay();drawPie();drawCurve();
+}
+
+['transistors','freq','voltage','activity','node'].forEach(id=>{
+  document.getElementById(id).addEventListener('input',update);
+});
+
+document.getElementById('showHistory').addEventListener('click',()=>{
+  showHistoryMode=!showHistoryMode;
+  document.getElementById('showHistory').textContent=showHistoryMode?'Freq vs Power Curve':'MHz vs Watts (History)';
+  drawCurve();
+});
+
+[90,45,14,7,5].forEach(n=>{
+  document.getElementById('cmp'+n).addEventListener('click',()=>{
+    document.getElementById('node').value=n;update();
+  });
+});
+
+update();
+</script>
+<script src="/related.js"></script>
+</body>
+</html>

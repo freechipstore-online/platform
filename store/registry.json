@@ -257,6 +257,50 @@
       "creator": "serge-ivo",
       "creatorName": "Serge",
       "creatorAvatar": "https://github.com/serge-ivo.png?size=96"
+    },
+    {
+      "id": "adder-visualizer",
+      "name": "Binary Adder Visualizer",
+      "description": "Half adder to full adder to ripple carry to carry lookahead. Watch carry propagation gate by gate, highlight critical path, compare gate count and delay.",
+      "category": "fundamentals",
+      "icon": "➕",
+      "iconBg": "#f59e0b",
+      "creator": "serge-ivo",
+      "creatorName": "Serge",
+      "creatorAvatar": "https://github.com/serge-ivo.png?size=96"
+    },
+    {
+      "id": "cache-coherence",
+      "name": "Cache Coherence Protocol",
+      "description": "4-core MESI protocol simulator. Animate state transitions, bus snooping, invalidation. Scenario builder for read/write sequences.",
+      "category": "architecture",
+      "icon": "🔗",
+      "iconBg": "#f59e0b",
+      "creator": "serge-ivo",
+      "creatorName": "Serge",
+      "creatorAvatar": "https://github.com/serge-ivo.png?size=96"
+    },
+    {
+      "id": "verilog-sim",
+      "name": "Simple Verilog Simulator",
+      "description": "Write Verilog-like HDL, simulate combinational and sequential logic, view waveform timing diagrams. Pre-loaded examples: SR latch, D flip-flop, counter, traffic light FSM.",
+      "category": "design",
+      "icon": "📟",
+      "iconBg": "#f59e0b",
+      "creator": "serge-ivo",
+      "creatorName": "Serge",
+      "creatorAvatar": "https://github.com/serge-ivo.png?size=96"
+    },
+    {
+      "id": "power-analysis",
+      "name": "Chip Power Analysis",
+      "description": "Dynamic power (CV2f), static leakage, thermal model. Frequency vs power curves, technology node comparison (90nm to 5nm), historical MHz vs Watts trend.",
+      "category": "fabrication",
+      "icon": "⚡",
+      "iconBg": "#f59e0b",
+      "creator": "serge-ivo",
+      "creatorName": "Serge",
+      "creatorAvatar": "https://github.com/serge-ivo.png?size=96"
     }
   ]
 }

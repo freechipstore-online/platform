@@ -1,0 +1,460 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Simple Verilog Simulator - FreeChipStore</title>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:#0a0a0a;color:#fafafa;font-family:"Manrope",system-ui,sans-serif;min-height:100vh;display:flex;flex-direction:column}
+a{color:#f59e0b;text-decoration:none}
+.top-bar{padding:10px 20px;display:flex;align-items:center;gap:16px;border-bottom:1px solid #1a1a1a}
+.top-bar a{font-size:.82rem;font-weight:600}
+h1{text-align:center;color:#f59e0b;margin:14px 0 4px;font-size:1.35rem}
+.desc{text-align:center;color:#737373;font-size:.82rem;margin-bottom:10px}
+.main{display:flex;gap:14px;padding:0 16px;flex:1;max-width:1200px;margin:0 auto;width:100%}
+.left{flex:1;min-width:0;display:flex;flex-direction:column;gap:10px}
+.right{width:280px;flex-shrink:0}
+.editor{background:#111;border:1px solid #222;border-radius:8px;padding:0;overflow:hidden;flex:1;min-height:280px;display:flex;flex-direction:column}
+.editor-header{padding:6px 12px;background:#181818;border-bottom:1px solid #222;font-size:.72rem;color:#737373;display:flex;justify-content:space-between;align-items:center}
+textarea{flex:1;background:transparent;color:#fafafa;border:none;padding:12px;font-family:"Courier New",monospace;font-size:.8rem;resize:none;line-height:1.5;outline:none;tab-size:2}
+.waveform{background:#111;border:1px solid #222;border-radius:8px;height:200px;overflow-x:auto;overflow-y:hidden;position:relative}
+.panel{background:#141414;border:1px solid #1a1a1a;border-radius:8px;padding:12px;margin-bottom:10px}
+.panel h3{font-size:.82rem;color:#f59e0b;margin-bottom:8px}
+label{font-size:.75rem;color:#aaa;display:block;margin-bottom:4px}
+select{background:#222;color:#fafafa;border:1px solid #333;padding:5px 8px;border-radius:4px;font-size:.78rem;width:100%;font-family:inherit;margin-bottom:8px}
+button{background:#f59e0b;color:#0a0a0a;border:none;padding:6px 14px;border-radius:4px;font-size:.78rem;cursor:pointer;font-weight:600;font-family:inherit}
+button:hover{background:#d97706}
+button.secondary{background:#222;color:#fafafa;border:1px solid #333}
+button.secondary:hover{background:#333}
+.btn-row{display:flex;gap:6px;margin-bottom:8px;flex-wrap:wrap}
+.error{color:#ef4444;font-size:.72rem;padding:6px 12px;background:#1a0a0a;border-top:1px solid #331111;display:none}
+.signal-list{font-size:.7rem;color:#aaa;line-height:1.8}
+.signal-list .sig{display:flex;align-items:center;gap:6px}
+.signal-list .dot{width:8px;height:8px;border-radius:50%}
+footer{border-top:1px solid #1a1a1a;padding:12px;text-align:center;font-size:.7rem;color:#404040;margin-top:auto}
+@media(max-width:800px){.main{flex-direction:column}.right{width:100%}}
+</style>
+<meta name="description" content="Simple Verilog simulator with waveform viewer. Write modules, simulate combinational and sequential logic, view timing diagrams.">
+<meta property="og:title" content="Simple Verilog Simulator - FreeChipStore">
+<meta property="og:description" content="Simple Verilog simulator with waveform viewer. Write modules, simulate combinational and sequential logic, view timing diagrams.">
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://freechipstore.pages.dev/items/verilog-sim/">
+<meta name="twitter:card" content="summary">
+<link rel="canonical" href="https://freechipstore.pages.dev/items/verilog-sim/">
+<link rel="icon" type="image/svg+xml" href="/favicon.svg">
+</head>
+<body>
+<div class="top-bar"><a href="/">&#8592; FreeChipStore</a></div>
+<h1>Simple Verilog Simulator</h1>
+<p class="desc">Write Verilog-like HDL, simulate combinational + sequential logic, view waveforms</p>
+<div class="main">
+<div class="left">
+ <div class="editor">
+  <div class="editor-header"><span>module editor</span><span id="status">Ready</span></div>
+  <textarea id="code" spellcheck="false"></textarea>
+  <div class="error" id="error"></div>
+ </div>
+ <div class="waveform"><canvas id="wave" height="200"></canvas></div>
+</div>
+<div class="right">
+ <div class="panel">
+  <h3>Simulation</h3>
+  <label>Clock Cycles</label>
+  <select id="cycles"><option value="8">8</option><option value="16" selected>16</option><option value="32">32</option><option value="64">64</option></select>
+  <div class="btn-row">
+   <button id="run">Simulate</button>
+   <button id="step">Step +1</button>
+   <button class="secondary" id="resetSim">Reset</button>
+  </div>
+  <label>Current Cycle: <b id="curCycle">0</b></label>
+ </div>
+ <div class="panel">
+  <h3>Examples</h3>
+  <div class="btn-row">
+   <button class="secondary" id="exSR">SR Latch</button>
+   <button class="secondary" id="exDFF">D Flip-Flop</button>
+  </div>
+  <div class="btn-row">
+   <button class="secondary" id="exCounter">Counter</button>
+   <button class="secondary" id="exFSM">Traffic Light</button>
+  </div>
+ </div>
+ <div class="panel">
+  <h3>Signals</h3>
+  <div class="signal-list" id="signals"></div>
+ </div>
+ <div class="panel">
+  <h3>Syntax</h3>
+  <div style="font-size:.68rem;color:#737373;line-height:1.6">
+   <code style="color:#22c55e">wire</code> name;<br>
+   <code style="color:#22c55e">reg</code> name = 0;<br>
+   <code style="color:#3b82f6">assign</code> out = a &amp; b;<br>
+   <code style="color:#f59e0b">always @(posedge clk)</code> {<br>
+   &nbsp;&nbsp;if (cond) reg = val;<br>
+   &nbsp;&nbsp;else reg = val2;<br>
+   }<br>
+   Operators: &amp; | ^ ~ + - == != &lt; &gt;
+  </div>
+ </div>
+</div>
+</div>
+<footer><a href="/">FreeChipStore</a></footer>
+
+<script>
+const EXAMPLES={
+sr:`// SR Latch (NOR-based)
+wire S = 0;
+wire R = 0;
+reg Q = 0;
+reg Qn = 1;
+
+// Toggle S at cycle 2, R at cycle 5
+assign S = (cycle == 2 || cycle == 3) ? 1 : 0;
+assign R = (cycle == 5 || cycle == 6) ? 1 : 0;
+
+always @(posedge clk) {
+  if (S & ~R) Q = 1;
+  if (R & ~S) Q = 0;
+  Qn = ~Q;
+}`,
+dff:`// D Flip-Flop
+wire D = 0;
+reg Q = 0;
+reg Qn = 1;
+
+// D toggles every 2 cycles
+assign D = (cycle / 2) % 2;
+
+always @(posedge clk) {
+  Q = D;
+  Qn = ~Q;
+}`,
+counter:`// 4-bit Counter
+reg count_0 = 0;
+reg count_1 = 0;
+reg count_2 = 0;
+reg count_3 = 0;
+wire carry_0 = 0;
+wire carry_1 = 0;
+wire carry_2 = 0;
+
+always @(posedge clk) {
+  count_0 = ~count_0;
+  carry_0 = count_0 == 0 ? 1 : 0;
+  if (carry_0) count_1 = ~count_1;
+  carry_1 = (carry_0 & (count_1 == 0)) ? 1 : 0;
+  if (carry_1) count_2 = ~count_2;
+  carry_2 = (carry_1 & (count_2 == 0)) ? 1 : 0;
+  if (carry_2) count_3 = ~count_3;
+}`,
+fsm:`// Traffic Light FSM
+// States: 0=Green, 1=Yellow, 2=Red
+reg state = 0;
+reg timer = 0;
+wire green = 0;
+wire yellow = 0;
+wire red = 0;
+
+always @(posedge clk) {
+  timer = timer + 1;
+  if (state == 0) {
+    if (timer > 4) { state = 1; timer = 0; }
+  }
+  if (state == 1) {
+    if (timer > 1) { state = 2; timer = 0; }
+  }
+  if (state == 2) {
+    if (timer > 3) { state = 0; timer = 0; }
+  }
+}
+
+assign green = state == 0 ? 1 : 0;
+assign yellow = state == 1 ? 1 : 0;
+assign red = state == 2 ? 1 : 0;`
+};
+
+const codeEl=document.getElementById('code');
+const waveCanvas=document.getElementById('wave');
+const waveCtx=waveCanvas.getContext('2d');
+const COLORS=['#f59e0b','#22c55e','#3b82f6','#ef4444','#a855f7','#06b6d4','#ec4899','#84cc16'];
+
+let signals={},history=[],currentCycle=0;
+
+function showError(msg){
+  const el=document.getElementById('error');
+  if(msg){el.textContent=msg;el.style.display='block';}
+  else{el.style.display='none';}
+}
+
+function parse(code){
+  const decls=[];const assigns=[];const always=[];
+  const lines=code.split('\n').map(l=>l.replace(/\/\/.*$/,'').trim()).filter(Boolean);
+  let i=0;
+  while(i<lines.length){
+    const l=lines[i];
+    // Wire/reg declarations
+    const declMatch=l.match(/^(wire|reg)\s+(\w+)\s*=\s*(.+);$/);
+    if(declMatch){
+      decls.push({type:declMatch[1],name:declMatch[2],init:declMatch[3]});
+      i++;continue;
+    }
+    const declMatch2=l.match(/^(wire|reg)\s+(\w+);$/);
+    if(declMatch2){
+      decls.push({type:declMatch2[1],name:declMatch2[2],init:'0'});
+      i++;continue;
+    }
+    // Assign
+    const assignMatch=l.match(/^assign\s+(\w+)\s*=\s*(.+);$/);
+    if(assignMatch){
+      assigns.push({target:assignMatch[1],expr:assignMatch[2]});
+      i++;continue;
+    }
+    // Always block
+    if(l.match(/^always\s*@\(posedge\s+\w+\)\s*\{?$/)){
+      let body='';i++;let depth=l.includes('{')?1:0;
+      if(!depth&&lines[i]==='{'){depth=1;i++;}
+      while(i<lines.length&&depth>0){
+        if(lines[i].includes('{'))depth++;
+        if(lines[i].includes('}'))depth--;
+        if(depth>0)body+=lines[i]+'\n';
+        i++;
+      }
+      always.push(body);
+      continue;
+    }
+    i++;
+  }
+  return{decls,assigns,always};
+}
+
+function evalExpr(expr,vars){
+  // Simple expression evaluator
+  let e=expr.trim();
+  // Replace signal names with values
+  const names=Object.keys(vars).sort((a,b)=>b.length-a.length);
+  names.forEach(n=>{e=e.replace(new RegExp('\\b'+n+'\\b','g'),vars[n]);});
+  // Ternary
+  const ternary=e.match(/(.+)\s*\?\s*(.+)\s*:\s*(.+)/);
+  if(ternary){
+    const cond=evalSimple(ternary[1]);
+    return cond?evalSimple(ternary[2]):evalSimple(ternary[3]);
+  }
+  return evalSimple(e);
+}
+
+function evalSimple(e){
+  try{
+    e=e.replace(/~/g,' ~').replace(/\s+/g,' ').trim();
+    // Handle ~ (NOT)
+    while(e.includes('~')){
+      e=e.replace(/~\s*(\d+)/,(m,v)=>((~parseInt(v))&1).toString());
+    }
+    // Use Function for safe eval of arithmetic/logic
+    const val=new Function('return ('+e.replace(/[^0-9+\-*/%&|^<>=!() ]/g,'')+');')();
+    return typeof val==='boolean'?(val?1:0):(isNaN(val)?0:val);
+  }catch(err){return 0;}
+}
+
+function executeAlways(body,vars){
+  const lines=body.split('\n').map(l=>l.trim()).filter(Boolean);
+  let i=0;
+  while(i<lines.length){
+    const l=lines[i];
+    // Assignment: name = expr;
+    const assignMatch=l.match(/^(\w+)\s*=\s*(.+);$/);
+    if(assignMatch){
+      vars[assignMatch[1]]=evalExpr(assignMatch[2],vars);
+      i++;continue;
+    }
+    // If statement
+    const ifMatch=l.match(/^if\s*\((.+)\)\s*\{?\s*(.*)$/);
+    if(ifMatch){
+      const cond=evalExpr(ifMatch[1],vars);
+      // Collect if-body
+      let ifBody='';
+      if(ifMatch[2]&&!ifMatch[2].includes('{')){
+        // Single line after if
+        const singleAssign=ifMatch[2].match(/(\w+)\s*=\s*(.+);/);
+        if(singleAssign&&cond)vars[singleAssign[1]]=evalExpr(singleAssign[2],vars);
+        i++;continue;
+      }
+      i++;let depth=1;
+      while(i<lines.length&&depth>0){
+        if(lines[i].includes('{'))depth++;
+        if(lines[i].includes('}'))depth--;
+        if(depth>0)ifBody+=lines[i]+'\n';
+        i++;
+      }
+      // Check for else
+      let elseBody='';
+      if(i<lines.length&&lines[i].match(/^else/)){
+        i++;
+        if(i<lines.length&&lines[i]==='{')i++;
+        let edepth=1;
+        while(i<lines.length&&edepth>0){
+          if(lines[i].includes('{'))edepth++;
+          if(lines[i].includes('}'))edepth--;
+          if(edepth>0)elseBody+=lines[i]+'\n';
+          i++;
+        }
+      }
+      if(cond)executeAlways(ifBody,vars);
+      else if(elseBody)executeAlways(elseBody,vars);
+      continue;
+    }
+    i++;
+  }
+}
+
+function simulate(numCycles){
+  const code=codeEl.value;
+  showError('');
+  let parsed;
+  try{parsed=parse(code);}catch(e){showError('Parse error: '+e.message);return;}
+
+  // Init signals
+  signals={clk:0};
+  parsed.decls.forEach(d=>{signals[d.name]=evalExpr(d.init,{cycle:0,...signals});});
+  history=[{...signals,cycle:0}];
+  currentCycle=0;
+
+  for(let cycle=1;cycle<=numCycles;cycle++){
+    signals.clk=1;signals.cycle=cycle;
+    // Evaluate assigns
+    parsed.assigns.forEach(a=>{
+      signals[a.target]=evalExpr(a.expr,signals);
+    });
+    // Execute always blocks
+    parsed.always.forEach(body=>{
+      executeAlways(body,signals);
+    });
+    // Re-evaluate assigns after always (for outputs)
+    parsed.assigns.forEach(a=>{
+      signals[a.target]=evalExpr(a.expr,signals);
+    });
+    history.push({...signals,cycle});
+    signals.clk=0;
+    currentCycle=cycle;
+  }
+  document.getElementById('curCycle').textContent=currentCycle;
+  updateSignalList();
+  drawWaveform();
+}
+
+function stepOne(){
+  if(history.length===0){
+    const code=codeEl.value;
+    let parsed;
+    try{parsed=parse(code);}catch(e){showError('Parse error: '+e.message);return;}
+    signals={clk:0};
+    parsed.decls.forEach(d=>{signals[d.name]=evalExpr(d.init,{cycle:0,...signals});});
+    history=[{...signals,cycle:0}];
+    currentCycle=0;
+  }
+  const code=codeEl.value;
+  let parsed;
+  try{parsed=parse(code);}catch(e){showError('Parse error: '+e.message);return;}
+  currentCycle++;
+  signals.clk=1;signals.cycle=currentCycle;
+  parsed.assigns.forEach(a=>{signals[a.target]=evalExpr(a.expr,signals);});
+  parsed.always.forEach(body=>{executeAlways(body,signals);});
+  parsed.assigns.forEach(a=>{signals[a.target]=evalExpr(a.expr,signals);});
+  history.push({...signals,cycle:currentCycle});
+  signals.clk=0;
+  document.getElementById('curCycle').textContent=currentCycle;
+  updateSignalList();
+  drawWaveform();
+}
+
+function updateSignalList(){
+  const el=document.getElementById('signals');
+  const names=Object.keys(signals).filter(n=>n!=='clk'&&n!=='cycle');
+  el.innerHTML=names.map((n,i)=>{
+    const c=COLORS[i%COLORS.length];
+    return`<div class="sig"><span class="dot" style="background:${c}"></span>${n} = ${signals[n]}</div>`;
+  }).join('');
+}
+
+function drawWaveform(){
+  const names=Object.keys(history[0]||{}).filter(n=>n!=='cycle');
+  const rowH=28,padLeft=70,padTop=10;
+  const totalW=Math.max(600,padLeft+history.length*30+20);
+  waveCanvas.width=totalW;
+  waveCanvas.height=Math.max(200,names.length*rowH+padTop*2);
+  waveCanvas.style.width=totalW+'px';
+  const wCtx=waveCtx;
+  wCtx.clearRect(0,0,totalW,waveCanvas.height);
+  wCtx.fillStyle='#111';wCtx.fillRect(0,0,totalW,waveCanvas.height);
+
+  // Grid
+  wCtx.strokeStyle='#1a1a1a';wCtx.lineWidth=1;
+  for(let i=0;i<history.length;i++){
+    const x=padLeft+i*30;
+    wCtx.beginPath();wCtx.moveTo(x,0);wCtx.lineTo(x,waveCanvas.height);wCtx.stroke();
+  }
+
+  // Cycle numbers
+  wCtx.fillStyle='#555';wCtx.font='9px monospace';wCtx.textAlign='center';
+  for(let i=0;i<history.length;i++){
+    wCtx.fillText(i.toString(),padLeft+i*30+15,waveCanvas.height-4);
+  }
+
+  names.forEach((name,row)=>{
+    const y=padTop+row*rowH;
+    const color=COLORS[row%COLORS.length];
+    // Label
+    wCtx.fillStyle=color;wCtx.font='bold 10px monospace';wCtx.textAlign='right';
+    wCtx.fillText(name,padLeft-8,y+rowH/2+3);
+    // Waveform
+    wCtx.strokeStyle=color;wCtx.lineWidth=1.5;wCtx.beginPath();
+    const isDigital=history.every(h=>h[name]===0||h[name]===1);
+    for(let i=0;i<history.length;i++){
+      const x=padLeft+i*30;
+      const val=history[i][name];
+      let plotY;
+      if(isDigital){
+        plotY=val?y+4:y+rowH-4;
+      } else {
+        const maxV=Math.max(1,...history.map(h=>Math.abs(h[name])));
+        plotY=y+rowH/2-(val/maxV)*(rowH/2-4);
+      }
+      if(i===0)wCtx.moveTo(x,plotY);
+      else{
+        const prevVal=history[i-1][name];
+        const prevY=isDigital?(prevVal?y+4:y+rowH-4):y+rowH/2-(prevVal/Math.max(1,...history.map(h=>Math.abs(h[name]))))*(rowH/2-4);
+        // Step transition for digital
+        if(isDigital&&val!==prevVal){
+          wCtx.lineTo(x,prevY);wCtx.lineTo(x,plotY);
+        }
+        wCtx.lineTo(x+30,plotY);
+      }
+    }
+    wCtx.stroke();
+  });
+  wCtx.textAlign='left';
+}
+
+document.getElementById('run').addEventListener('click',()=>{
+  simulate(+document.getElementById('cycles').value);
+});
+document.getElementById('step').addEventListener('click',stepOne);
+document.getElementById('resetSim').addEventListener('click',()=>{
+  history=[];currentCycle=0;signals={};
+  document.getElementById('curCycle').textContent='0';
+  document.getElementById('signals').innerHTML='';
+  waveCtx.clearRect(0,0,waveCanvas.width,waveCanvas.height);
+});
+
+document.getElementById('exSR').addEventListener('click',()=>{codeEl.value=EXAMPLES.sr;});
+document.getElementById('exDFF').addEventListener('click',()=>{codeEl.value=EXAMPLES.dff;});
+document.getElementById('exCounter').addEventListener('click',()=>{codeEl.value=EXAMPLES.counter;});
+document.getElementById('exFSM').addEventListener('click',()=>{codeEl.value=EXAMPLES.fsm;});
+
+// Load default example
+codeEl.value=EXAMPLES.dff;
+document.getElementById('status').textContent='Ready';
+</script>
+<script src="/related.js"></script>
+</body>
+</html>
